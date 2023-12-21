@@ -577,7 +577,7 @@ def main(feagi_auth_url, feagi_settings, agent_settings, capabilities):
                 if len(capabilities['camera']['blink']) > 0:
                     raw_frame = capabilities['camera']['blink']
                 # Post image into vision
-                previous_frame_data, rgb = retina.detect_change_edge(raw_frame,
+                previous_frame_data, rgb = retina.update_region_split_downsize(raw_frame,
                                                                      capabilities,
                                                                      capabilities['camera']['index'],
                                                                      capabilities['camera']['size_list'],
