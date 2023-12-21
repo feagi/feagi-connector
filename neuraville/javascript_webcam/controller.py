@@ -148,7 +148,7 @@ if __name__ == "__main__":
                         raw_frame = capabilities['camera']['blink']
                     if not capabilities['camera']['size_list']:
                         capabilities = retina.update_size_list(capabilities)
-                    previous_frame_data, rgb = retina.detect_change_edge(raw_frame, capabilities,
+                    previous_frame_data, rgb = retina.update_region_split_downsize(raw_frame, capabilities,
                                                                          capabilities['camera'][
                                                                              "index"],
                                                                          capabilities['camera'][

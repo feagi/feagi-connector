@@ -28,6 +28,7 @@ from feagi_agent import trainer as feagi_trainer
 from configuration import *
 import requests
 import os
+import cv2
 
 if __name__ == "__main__":
     # Generate runtime dictionary
@@ -70,12 +71,11 @@ if __name__ == "__main__":
             message_to_feagi = feagi_trainer.id_training_with_image(message_to_feagi, name_id)
 
             # Post image into vision
-            previous_frame_data, rgb = retina.detect_change_edge(raw_frame, capabilities, "00",
+            previous_frame_data, rgb = retina.update_region_split_downsize(raw_frame, capabilities, "00",
                                                                  size_list, previous_frame_data,
                                                                  rgb)
             capabilities, feagi_settings['feagi_burst_speed'] = retina.vision_progress(
                 capabilities, feagi_opu_channel, api_address, feagi_settings, raw_frame)
-
             message_to_feagi = pns.generate_feagi_data(rgb, msg_counter, datetime.now(),
                                                        message_to_feagi)
             # Vision process ends
