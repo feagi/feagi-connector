@@ -28,6 +28,34 @@ from feagi_agent import trainer as feagi_trainer
 from configuration import *
 import requests
 import os
+import cv2
+
+
+def change_detector(previous, current, capabilities):
+    """
+    Detects changes between previous and current frames and checks against a threshold.
+
+    Compares the previous and current frames to identify differences. If the difference
+    exceeds a predefined threshold (iso), it records the change in a dictionary for Feagi.
+
+    Inputs:
+    - previous: Dictionary with 'cortical' keys containing NumPy ndarray frames.
+    - current: Dictionary with 'cortical' keys containing NumPy ndarray frames.
+
+    Output:
+    - Dictionary containing changes in the ndarray frames.
+    """
+
+    # Using cv2.absdiff for optimized difference calculation
+    difference = current
+    thresholded = cv2.threshold(difference, capabilities['camera']['threshold_default'][0],
+                                capabilities['camera']['threshold_default'][1],
+                                cv2.THRESH_TOZERO)[1]
+    # significant_changes = thresholded > 0
+
+    feagi_data = retina.create_feagi_data(thresholded, current, previous.shape)
+    return dict(feagi_data)
+
 
 if __name__ == "__main__":
     # Generate runtime dictionary
@@ -70,18 +98,60 @@ if __name__ == "__main__":
             message_to_feagi = feagi_trainer.id_training_with_image(message_to_feagi, name_id)
 
             # Post image into vision
-            previous_frame_data, rgb = retina.detect_change_edge(raw_frame, capabilities, "00",
-                                                                 size_list, previous_frame_data,
-                                                                 rgb)
+            # CUSTOM MADE ONLY #############################
+            if size_list:
+                region_coordinates = retina.vision_region_coordinates(raw_frame.shape[1],
+                                                                      raw_frame.shape[0],
+                                                                      abs(capabilities['camera'][
+                                                                              'gaze_control'][0]),
+                                                                      abs(capabilities[
+                                                                              'camera'][
+                                                                              'gaze_control'][1]),
+                                                                      abs(capabilities['camera'][
+                                                                              'pupil_control'][
+                                                                              0]),
+                                                                      abs(capabilities['camera'][
+                                                                              'pupil_control'][
+                                                                              1]),
+                                                                      "00",
+                                                                      size_list)
+                segmented_frame_data = retina.split_vision_regions(
+                    coordinates=region_coordinates, raw_frame_data=raw_frame)
+                compressed_data = dict()
+                for cortical in segmented_frame_data:
+                    compressed_data[cortical] = retina.downsize_regions(segmented_frame_data[
+                                                                            cortical],
+                                                                        size_list[cortical])
+                vision_dict = dict()
+                for get_region in compressed_data:
+                    if size_list[get_region][2] == 3:
+                        if previous_frame_data != {}:
+                            vision_dict[get_region] = change_detector(
+                                previous_frame_data[get_region],
+                                compressed_data[get_region],
+                                capabilities)
+                    else:
+                        if previous_frame_data != {}:
+                            vision_dict[get_region] = change_detector_grayscale(
+                                previous_frame_data[get_region],
+                                compressed_data[get_region],
+                                capabilities)
+                previous_frame_data = compressed_data
+                rgb['camera'] = vision_dict
+
+            # previous_frame_data, rgb = retina.update_region_split_downsize(raw_frame, capabilities, "00",
+            #                                                      size_list, previous_frame_data,
+            #                                                      rgb)
+
             capabilities, feagi_settings['feagi_burst_speed'] = retina.vision_progress(
                 capabilities, feagi_opu_channel, api_address, feagi_settings, raw_frame)
-
             message_to_feagi = pns.generate_feagi_data(rgb, msg_counter, datetime.now(),
                                                        message_to_feagi)
             # Vision process ends
             if start_timer == 0:
                 start_timer = datetime.now()
-            while capabilities['image_reader']['pause'] >= int((datetime.now() - start_timer).total_seconds()):
+            while capabilities['image_reader']['pause'] >= int(
+                    (datetime.now() - start_timer).total_seconds()):
                 # Testing mode section
                 if capabilities['image_reader']['test_mode']:
                     success_rate, success, total = testing_mode.mode_testing(name_id,
