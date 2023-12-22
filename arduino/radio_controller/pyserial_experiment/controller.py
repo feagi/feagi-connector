@@ -7,9 +7,28 @@ from feagi_agent import pns_gateway as pns
 from feagi_agent.version import __version__
 from feagi_agent import actuators
 
+
+def initialization_port(port):
+    return serial.Serial(port,
+                         baudrate=9600,
+                         timeout=2.5,
+                         parity=serial.PARITY_NONE,
+                         bytesize=serial.EIGHTBITS,
+                         stopbits=serial.STOPBITS_ONE)
+
+
+def convert_dict_to_json(data):
+    data = json.dumps(data)
+    return data
+
+
+def send_serial(ser, data):
+    ser.write(data.encode('ascii'))
+
+
 if __name__ == "__main__":
-    print ("Ready...")
-    ser  = actuators.initialization_port(capabilities['arduino']['port'])
+    print("Ready...")
+    ser = initialization_port(capabilities['arduino']['port'])
     feagi_flag = False
     print("Waiting on FEAGI...")
     while not feagi_flag:
@@ -30,14 +49,14 @@ if __name__ == "__main__":
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     msg_counter = runtime_data["feagi_state"]['burst_counter']
     device_list = pns.generate_OPU_list(capabilities)
-    
-    #Experimenting...delete this
+
+    # Experimenting...delete this
     data = dict()
     data[1] = 1
     data[2] = 1
     # Ends
-    
-    # To give ardiuno some time to open serial. It's required
+
+    # To give ardiuno some time to open port. It's required
     time.sleep(5)
     while True:
         message_from_feagi = pns.signals_from_feagi(feagi_opu_channel)
@@ -49,13 +68,8 @@ if __name__ == "__main__":
             if 'motor' in obtained_signals:
                 if obtained_signals['motor']:
                     for x in obtained_signals['motor']:
-                            if x in [0, 1, 2, 3]:
-                                new_dict[x] = obtained_signals['motor'][x]
-                    json_data = actuators.convert_dict_to_json(new_dict)
-                    print (json_data)
-        
+                        if x in [0, 1, 2, 3]:
+                            new_dict[x] = obtained_signals['motor'][x]
+                    json_data = convert_dict_to_json(new_dict) #convert dict to JSON
                     if ser.isOpen():
-                        actuators.send_serial(ser, json_data)
-                        #time.sleep(1)
-                        #ser.readline()
-                        #time.sleep(2)
+                        send_serial(ser, json_data)
