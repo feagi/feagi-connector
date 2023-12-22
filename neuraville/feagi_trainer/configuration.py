@@ -68,9 +68,9 @@ capabilities = {
     },
     "image_reader": {
         "loop": True,
-        "pause": 5,
+        "pause": 1,
         "path": "./",
-        "test_mode": True
+        "test_mode": False
     }
 }
 
