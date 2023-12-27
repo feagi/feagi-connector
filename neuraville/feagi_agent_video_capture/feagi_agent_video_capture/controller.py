@@ -127,7 +127,7 @@ def main(feagi_auth_url, feagi_settings, agent_settings, capabilities, message_t
                 raw_frame = camera_data['vision']
             if capabilities['camera']['blink'] != []:
                 raw_frame = capabilities['camera']['blink']
-            previous_frame_data, rgb = retina.detect_change_edge(raw_frame, capabilities,
+            previous_frame_data, rgb = retina.update_region_split_downsize(raw_frame, capabilities,
                                                                  capabilities['camera']["index"],
                                                                  capabilities['camera']['size_list'],
                                                                  previous_frame_data, rgb)

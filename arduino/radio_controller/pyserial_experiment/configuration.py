@@ -38,41 +38,12 @@ agent_settings = {
 }
 
 capabilities = {
-    "camera": {
-        "type": "ipu",
-        "disabled": False,
-        "index": "00",
-        "threshold_default": [10, 255, 130, 51], # min #1, max #1, min #2, max #2,
-        "threshold_range": [1, 255],
-        "threshold_type": {},
-        "threshold_name": 0,
-        "central_vision_allocation_percentage": [80, 60],
-        "central_vision_resolution": [64, 64],
-        "peripheral_vision_resolution": [8, 8],
-        "resolution_presets": [[8, 8], [16, 16], [32, 32], [64, 64], [80, 60], [128, 128], [160, 120],
-                               [256, 256], [320, 240], [400, 400], [480, 320], [500, 500], [800, 800], [1024, 900]],
-        "previous_data": {},
-        "video_device_index": 0,
-        "image": "",
-        "video_loop": False,
-        "mirror": False,
-        "monitor": 0,
-        "blink": [],
-        "gaze_control": {0: 1, 1: 99},
-        "pupil_control": {0: 1, 1: 99},
-        "vision_range": [1, 99],
-        "size_list": [],
-        "effect": {},
-        "enhancement": {},
-        "vision_tuner_range": [0, 255]
+    "arduino": {
+        "port": "COM5"
     },
-    "image_reader": {
-        "loop": True,
-        "pause": 1,
-        "path": "./",
-        "test_mode": False
-    }
+    "motor": {
+        "type": "opu"
+    },
 }
 
 message_to_feagi = {"data": {}}
-
