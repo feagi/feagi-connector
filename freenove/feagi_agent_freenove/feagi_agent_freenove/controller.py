@@ -10,6 +10,7 @@ from time import sleep
 from collections import deque
 from datetime import datetime
 from feagi_agent_freenove.Led import *
+from feagi_agent_freenove.ADC import *
 from feagi_agent import retina as retina
 from feagi_agent import sensors as sensors
 from feagi_agent import pns_gateway as pns
@@ -17,8 +18,6 @@ from feagi_agent import actuators as actuators
 from feagi_agent import feagi_interface as FEAGI
 from feagi_agent_freenove.PCA9685 import PCA9685
 from feagi_agent_freenove.version import __version__
-
-
 
 ir_data = deque()
 ultrasonic_data = deque()
@@ -391,12 +390,12 @@ class Ultrasonic:
         return distance_meter
 
 
-# class Battery:
-#     def battery_total(self):
-#         adc = Adc()
-#         Power = adc.recvADC(2) * 3
-#         # print(Power)
-#         return Power
+class Battery:
+    def battery_total(self):
+        adc = Adc()
+        Power = adc.recvADC(2) * 3
+        print(Power)
+        return Power
 
 
 def action(obtained_data, led_flag, feagi_settings, capabilities, motor_data,
@@ -532,7 +531,7 @@ def main(feagi_auth_url, feagi_settings, agent_settings, capabilities):
     motor = Motor()
     servo = Servo()
     led = LED()
-    # battery = Battery()  # Commented out, not currently in use
+    battery = Battery()  # Commented out, not currently in use
 
     # --- Variables ---
     rolling_window_len = capabilities['motor']['rolling_window_len']
@@ -568,7 +567,8 @@ def main(feagi_auth_url, feagi_settings, agent_settings, capabilities):
     servo.set_default_position(runtime_data)
     device_list = pns.generate_OPU_list(capabilities)
     response = requests.get(api_address + '/v1/feagi/genome/cortical_area/geometry')
-    capabilities['camera']['size_list'] = retina.obtain_cortical_vision_size(capabilities['camera']["index"], response)
+    capabilities['camera']['size_list'] = retina.obtain_cortical_vision_size(
+        capabilities['camera']["index"], response)
     raw_frame = []
     while True:
         try:
@@ -578,11 +578,15 @@ def main(feagi_auth_url, feagi_settings, agent_settings, capabilities):
                     raw_frame = capabilities['camera']['blink']
                 # Post image into vision
                 previous_frame_data, rgb = retina.update_region_split_downsize(raw_frame,
-                                                                     capabilities,
-                                                                     capabilities['camera']['index'],
-                                                                     capabilities['camera']['size_list'],
-                                                                     previous_frame_data,
-                                                                     rgb)
+                                                                               capabilities,
+                                                                               capabilities[
+                                                                                   'camera'][
+                                                                                   'index'],
+                                                                               capabilities[
+                                                                                   'camera'][
+                                                                                   'size_list'],
+                                                                               previous_frame_data,
+                                                                               rgb)
                 capabilities['camera']['blink'] = []
                 capabilities, feagi_settings['feagi_burst_speed'] = retina.vision_progress(
                     capabilities, feagi_opu_channel, api_address, feagi_settings, raw_frame)
@@ -597,15 +601,17 @@ def main(feagi_auth_url, feagi_settings, agent_settings, capabilities):
                 led_flag = action(obtained_signals, led_flag, feagi_settings,
                                   capabilities, motor_data, rolling_window, motor, servo, led,
                                   runtime_data)
-            # Fetch IR data
+            # add IR data into feagi data
             ir_list = ir_data[0] if ir_data else []
-            message_to_feagi = sensors.fetch_infrared_sensor(ir_list, message_to_feagi, capabilities)
-
-            # Fetch ultrasonic data
+            message_to_feagi = sensors.add_infrared_to_feagi_data(ir_list, message_to_feagi,
+                                                                  capabilities)
+            # add ultrasonic data into feagi data
             ultrasonic_list = ultrasonic.get_distance()
-            message_to_feagi = sensors.fetch_ultrasonic_sensor(ultrasonic_list, message_to_feagi)
-
-            # Removed battery due to error
+            message_to_feagi = sensors.add_ultrasonic_to_feagi_data(ultrasonic_list,
+                                                                    message_to_feagi)
+            # add battery data into feagi data
+            message_to_feagi = sensors.add_battery_to_feagi_data(battery.battery_total(),
+                                                                 message_to_feagi)
             # Wrapping camera data into a frame for FEAGI
             message_to_feagi = pns.generate_feagi_data(rgb, msg_counter, datetime.now(),
                                                        message_to_feagi)
