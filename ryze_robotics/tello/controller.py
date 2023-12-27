@@ -6,10 +6,11 @@ from djitellopy import Tello
 from datetime import datetime
 from version import __version__
 from feagi_agent import retina
+from feagi_agent import sensors
 from feagi_agent import pns_gateway as pns
 from feagi_agent import feagi_interface as FEAGI
 
-previous_data_frame = dict()
+previous_frame_data = dict()
 flag = False
 
 
@@ -28,17 +29,7 @@ def get_ultrasonic(full_data):
     full data should be a raw data of get_current_state().
     This will return the battery using the raw full data
     """
-    new_data = dict()
-    new_data['ultrasonic'] = full_data['tof'] * 0.01  # convert to meter unit
-    if new_data:
-        formatted_ultrasonic_data = {
-            'ultrasonic': {
-                sensor: data for sensor, data in enumerate([new_data['ultrasonic']])
-            }
-        }
-    else:
-        formatted_ultrasonic_data = {}
-    return formatted_ultrasonic_data
+    return full_data['tof'] * 0.01  # convert to meter unit
 
 
 def get_gyro(full_data):
@@ -48,17 +39,16 @@ def get_gyro(full_data):
         This gyro is 3 axis gyro.
     """
     new_data = dict()
-    new_data['gyro'] = dict()
     try:
-        new_data['gyro']['0'] = convert_gyro_into_feagi(full_data['pitch'],
-                                                        capabilities['gyro']['resolution'],
-                                                        capabilities['acc']['range'])
-        new_data['gyro']['1'] = convert_gyro_into_feagi(full_data['roll'],
-                                                        capabilities['gyro']['resolution'],
-                                                        capabilities['acc']['range'])
-        new_data['gyro']['2'] = convert_gyro_into_feagi(full_data['yaw'],
-                                                        capabilities['gyro']['resolution'],
-                                                        capabilities['acc']['range'])
+        new_data['0'] = convert_gyro_into_feagi(full_data['pitch'],
+                                                capabilities['gyro']['resolution'],
+                                                capabilities['acc']['range'])
+        new_data['1'] = convert_gyro_into_feagi(full_data['roll'],
+                                                capabilities['gyro']['resolution'],
+                                                capabilities['acc']['range'])
+        new_data['2'] = convert_gyro_into_feagi(full_data['yaw'],
+                                                capabilities['gyro']['resolution'],
+                                                capabilities['acc']['range'])
         return new_data
     except Exception as e:
         print("ERROR STARTS WITH: ", e)
@@ -70,16 +60,15 @@ def get_accelerator(full_data):
     This function will return acc data only.
     """
     new_data = dict()
-    new_data['accelerator'] = dict()
     try:
-        new_data['accelerator']['0'] = convert_gyro_into_feagi(full_data['agx'],
-                                                               capabilities['acc']['resolution'],
-                                                               capabilities['acc']['range'])
-        new_data['accelerator']['1'] = convert_gyro_into_feagi(full_data['agy'],
-                                                               capabilities['acc']['resolution'],
-                                                               capabilities['acc']['range'])
-        new_data['accelerator']['2'] = offset_z(full_data['agz'], capabilities['acc']['resolution'],
+        new_data['0'] = convert_gyro_into_feagi(full_data['agx'],
+                                                capabilities['acc']['resolution'],
                                                 capabilities['acc']['range'])
+        new_data['1'] = convert_gyro_into_feagi(full_data['agy'],
+                                                capabilities['acc']['resolution'],
+                                                capabilities['acc']['range'])
+        new_data['2'] = offset_z(full_data['agz'], capabilities['acc']['resolution'],
+                                 capabilities['acc']['range'])
         return new_data
     except Exception as e:
         print("ERROR STARTS WITH: ", e)
@@ -106,7 +95,7 @@ def control_drone(self, direction, cm_distance):
     try:
         if direction == "l":
             self.send_command_without_return(
-                "{} {}".format("left", cm_distance))  ## left cm * 11 (max 100)
+                "{} {}".format("left", cm_distance))  # left cm * 11 (max 100)
         elif direction == "r":
             self.send_command_without_return("{} {}".format("right", cm_distance))
         elif direction == "f":
@@ -221,6 +210,7 @@ def action(obtained_signals, device_list, flying_flag):
     for device in device_list:
         if 'misc' in obtained_signals:
             for i in obtained_signals['misc']:
+                print("worked")
                 misc_control(tello, i, battery)
         if flying_flag:
             if 'navigation' in obtained_signals:
@@ -262,16 +252,10 @@ if __name__ == '__main__':
     flag_counter = 0
     checkpoint_total = 5
     flying_flag = False
-    get_size_for_aptr_cortical = api_address + '/v1/FEAGI/genome/cortical_area?cortical_area=o_aptr'
-    raw_aptr = requests.get(get_size_for_aptr_cortical).json()
-    aptr_cortical_size = pns.fetch_aptr_size(10, raw_aptr, None)
     rgb = dict()
     rgb['camera'] = dict()
     capabilities['camera']['current_select'] = [[], []]
     device_list = pns.generate_OPU_list(capabilities)  # get the OPU sensors
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    # - - - #
-
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     # - - - # Initializer section
     tello = Tello()
@@ -281,9 +265,19 @@ if __name__ == '__main__':
     tello.connect()
     print("Connected with Tello drone.")
     start_camera(tello)
-
+    response = requests.get(api_address + '/v1/feagi/genome/cortical_area/geometry')
+    capabilities['camera']['size_list'] = retina.obtain_cortical_vision_size(
+        capabilities['camera']["index"], response)
     while True:
         try:
+            message_from_feagi = pns.signals_from_feagi(feagi_opu_channel)
+            if message_from_feagi is not None:
+                obtained_signals = pns.obtain_opu_data(device_list, message_from_feagi)
+                # Fetch data such as flip, move, etc and pass to a function (you make ur own
+                # action.)
+                action(obtained_signals, device_list, flying_flag)
+
+
             # Gather all data from the robot to prepare for FEAGI
             data = tello.get_current_state()
             gyro = get_gyro(data)
@@ -291,59 +285,46 @@ if __name__ == '__main__':
             sonar = get_ultrasonic(data)
             bat = get_battery(data)
             battery = bat['battery_charge_level']
-            data = full_frame(tello)
-            if capabilities['camera']['mirror']:
-                data = retina.flip_video(data)
-            previous_data_frame, rgb['camera'], capabilities['camera']['current_select'] = \
-                pns.generate_rgb(data,
-                                 capabilities['camera']['central_vision_allocation_percentage'][0],
-                                 capabilities['camera']['central_vision_allocation_percentage'][1],
-                                 capabilities['camera']["central_vision_resolution"],
-                                 capabilities['camera']['peripheral_vision_resolution'],
-                                 previous_data_frame,
-                                 capabilities['camera']['current_select'],
-                                 capabilities['camera']['iso_default'],
-                                 capabilities['camera']["aperture_default"],
-                                 camera_index=capabilities['camera']["index"])
-            configuration.message_to_feagi, bat = FEAGI.compose_message_to_feagi(
-                original_message=gyro,
-                data=configuration.message_to_feagi,
-                battery=battery)
-            configuration.message_to_feagi, bat = FEAGI.compose_message_to_feagi(
-                original_message=acc,
-                data=configuration.message_to_feagi,
-                battery=battery)
-            configuration.message_to_feagi, bat = FEAGI.compose_message_to_feagi(
-                original_message=sonar,
-                data=configuration.message_to_feagi,
-                battery=battery)
-            configuration.message_to_feagi, bat = FEAGI.compose_message_to_feagi(
-                original_message=rgb,
-                data=configuration.message_to_feagi,
-                battery=battery)
-            message_from_feagi = pns.signals_from_feagi(feagi_opu_channel)
-            if message_from_feagi is not None:
-                if aptr_cortical_size is None:
-                    aptr_cortical_size = pns.check_aptr(raw_aptr)
-                # Update the vres
-                capabilities = pns.fetch_resolution_selected(message_from_feagi, capabilities)
-                # Update the aptr
-                capabilities = pns.fetch_aperture_data(message_from_feagi, capabilities,
-                                                       aptr_cortical_size)
-                # Update the ISO
-                capabilities = pns.fetch_iso_data(message_from_feagi, capabilities,
-                                                  aptr_cortical_size)
-                obtained_signals = pns.obtain_opu_data(device_list, message_from_feagi)
-                action(obtained_signals, device_list, flying_flag)
+            raw_frame = full_frame(tello)
+            if len(capabilities['camera']['blink']) > 0:
+                raw_frame = capabilities['camera']['blink']
+            # Post image into vision
+            previous_frame_data, rgb = retina.update_region_split_downsize(raw_frame,
+                                                                           capabilities,
+                                                                           capabilities[
+                                                                               'camera'][
+                                                                               'index'],
+                                                                           capabilities[
+                                                                               'camera'][
+                                                                               'size_list'],
+                                                                           previous_frame_data,
+                                                                           rgb)
+            capabilities['camera']['blink'] = []
+            capabilities, feagi_settings['feagi_burst_speed'] = retina.vision_progress(
+                capabilities, feagi_opu_channel, api_address, feagi_settings, raw_frame)
+
+            # INSERT SENSORS INTO the FEAGI DATA SECTION BEGIN
+            message_to_feagi = pns.generate_feagi_data(rgb, msg_counter, datetime.now(),
+                                                       message_to_feagi)
+            # Add gyro data into feagi data
+            message_to_feagi = sensors.add_gyro_to_feagi_data(gyro, message_to_feagi)
+            # Add battery data into feagi data
+            message_to_feagi = sensors.add_battery_to_feagi_data(battery, message_to_feagi)
+            # Add accelerator data into feagi data
+            message_to_feagi = sensors.add_acc_to_feagi_data(acc, message_to_feagi)
+            # Add sonar data into feagi data. Leveraging the same process as ultrasonic.
+            message_to_feagi = sensors.add_ultrasonic_to_feagi_data(sonar, message_to_feagi)
+
 
             # Preparing to send data to FEAGI
             configuration.message_to_feagi['timestamp'] = datetime.now()
             configuration.message_to_feagi['counter'] = msg_counter
             pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
             configuration.message_to_feagi.clear()
-            if message_from_feagi is not None:
-                feagi_settings['feagi_burst_speed'] = message_from_feagi['burst_frequency']
+            # if message_from_feagi is not None:
+            #     feagi_settings['feagi_burst_speed'] = message_from_feagi['burst_frequency']
             time.sleep(feagi_settings['feagi_burst_speed'])
         except KeyboardInterrupt as ke:
             print("ERROR: ", ke)
             tello.end()
+            break
