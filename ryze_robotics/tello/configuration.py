@@ -34,30 +34,21 @@ agent_settings = {
     'compression': True
 }
 
-
 capabilities = {
     "camera": {
         "type": "ipu",
         "disabled": False,
         "index": "00",
-        "threshold_default": [10, 255, 130, 51],  # min #1, max #1, min #2, max #2,
-        "threshold_range": [1, 255],
-        "threshold_type": {},
-        "threshold_name": 0, # Binary_threshold
-        "central_vision_allocation_percentage": [80, 60],
-        "central_vision_resolution": [64, 64],
-        "peripheral_vision_resolution": [8, 8],
-        "resolution_presets": [[8, 8], [16, 16], [32, 32], [64, 64], [128, 128], [256, 256],
-                               [400, 400], [500, 500], [800, 800], [1024, 900]],
-        "mirror": True,
-        "blink": [],
-        "gaze_control": {0: 1, 1: 99},
-        "pupil_control": {0: 1, 1: 99},
-        "vision_range": [1, 99],
-        "size_list": [],
-        "effect": {},
-        "enhancement": {},
-        "vision_tuner_range": [0, 255]
+        "threshold_default": [50, 255, 130, 51],  # min #1, max #1, min #2, max #2,
+        "threshold_type": {},  # simple thresholding types. see the retina.threshold_detect function
+        "threshold_name": 0,  # Binary_threshold as a default
+        "mirror": True,  # flip the image?
+        "blink": [],  # Blink to see the "invert" image. Needs `o_blnk`
+        "gaze_control": {0: 1, 1: 99}, # Controlled by o__gaz OPU
+        "pupil_control": {0: 1, 1: 99}, # Controlled by o__pup
+        "vision_range": [1, 99],  # min, max
+        "size_list": [],  # To get the size in real time based on genome's change/update
+        "enhancement": {}  # Enable ov_enh OPU on inside the genome
     },
     "battery": {
         "type": "ipu",
