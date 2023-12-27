@@ -30,73 +30,6 @@ import requests
 import os
 import cv2
 
-def change_detector_grayscale(previous, current, capabilities):
-    """
-    Detects changes between previous and current frames and checks against a threshold.
-
-    Compares the previous and current frames to identify differences. If the difference
-    exceeds a predefined threshold (iso), it records the change in a dictionary for Feagi.
-
-    Inputs:
-    - previous: Dictionary with 'cortical' keys containing NumPy ndarray frames.
-    - current: Dictionary with 'cortical' keys containing NumPy ndarray frames.
-
-    Output:
-    - Dictionary containing changes in the ndarray frames.
-    """
-    # Using cv2.absdiff for optimized difference calculation
-    difference = current
-    thresholded = cv2.threshold(difference, capabilities['camera']['threshold_default'][0],
-                                capabilities['camera']['threshold_default'][1],
-                                cv2.THRESH_TOZERO)[1]
-    thresholded = retina.effect(thresholded, capabilities)
-    # print(check_brightness(current))
-    cv2.imshow("difference", difference)
-    cv2.imshow("center only", thresholded)
-    cv2.imshow("current", current)
-    cv2.imshow("previous", previous)
-    if cv2.waitKey(30) & 0xFF == ord('q'):
-        pass
-    # Convert to boolean array for significant changes
-    # significant_changes = thresholded > 0
-
-    feagi_data = retina.create_feagi_data_grayscale(thresholded, current,
-                                                    previous.shape)
-    return feagi_data
-
-
-def change_detector(previous, current, capabilities):
-    """
-    Detects changes between previous and current frames and checks against a threshold.
-
-    Compares the previous and current frames to identify differences. If the difference
-    exceeds a predefined threshold (iso), it records the change in a dictionary for Feagi.
-
-    Inputs:
-    - previous: Dictionary with 'cortical' keys containing NumPy ndarray frames.
-    - current: Dictionary with 'cortical' keys containing NumPy ndarray frames.
-
-    Output:
-    - Dictionary containing changes in the ndarray frames.
-    """
-
-    # Using cv2.absdiff for optimized difference calculation
-    difference = current
-    thresholded = cv2.threshold(difference, capabilities['camera']['threshold_default'][0],
-                                capabilities['camera']['threshold_default'][1],
-                                cv2.THRESH_BINARY)[1]
-    cv2.imshow("difference", difference)
-    cv2.imshow("center only", thresholded)
-    cv2.imshow("current", current)
-    cv2.imshow("previous", previous)
-    if cv2.waitKey(30) & 0xFF == ord('q'):
-        pass
-    # significant_changes = thresholded > 0
-
-    feagi_data = retina.create_feagi_data(thresholded, current, previous.shape)
-    return dict(feagi_data)
-
-
 if __name__ == "__main__":
     # Generate runtime dictionary
     runtime_data = {"vision": {}, "current_burst_id": None, "stimulation_period": None,
@@ -136,6 +69,7 @@ if __name__ == "__main__":
             raw_frame = image[0]
             name_id = image[1]
             message_to_feagi = feagi_trainer.id_training_with_image(message_to_feagi, name_id)
+
             # Post image into vision
             # CUSTOM MADE ONLY #############################
             if size_list:
@@ -165,28 +99,36 @@ if __name__ == "__main__":
                 for get_region in compressed_data:
                     if size_list[get_region][2] == 3:
                         if previous_frame_data != {}:
-                            vision_dict[get_region] = change_detector(
-                                previous_frame_data[get_region],
-                                compressed_data[get_region],
-                                capabilities)
+                            thresholded = cv2.threshold(compressed_data[get_region],
+                                                        capabilities['camera']['threshold_default'][
+                                                            0],
+                                                        capabilities['camera']['threshold_default'][
+                                                            1],
+                                                        cv2.THRESH_TOZERO)[1]
+                            vision_dict[get_region] = \
+                                retina.create_feagi_data(thresholded,
+                                                         compressed_data[get_region],
+                                                         previous_frame_data[get_region].shape)
                     else:
                         if previous_frame_data != {}:
-                            vision_dict[get_region] = change_detector_grayscale(
-                                previous_frame_data[get_region],
-                                compressed_data[get_region],
-                                capabilities)
-                previous_frame_data = {}
+                            thresholded = cv2.threshold(compressed_data[get_region],
+                                                        capabilities['camera']['threshold_default'][
+                                                            0],
+                                                        capabilities['camera']['threshold_default'][
+                                                            1],
+                                                        cv2.THRESH_TOZERO)[1]
+                            vision_dict[get_region] = \
+                                retina.create_feagi_data_grayscale(thresholded,
+                                                                   compressed_data[get_region],
+                                                                   previous_frame_data[get_region].shape)
+
+                previous_frame_data = compressed_data
                 rgb['camera'] = vision_dict
-
-            # previous_frame_data, rgb = retina.update_region_split_downsize(raw_frame, capabilities, "00",
-            #                                                      size_list, previous_frame_data,
-            #                                                      rgb)
-
             capabilities, feagi_settings['feagi_burst_speed'] = retina.vision_progress(
                 capabilities, feagi_opu_channel, api_address, feagi_settings, raw_frame)
             message_to_feagi = pns.generate_feagi_data(rgb, msg_counter, datetime.now(),
                                                        message_to_feagi)
-            # Vision process ends
+            # Vision process ends of custom
             if start_timer == 0:
                 start_timer = datetime.now()
             while capabilities['image_reader']['pause'] >= int(
