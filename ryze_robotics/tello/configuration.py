@@ -15,6 +15,23 @@ limitations under the License.
 ==============================================================================
 """
 
+"""
+Extra information:
+    "threshold_default" # min #1, max #1, min #2, max #2,
+    "threshold_type" # More detail below
+    #^ simple thresholding types. see the retina.threshold_detect function. See below:
+    [THRESH_BINARY, THRESH_BINARY_INV, THRESH_TRUNC, THRESH_TOZERO,  THRESH_TOZERO_INV, THRESH_OTSU]
+    "threshold_name"  # Binary_threshold as a default
+    "mirror" # flip the image
+    "blink" # cv2 ndarray raw data of an image. Controlled by blink OPU in genome
+    "gaze_control" # Controlled by gaze_control in genome
+    "pupil_control" # Controlled by pupil_control in genome
+    "vision_range" # min, max
+    "size_list" # To get the size in real time based on genome's change/update
+    "enhancement" # Controlled by enhancement OPU on inside the genome
+"""
+
+
 # !/usr/bin/env python3
 
 feagi_settings = {
@@ -42,10 +59,10 @@ capabilities = {
         "threshold_default": [50, 255, 130, 51],  # min #1, max #1, min #2, max #2,
         "threshold_type": {},  # simple thresholding types. see the retina.threshold_detect function
         "threshold_name": 0,  # Binary_threshold as a default
-        "mirror": True,  # flip the image?
-        "blink": [],  # Blink to see the "invert" image. Needs `o_blnk`
-        "gaze_control": {0: 1, 1: 99}, # Controlled by o__gaz OPU
-        "pupil_control": {0: 1, 1: 99}, # Controlled by o__pup
+        "mirror": True,  # flip the image
+        "blink": [],  # cv2 ndarray raw data of an image. Controlled by blink OPU in genome
+        "gaze_control": {0: 1, 1: 99},  # Controlled by gaze_control in genome
+        "pupil_control": {0: 1, 1: 99},  # Controlled by pupil_control in genome
         "vision_range": [1, 99],  # min, max
         "size_list": [],  # To get the size in real time based on genome's change/update
         "enhancement": {}  # Enable ov_enh OPU on inside the genome
