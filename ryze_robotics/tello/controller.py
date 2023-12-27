@@ -210,7 +210,6 @@ def action(obtained_signals, device_list, flying_flag):
     for device in device_list:
         if 'misc' in obtained_signals:
             for i in obtained_signals['misc']:
-                print("worked")
                 misc_control(tello, i, battery)
         if flying_flag:
             if 'navigation' in obtained_signals:
@@ -277,7 +276,6 @@ if __name__ == '__main__':
                 # action.)
                 action(obtained_signals, device_list, flying_flag)
 
-
             # Gather all data from the robot to prepare for FEAGI
             data = tello.get_current_state()
             gyro = get_gyro(data)
@@ -314,7 +312,6 @@ if __name__ == '__main__':
             message_to_feagi = sensors.add_acc_to_feagi_data(acc, message_to_feagi)
             # Add sonar data into feagi data. Leveraging the same process as ultrasonic.
             message_to_feagi = sensors.add_ultrasonic_to_feagi_data(sonar, message_to_feagi)
-
 
             # Preparing to send data to FEAGI
             configuration.message_to_feagi['timestamp'] = datetime.now()
