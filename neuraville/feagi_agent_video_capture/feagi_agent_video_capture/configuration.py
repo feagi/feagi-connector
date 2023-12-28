@@ -38,29 +38,15 @@ capabilities = {
         "type": "ipu",
         "disabled": False,
         "index": "00",
-        "threshold_default": [10, 255, 130, 51], # min #1, max #1, min #2, max #2,
-        "threshold_range": [1, 255],
-        "threshold_type": {},
-        "threshold_name": 0,
-        "central_vision_allocation_percentage": [80, 60],
-        "central_vision_resolution": [64, 64],
-        "peripheral_vision_resolution": [8, 8],
-        "resolution_presets": [[8, 8], [16, 16], [32, 32], [64, 64], [80, 60], [128, 128], [160, 120],
-                               [256, 256], [320, 240], [400, 400], [480, 320], [500, 500], [800, 800], [1024, 900]],
-        "previous_data": {},
         "video_device_index": 0,
         "image": "",
         "video_loop": False,
         "mirror": False,
-        "monitor": 0,
-        "blink": [],
-        "gaze_control": {0: 1, 1: 99},
-        "pupil_control": {0: 1, 1: 99},
-        "vision_range": [1, 99],
-        "size_list": [],
-        "effect": {},
-        "enhancement": {},
-        "vision_tuner_range": [0, 255]
+        # "enhancement": {1:80, 2:80, 4: 80}, # Example. Brightness, Constrast, Shadow
+        # "gaze_control": {0: 25, 1: 55}, # Gaze shifts right
+        # "pupil_control": {0: 25, 1: 55}, # Pupil shifts up
+        # "threshold_default": [50, 255, 130, 51] # min value, max value, min value, max value in
+        # threshold setting. first and second is for regular webcam. Second is for vision blink OPU
     }
 }
 

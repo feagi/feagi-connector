@@ -37,7 +37,7 @@ camera_data = {"vision": {}}
 
 def process_video(video_path, capabilities):
     if capabilities["camera"]["image"] == "":
-      cam = cv2.VideoCapture(video_path)
+        cam = cv2.VideoCapture(video_path)
     # cam.set(3, 320)
     # cam.set(4, 240)
     if capabilities['camera']['video_device_index'] == "monitor":
@@ -46,15 +46,15 @@ def process_video(video_path, capabilities):
     static_image = []
     while True:
         if capabilities['camera']['video_device_index'] != "monitor":
-          if capabilities["camera"]["image"] != "":
-            if static_image == []:
-              pixels = cv2.imread(capabilities["camera"]["image"], -1)
-              static_image = pixels
+            if capabilities["camera"]["image"] != "":
+                if static_image == []:
+                    pixels = cv2.imread(capabilities["camera"]["image"], -1)
+                    static_image = pixels
+                else:
+                    pixels = static_image
+                    # pixels = adjust_gamma(pixels)
             else:
-              pixels = static_image
-              # pixels = adjust_gamma(pixels)
-          else:
-            check, pixels = cam.read()
+                check, pixels = cam.read()
         else:
             check = True
         if capabilities['camera']['video_device_index'] != "monitor":
@@ -87,11 +87,12 @@ def process_video(video_path, capabilities):
 
 
 def adjust_gamma(image, gamma=5.0):
-  invGamma = 1.0 / gamma
-  table = numpy.array([((i / 255.0) ** invGamma) * 255
-		for i in numpy.arange(0, 256)]).astype("uint8")
-  # apply gamma correction using the lookup table
-  return cv2.LUT(image, table)
+    invGamma = 1.0 / gamma
+    table = numpy.array([((i / 255.0) ** invGamma) * 255
+                         for i in numpy.arange(0, 256)]).astype("uint8")
+    # apply gamma correction using the lookup table
+    return cv2.LUT(image, table)
+
 
 def main(feagi_auth_url, feagi_settings, agent_settings, capabilities, message_to_feagi):
     threading.Thread(target=process_video, args=(capabilities['camera']['video_device_index'],
@@ -118,23 +119,27 @@ def main(feagi_auth_url, feagi_settings, agent_settings, capabilities, message_t
     rgb = dict()
     rgb['camera'] = dict()
     response = requests.get(api_address + '/v1/feagi/genome/cortical_area/geometry')
-    capabilities['camera']['size_list'] = retina.obtain_cortical_vision_size(capabilities['camera']["index"], response)
+    size_list = retina.obtain_cortical_vision_size(capabilities['camera']["index"], response)
     previous_frame_data = {}
     raw_frame = []
+    default_capabilities = {}  # It will be generated in update_region_split_downsize. See the
+    # overwrite manual
     while True:
         try:
             if camera_data['vision'] is not None:
                 raw_frame = camera_data['vision']
-            if capabilities['camera']['blink'] != []:
-                raw_frame = capabilities['camera']['blink']
-            previous_frame_data, rgb = retina.update_region_split_downsize(raw_frame, capabilities,
-                                                                 capabilities['camera']["index"],
-                                                                 capabilities['camera']['size_list'],
-                                                                 previous_frame_data, rgb)
-            # capabilities['camera']['effect'].clear()
-            capabilities['camera']['blink'] = []
-            capabilities, feagi_settings['feagi_burst_speed'] = \
-                retina.vision_progress(capabilities, feagi_opu_channel, api_address, feagi_settings,
+            if 'camera' in default_capabilities:
+                if default_capabilities['camera']['blink'] != []:
+                    raw_frame = default_capabilities['camera']['blink']
+            previous_frame_data, rgb, default_capabilities = retina.update_region_split_downsize(
+                raw_frame,
+                default_capabilities,
+                size_list,
+                previous_frame_data,
+                rgb, capabilities)
+            default_capabilities['camera']['blink'] = []
+            default_capabilities, feagi_settings['feagi_burst_speed'] = \
+                retina.vision_progress(default_capabilities, feagi_opu_channel, api_address, feagi_settings,
                                        raw_frame)
 
             message_to_feagi = pns.generate_feagi_data(rgb, msg_counter, datetime.now(),
