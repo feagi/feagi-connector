@@ -19,12 +19,12 @@ from collections import deque
 from datetime import datetime
 from time import sleep
 import requests
-import lz4.frame
-import pickle
+import traceback
 import websockets
 from configuration import *
 from version import __version__
 from feagi_agent import pns_gateway as pns
+from feagi_agent import sensors as sensors
 from feagi_agent import feagi_interface as feagi
 
 ws = deque()
@@ -85,7 +85,7 @@ async def echo(websocket):
             # Store values in dictionary
             microbit_data['ir'] = [ir0, ir1]
             microbit_data['ultrasonic'] = ultrasonic / 25
-            microbit_data['accelerator'] = [x_acc, y_acc, z_acc]
+            microbit_data['accelerator'] = {"0": x_acc, "1": y_acc, "2": z_acc}
             microbit_data['sound_level'] = {sound_level}
         except Exception as Error_case:
             pass
@@ -159,7 +159,7 @@ def action(obtained_data, device_list):
 if __name__ == "__main__":
     CHECKPOINT_TOTAL = 5
     FLAG_COUNTER = 0
-    microbit_data = {'ir': [], 'ultrasonic': {}, 'acc': {}, 'sound_level': {}}
+    microbit_data = {'ir': [], 'ultrasonic': {}, 'accelerator': {}, 'sound_level': {}}
     threading.Thread(target=websocket_operation, daemon=True).start()
     # threading.Thread(target=bridge_to_godot, daemon=True).start()
     threading.Thread(target=bridge_operation, daemon=True).start()
@@ -200,49 +200,25 @@ if __name__ == "__main__":
 
                 if microbit_data['ir']:
                     ir_data = {0: bool(microbit_data['ir'][0]), 1: bool(microbit_data['ir'][1])}
-                    formatted_ir_data = {'ir': dict.fromkeys(ir_data.keys(), 1)}
-                    formatted_ir_data['ir'].update(ir_data)  # Should work
+                    formatted_ir_data = dict.fromkeys(ir_data.keys(), 1)
+                    formatted_ir_data.update(ir_data)  # Should work
                 else:
                     formatted_ir_data = {}
+                print(formatted_ir_data)
                 ultrasonic_data = microbit_data['ultrasonic']
-                if ultrasonic_data:
-                    formatted_ultrasonic_data = {
-                        'ultrasonic': {
-                            sensor: data for sensor, data in enumerate([ultrasonic_data])
-                        }
-                    }
-                else:
-                    formatted_ultrasonic_data = {}
-                message_to_feagi, battery = feagi.compose_message_to_feagi(
-                    original_message={**formatted_ir_data})
 
-                # Add accelerator section
-                try:
-                    runtime_data['accelerator']['0'] = microbit_data['accelerator'][0]
-                    runtime_data['accelerator']['1'] = microbit_data['accelerator'][1]
-                    runtime_data['accelerator']['2'] = microbit_data['accelerator'][2]
-                    if "data" not in message_to_feagi:
-                        message_to_feagi["data"] = {}
-                    if "sensory_data" not in message_to_feagi["data"]:
-                        message_to_feagi["data"]["sensory_data"] = {}
-                    message_to_feagi["data"]["sensory_data"]['accelerator'] = runtime_data[
-                        'accelerator']
-                except Exception as ERROR:
-                    message_to_feagi["data"]["sensory_data"]['accelerator'] = {}
-                # End accelerator section
-
+                message_to_feagi = sensors.add_ultrasonic_to_feagi_data(ultrasonic_data, message_to_feagi)
+                message_to_feagi = sensors.add_infrared_to_feagi_data(formatted_ir_data,
+                                                                      message_to_feagi,
+                                                                      capabilities)
+                print(message_to_feagi)
+                message_to_feagi = sensors.add_acc_to_feagi_data(microbit_data['accelerator'], message_to_feagi)
                 message_to_feagi['timestamp'] = datetime.now()
                 message_to_feagi['counter'] = msg_counter
-                if message_from_feagi is not None:
-                    feagi_settings['feagi_burst_speed'] = message_from_feagi['burst_frequency']
-                    runtime_data["stimulation_period"] = message_from_feagi['burst_frequency']
                 sleep(feagi_settings['feagi_burst_speed'])
-                if agent_settings['compression']:
-                    serialized_data = pickle.dumps(message_to_feagi)
-                    feagi_ipu_channel.send(message=lz4.frame.compress(serialized_data))
-                else:
-                    feagi_ipu_channel.send(message_to_feagi)
+                pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
                 message_to_feagi.clear()
             except Exception as e:
                 print("ERROR: ", e)
+                traceback.print_exc()
                 break
