@@ -67,15 +67,15 @@ async def echo(websocket):
             ws_operation.append(websocket)
         else:
             ws_operation[0] = websocket
-        ir0, ir1 = False, False
+        ir_list = []
         if message[0] == 'f':
-            ir0 = 0
+            pass
         else:
-            ir0 = 1
+            ir_list.append(0)
         if message[1] == 'f':
-            ir1 = 0
+            pass
         else:
-            ir1 = 1
+            ir_list.append(1)
         try:
             x_acc = int(message[2:6]) - 1000
             y_acc = int(message[6:10]) - 1000
@@ -83,7 +83,7 @@ async def echo(websocket):
             ultrasonic = float(message[14:16])
             sound_level = int(message[16:18])
             # Store values in dictionary
-            microbit_data['ir'] = [ir0, ir1]
+            microbit_data['ir'] = ir_list
             microbit_data['ultrasonic'] = ultrasonic / 25
             microbit_data['accelerator'] = {"0": x_acc, "1": y_acc, "2": z_acc}
             microbit_data['sound_level'] = {sound_level}
@@ -197,21 +197,10 @@ if __name__ == "__main__":
                     obtained_signals = pns.obtain_opu_data(device_list, message_from_feagi)
                     action(obtained_signals, device_list)
                     # OPU section ENDS
-
-                if microbit_data['ir']:
-                    ir_data = {0: bool(microbit_data['ir'][0]), 1: bool(microbit_data['ir'][1])}
-                    formatted_ir_data = dict.fromkeys(ir_data.keys(), 1)
-                    formatted_ir_data.update(ir_data)  # Should work
-                else:
-                    formatted_ir_data = {}
-                print(formatted_ir_data)
-                ultrasonic_data = microbit_data['ultrasonic']
-
-                message_to_feagi = sensors.add_ultrasonic_to_feagi_data(ultrasonic_data, message_to_feagi)
-                message_to_feagi = sensors.add_infrared_to_feagi_data(formatted_ir_data,
+                message_to_feagi = sensors.add_ultrasonic_to_feagi_data(microbit_data['ultrasonic'], message_to_feagi)
+                message_to_feagi = sensors.add_infrared_to_feagi_data(microbit_data['ir'],
                                                                       message_to_feagi,
                                                                       capabilities)
-                print(message_to_feagi)
                 message_to_feagi = sensors.add_acc_to_feagi_data(microbit_data['accelerator'], message_to_feagi)
                 message_to_feagi['timestamp'] = datetime.now()
                 message_to_feagi['counter'] = msg_counter
