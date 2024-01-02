@@ -15,6 +15,23 @@ limitations under the License.
 ==============================================================================
 """
 
+"""
+Extra information:
+    "threshold_default" # min #1, max #1, min #2, max #2,
+    "threshold_type" # More detail below
+    #^ simple thresholding types. see the retina.threshold_detect function. See below:
+    [THRESH_BINARY, THRESH_BINARY_INV, THRESH_TRUNC, THRESH_TOZERO,  THRESH_TOZERO_INV, THRESH_OTSU]
+    "threshold_name"  # Binary_threshold as a default
+    "mirror" # flip the image
+    "blink" # cv2 ndarray raw data of an image. Controlled by blink OPU in genome
+    "gaze_control" # Controlled by gaze_control in genome
+    "pupil_control" # Controlled by pupil_control in genome
+    "vision_range" # min, max
+    "size_list" # To get the size in real time based on genome's change/update
+    "enhancement" # Controlled by enhancement OPU on inside the genome
+"""
+
+
 # !/usr/bin/env python3
 
 feagi_settings = {
@@ -34,36 +51,21 @@ agent_settings = {
     'compression': True
 }
 
-
 capabilities = {
-    "motor": {
-        "type": "opu",
-        "disabled": False,
-        "count": 4,
-        'topic_identifier': '/M',
-        "refresh_rate": 1,
-        "cortical_mapping": "o__mot",
-        "power_coefficient": 11,
-        "wheel_diameter": 0.065,  # radius is in sdf under wheels inside <link></link>
-    },
     "camera": {
         "type": "ipu",
         "disabled": False,
         "index": "00",
-        "iso_default": 0.3,
-        "central_vision_allocation_percentage": [60, 40],
-        "central_vision_resolution": [64, 64],
-        "peripheral_vision_resolution": [8, 8],
-        "resolution_presets": [[8, 8], [16, 16], [32, 32], [64, 64], [128, 128], [256, 256],
-                               [400, 400], [500, 500], [800, 800], [1024, 900]],
-        "previous_data": {},
-        "field_of_vision_x": 800,
-        "field_of_vision_y": 600,
-        "field_of_vision_origin": [100, 100],
-        "aperture_range": [0.2, 2],
-        "iso_range": [0.1, 2],
-        "aperture_default": 2,
-        "mirror": True
+        "threshold_default": [50, 255, 130, 51],  # min #1, max #1, min #2, max #2,
+        "threshold_type": {},  # simple thresholding types. see the retina.threshold_detect function
+        "threshold_name": 0,  # Binary_threshold as a default
+        "mirror": True,  # flip the image
+        "blink": [],  # cv2 ndarray raw data of an image. Controlled by blink OPU in genome
+        "gaze_control": {0: 1, 1: 99},  # Controlled by gaze_control in genome
+        "pupil_control": {0: 1, 1: 99},  # Controlled by pupil_control in genome
+        "vision_range": [1, 99],  # min, max
+        "size_list": [],  # To get the size in real time based on genome's change/update
+        "enhancement": {}  # Enable ov_enh OPU on inside the genome
     },
     "battery": {
         "type": "ipu",
