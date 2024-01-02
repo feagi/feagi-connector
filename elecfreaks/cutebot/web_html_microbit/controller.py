@@ -149,13 +149,11 @@ def action(obtained_data, device_list):
                         WS_STRING += str(i) + "00"  # If the motor value is not present, append "00"
                 if WS_STRING != "":
                     if len(WS_STRING) != 6:
-                        print("here: ", WS_STRING)
                         if int(WS_STRING[0]) < 2:
                             WS_STRING = WS_STRING + "500"
                         else:
                             WS_STRING = "500" + WS_STRING
                     WS_STRING = WS_STRING + "#"
-                    print(WS_STRING)
                     ws.append(WS_STRING)
 
 
