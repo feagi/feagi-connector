@@ -162,10 +162,20 @@ def downsize_regions(frame, resize):
     """
     start_time = datetime.now()
     if resize[2] == 3:
-        compressed_dict = cv2.resize(frame, [resize[0], resize[1]], interpolation=cv2.INTER_AREA)
+        try:
+            compressed_dict = cv2.resize(frame, [resize[0], resize[1]],
+                                         interpolation=cv2.INTER_AREA)
+        except:
+            compressed_dict = np.zeros(resize, dtype=np.uint8)
+            compressed_dict = update_astype(compressed_dict)
     if resize[2] == 1:
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        compressed_dict = cv2.resize(frame, [resize[0], resize[1]], interpolation=cv2.INTER_AREA)
+        try:
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            compressed_dict = cv2.resize(frame, [resize[0], resize[1]],
+                                         interpolation=cv2.INTER_AREA)
+        except:
+            compressed_dict = np.zeros(resize, dtype=np.uint8)
+            compressed_dict = update_astype(compressed_dict)
     # print("downsize_regions time total: ", (datetime.now() - start_time).total_seconds())
     return compressed_dict
 
@@ -215,13 +225,13 @@ def change_detector_grayscale(previous, current, capabilities):
     if current.shape == previous.shape:
         if len(capabilities['camera']['blink']) == 0:
             current = effect(current, capabilities)
-            difference = cv2.absdiff(previous, current)  # there is more than 5 types
+            thresholded = cv2.subtract(previous, current)  # there is more than 5 types
             if capabilities['camera']['threshold_type']:
                 capabilities['camera']['threshold_name'] = threshold_detect(capabilities)
-            _, thresholded = cv2.threshold(difference,
-                                           capabilities['camera']['threshold_default'][0],
-                                           capabilities['camera']['threshold_default'][1],
-                                           capabilities['camera']['threshold_name'])
+            # _, thresholded = cv2.threshold(difference,
+            #                                capabilities['camera']['threshold_default'][0],
+            #                                capabilities['camera']['threshold_default'][1],
+            #                                capabilities['camera']['threshold_name'])
             # thresholded = effect(thresholded, capabilities)
         else:
             difference = current
@@ -230,6 +240,10 @@ def change_detector_grayscale(previous, current, capabilities):
                                         cv2.THRESH_TOZERO)[1]
         thresholded = effect(thresholded, capabilities)
         # print(check_brightness(current))
+        # cv2.imshow("difference", difference)
+        cv2.imshow("center only", thresholded)
+        cv2.imshow("current", current)
+        cv2.imshow("previous", previous)
         # Convert to boolean array for significant changes
         significant_changes = thresholded > 0
 
@@ -258,13 +272,13 @@ def change_detector(previous, current, capabilities):
     if current.shape == previous.shape:
         if len(capabilities['camera']['blink']) == 0:
           current = effect(current, capabilities)
-          difference = cv2.absdiff(previous, current)  # there is more than 5 types
+          thresholded = cv2.add(previous, current)  # there is more than 5 types
           if capabilities['camera']['threshold_type']:
             capabilities['camera']['threshold_name'] = threshold_detect(capabilities)
-          _, thresholded = cv2.threshold(difference,
-                                         capabilities['camera']['threshold_default'][0],
-                                         capabilities['camera']['threshold_default'][1],
-                                         capabilities['camera']['threshold_name'])
+          # _, thresholded = cv2.threshold(difference,
+          #                                capabilities['camera']['threshold_default'][0],
+          #                                capabilities['camera']['threshold_default'][1],
+          #                                cv2.THRESH_TOZERO)
           # thresholded = effect(thresholded, capabilities)
         else:
           difference = current
@@ -362,7 +376,7 @@ def vision_progress(capabilities, feagi_opu_channel, api_address, feagi_settings
     if message_from_feagi is not None:
         # OPU section STARTS
         # Update the effect
-        capabilities = pns.fetch_vision_turner(message_from_feagi, capabilities, 10)  # Hardcoded
+        capabilities = pns.fetch_vision_turner(message_from_feagi, capabilities, 20)  # Hardcoded
         capabilities = pns.fetch_enhancement_data(message_from_feagi, capabilities)
         capabilities = pns.fetch_threshold_type(message_from_feagi, capabilities)
         # Update the vres
@@ -493,3 +507,4 @@ def effect(image, capabilities):
     #                                     capabilities['camera']['effect'][threshold2],
     #                                     cv2.THRESH_TOZERO_INV )[1]
     # return image
+
