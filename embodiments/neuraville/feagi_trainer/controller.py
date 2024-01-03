@@ -77,15 +77,12 @@ if __name__ == "__main__":
                                                                       raw_frame.shape[0],
                                                                       abs(capabilities['camera'][
                                                                               'gaze_control'][0]),
-                                                                      abs(capabilities[
-                                                                              'camera'][
+                                                                      abs(capabilities['camera'][
                                                                               'gaze_control'][1]),
                                                                       abs(capabilities['camera'][
-                                                                              'pupil_control'][
-                                                                              0]),
+                                                                              'pupil_control'][0]),
                                                                       abs(capabilities['camera'][
-                                                                              'pupil_control'][
-                                                                              1]),
+                                                                              'pupil_control'][1]),
                                                                       "00",
                                                                       size_list)
                 segmented_frame_data = retina.split_vision_regions(
@@ -99,24 +96,26 @@ if __name__ == "__main__":
                 for get_region in compressed_data:
                     if size_list[get_region][2] == 3:
                         if previous_frame_data != {}:
-                            thresholded = cv2.threshold(compressed_data[get_region],
-                                                        capabilities['camera']['threshold_default'][
-                                                            0],
-                                                        capabilities['camera']['threshold_default'][
-                                                            1],
-                                                        cv2.THRESH_TOZERO)[1]
+                            # thresholded = cv2.threshold(compressed_data[get_region],
+                            #                             capabilities['camera']['threshold_default'][
+                            #                                 0],
+                            #                             capabilities['camera']['threshold_default'][
+                            #                                 1],
+                            #                             cv2.THRESH_TOZERO)[1]
+                            thresholded = compressed_data[get_region]
                             vision_dict[get_region] = \
                                 retina.create_feagi_data(thresholded,
                                                          compressed_data[get_region],
                                                          previous_frame_data[get_region].shape)
                     else:
                         if previous_frame_data != {}:
-                            thresholded = cv2.threshold(compressed_data[get_region],
-                                                        capabilities['camera']['threshold_default'][
-                                                            0],
-                                                        capabilities['camera']['threshold_default'][
-                                                            1],
-                                                        cv2.THRESH_TOZERO)[1]
+                            # thresholded = cv2.threshold(compressed_data[get_region],
+                            #                             capabilities['camera']['threshold_default'][
+                            #                                 0],
+                            #                             capabilities['camera']['threshold_default'][
+                            #                                 1],
+                            #                             cv2.THRESH_TOZERO)[1]
+                            thresholded = compressed_data[get_region]
                             vision_dict[get_region] = \
                                 retina.create_feagi_data_grayscale(thresholded,
                                                                    compressed_data[get_region],
