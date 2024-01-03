@@ -62,7 +62,8 @@ def vision_frame_capture(device, RGB_flag=True):
         return cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY), datetime.now(), check
 
 
-def vision_region_coordinates(frame_width, frame_height, x1, x2, y1, y2, camera_index, size_list):
+def vision_region_coordinates(frame_width=0, frame_height=0, x1=0, x2=0, y1=0, y2=0,
+                              camera_index=0, size_list=0):
     """
     Calculate coordinates for nine different regions within a frame based on given percentages.
 
@@ -86,10 +87,16 @@ def vision_region_coordinates(frame_width, frame_height, x1, x2, y1, y2, camera_
     100.
     """
     start_time = datetime.now()
+    # Gaze controls
     x1_prime = int(frame_width * (x1 / 100))
-    x2_prime = x1_prime + int((frame_width - x1_prime) * (x2 / 100))
     y1_prime = int(frame_height * (y1 / 100))
-    y2_prime = y1_prime + int((frame_height - y1_prime) * (y2 / 100))
+    # Pupil controls
+    x2_prime = min(x1_prime + int(frame_width * x2 / 100), frame_width)
+    y2_prime = min(y1_prime + int(frame_height * y2 / 100), frame_height)
+    print("FRAME WIDTH: ", frame_width)
+    print("FRAME HEIGHT: ", frame_height)
+    print("Gaze: ", x1, y1, x1_prime, y1_prime)
+    print("Pupil: ", x2, y2, x2_prime, y2_prime)
 
     region_coordinates = dict()
     if (camera_index + 'TL') in size_list:
@@ -166,6 +173,7 @@ def downsize_regions(frame, resize):
             compressed_dict = cv2.resize(frame, [resize[0], resize[1]],
                                          interpolation=cv2.INTER_AREA)
         except:
+            print("ERRROR!")
             compressed_dict = np.zeros(resize, dtype=np.uint8)
             compressed_dict = update_astype(compressed_dict)
     if resize[2] == 1:
@@ -174,6 +182,7 @@ def downsize_regions(frame, resize):
             compressed_dict = cv2.resize(frame, [resize[0], resize[1]],
                                          interpolation=cv2.INTER_AREA)
         except:
+            print("ERRROR!")
             compressed_dict = np.zeros(resize, dtype=np.uint8)
             compressed_dict = update_astype(compressed_dict)
     # print("downsize_regions time total: ", (datetime.now() - start_time).total_seconds())
@@ -225,13 +234,13 @@ def change_detector_grayscale(previous, current, capabilities):
     if current.shape == previous.shape:
         if len(capabilities['camera']['blink']) == 0:
             current = effect(current, capabilities)
-            thresholded = cv2.subtract(previous, current)  # there is more than 5 types
+            difference = cv2.absdiff(previous, current)  # there is more than 5 types
             if capabilities['camera']['threshold_type']:
                 capabilities['camera']['threshold_name'] = threshold_detect(capabilities)
-            # _, thresholded = cv2.threshold(difference,
-            #                                capabilities['camera']['threshold_default'][0],
-            #                                capabilities['camera']['threshold_default'][1],
-            #                                capabilities['camera']['threshold_name'])
+            _, thresholded = cv2.threshold(difference,
+                                           capabilities['camera']['threshold_default'][0],
+                                           capabilities['camera']['threshold_default'][1],
+                                           capabilities['camera']['threshold_name'])
             # thresholded = effect(thresholded, capabilities)
         else:
             difference = current
@@ -240,7 +249,7 @@ def change_detector_grayscale(previous, current, capabilities):
                                         cv2.THRESH_TOZERO)[1]
         thresholded = effect(thresholded, capabilities)
         # print(check_brightness(current))
-        # cv2.imshow("difference", difference)
+        cv2.imshow("difference", difference)
         cv2.imshow("center only", thresholded)
         cv2.imshow("current", current)
         cv2.imshow("previous", previous)
@@ -272,7 +281,7 @@ def change_detector(previous, current, capabilities):
     if current.shape == previous.shape:
         if len(capabilities['camera']['blink']) == 0:
           current = effect(current, capabilities)
-          thresholded = cv2.add(previous, current)  # there is more than 5 types
+          thresholded = cv2.absdiff(previous, current)  # there is more than 5 types
           if capabilities['camera']['threshold_type']:
             capabilities['camera']['threshold_name'] = threshold_detect(capabilities)
           # _, thresholded = cv2.threshold(difference,
@@ -301,19 +310,14 @@ def update_region_split_downsize(raw_frame, capabilities, resize_list,
                                  rgb, actual_capabilities):
     capabilities = pns.create_runtime_default_list(capabilities, actual_capabilities)
     if resize_list:
-        region_coordinates = vision_region_coordinates(raw_frame.shape[1],
-                                                       raw_frame.shape[0],
-                                                       abs(capabilities['camera'][
-                                                               'gaze_control'][0]),
-                                                       abs(capabilities[
-                                                               'camera'][
-                                                               'gaze_control'][1]),
-                                                       abs(capabilities['camera']['pupil_control'][
-                                                               0]),
-                                                       abs(capabilities['camera']['pupil_control'][
-                                                               1]),
-                                                       capabilities['camera']['index'],
-                                                       resize_list)
+        region_coordinates = vision_region_coordinates(frame_width=raw_frame.shape[1],
+                                                       frame_height=raw_frame.shape[0],
+                                                       x1=abs(capabilities['camera']['gaze_control'][0]),
+                                                       x2=abs(capabilities['camera']['pupil_control'][0]),
+                                                       y1=abs(capabilities['camera']['gaze_control'][1]),
+                                                       y2=abs(capabilities['camera']['pupil_control'][1]),
+                                                       camera_index=capabilities['camera']['index'],
+                                                       size_list=resize_list)
         segmented_frame_data = split_vision_regions(coordinates=region_coordinates,
                                                     raw_frame_data=raw_frame)
         compressed_data = dict()
@@ -322,8 +326,8 @@ def update_region_split_downsize(raw_frame, capabilities, resize_list,
                                                          resize_list[cortical])
         vision_dict = dict()
 
-        # for segment in compressed_data:
-        #     cv2.imshow(segment, compressed_data[segment])
+        for segment in compressed_data:
+            cv2.imshow(segment, compressed_data[segment])
         if cv2.waitKey(30) & 0xFF == ord('q'):
             pass
         for get_region in compressed_data:
@@ -507,4 +511,3 @@ def effect(image, capabilities):
     #                                     capabilities['camera']['effect'][threshold2],
     #                                     cv2.THRESH_TOZERO_INV )[1]
     # return image
-
