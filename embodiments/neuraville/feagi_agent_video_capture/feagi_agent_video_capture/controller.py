@@ -124,6 +124,10 @@ def main(feagi_auth_url, feagi_settings, agent_settings, capabilities, message_t
     raw_frame = []
     default_capabilities = {}  # It will be generated in update_region_split_downsize. See the
     # overwrite manual
+    threading.Thread(target=pns.feagi_listener, args=(feagi_opu_channel,), daemon=True).start()
+    default_capabilities = pns.create_runtime_default_list(default_capabilities, capabilities)
+    threading.Thread(target=retina.vision_progress, args=(default_capabilities, feagi_opu_channel, api_address, feagi_settings,
+                                       camera_data['vision'],), daemon=True).start()
     while True:
         try:
             if camera_data['vision'] is not None:
@@ -138,10 +142,10 @@ def main(feagi_auth_url, feagi_settings, agent_settings, capabilities, message_t
                 previous_frame_data,
                 rgb, capabilities)
             default_capabilities['camera']['blink'] = []
-            default_capabilities, feagi_settings['feagi_burst_speed'] = \
-                retina.vision_progress(default_capabilities, feagi_opu_channel, api_address, feagi_settings,
-                                       raw_frame)
-
+            # default_capabilities, feagi_settings['feagi_burst_speed'] = \
+            #     retina.vision_progress(default_capabilities, feagi_opu_channel, api_address, feagi_settings,
+            #                            raw_frame)
+            print(default_capabilities['camera']['gaze_control'])
             message_to_feagi = pns.generate_feagi_data(rgb, msg_counter, datetime.now(),
                                                        message_to_feagi)
             sleep(feagi_settings['feagi_burst_speed'])
