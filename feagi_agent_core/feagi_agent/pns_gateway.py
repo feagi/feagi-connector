@@ -18,6 +18,7 @@ limitations under the License.
 
 from feagi_agent import feagi_interface as feagi
 from feagi_agent import router
+from time import sleep
 
 # Variable storage #
 raw_aptr = -1
@@ -25,6 +26,8 @@ global_ID_cortical_size = None
 full_list_dimension = []
 previous_genome_timestamp = 0
 genome_tracker = 0
+message_from_feagi = {}
+refresh_rate = 0.01
 
 
 def generate_feagi_data(rgb, msg_counter, date, message_to_feagi):
@@ -326,8 +329,8 @@ def create_runtime_default_list(list, capabilities):
                 "threshold_name": 0,  # Binary_threshold as a default
                 "mirror": True,  # flip the image
                 "blink": [],  # cv2 ndarray raw data of an image. Controlled by blink OPU in genome
-                "gaze_control": {0: 50, 1: 50},  # Controlled by gaze_control in genome
-                "pupil_control": {0: 50, 1: 50},  # Controlled by pupil_control in genome
+                "gaze_control": {0: 1, 1: 1},  # Controlled by gaze_control in genome
+                "pupil_control": {0: 99, 1: 99},  # Controlled by pupil_control in genome
                 "vision_range": [1, 99],  # min, max
                 "size_list": [],  # To get the size in real time based on genome's change/update
                 "enhancement": {}  # Enable ov_enh OPU on inside the genome
@@ -345,4 +348,17 @@ def camera_config_update(list, capabilities):
     if "enhancement" in capabilities['camera']:
         list['camera']['enhancement'] = capabilities['camera']['enhancement']
 
+def feagi_listener(feagi_opu_channel):
+    """
+    thread for listening FEAGI. Best if you just add a line below:
 
+    threading.Thread(target=pns.feagi_listener, daemon=True).start()
+    """
+    global message_from_feagi, refresh_rate
+    while True:
+        data = signals_from_feagi(feagi_opu_channel)
+        if data is not None:
+            message_from_feagi = data
+            if "burst_frequency" in data:
+                refresh_rate = message_from_feagi['burst_frequency']
+        sleep(refresh_rate)
