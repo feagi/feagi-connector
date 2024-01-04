@@ -19,6 +19,7 @@ limitations under the License.
 from feagi_agent import feagi_interface as feagi
 from feagi_agent import router
 from time import sleep
+import threading
 
 # Variable storage #
 raw_aptr = -1
@@ -350,15 +351,6 @@ def camera_config_update(list, capabilities):
 
 def feagi_listener(feagi_opu_channel):
     """
-    thread for listening FEAGI. Best if you just add a line below:
-
-    threading.Thread(target=pns.feagi_listener, daemon=True).start()
+    thread for listening FEAGI.
     """
-    global message_from_feagi, refresh_rate
-    while True:
-        data = signals_from_feagi(feagi_opu_channel)
-        if data is not None:
-            message_from_feagi = data
-            if "burst_frequency" in data:
-                refresh_rate = message_from_feagi['burst_frequency']
-        sleep(refresh_rate)
+    threading.Thread(target=router.feagi_listener, args=(feagi_opu_channel,), daemon=True).start()
