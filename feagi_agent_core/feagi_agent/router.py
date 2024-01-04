@@ -15,15 +15,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================
 """
-import json
-
 import zmq
+import json
 import socket
+import pickle
 import requests
 import lz4.frame
-import pickle
-from time import sleep
 import traceback
+from time import sleep
+from feagi_agent import pns_gateway as pns
 
 global_feagi_opu_channel = ''  # Updated by feagi.connect_to_feagi()
 global_api_address = ''  # Updated by feagi.connect_to_feagi
@@ -118,6 +118,14 @@ def fetch_feagi(feagi_opu_channel):
         # It's None so no action will taken once it returns the None
         message_from_feagi = None
         return message_from_feagi
+
+def feagi_listener(feagi_opu_channel):
+    while True:
+        data = fetch_feagi(feagi_opu_channel)
+        if data is not None:
+            pns.message_from_feagi = data
+        sleep(0.001) #hardcoded and max second that it can run up to
+        # print("inside router: ", pns.message_from_feagi['opu_data']['o__gaz'])
 
 
 def send_feagi(message_to_feagi, feagi_ipu_channel, agent_settings):
