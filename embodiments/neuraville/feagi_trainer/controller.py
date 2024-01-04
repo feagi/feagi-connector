@@ -67,7 +67,6 @@ if __name__ == "__main__":
     # overwrite manual
     camera_data = dict()
     camera_data['vision'] = dict()
-    threading.Thread(target=pns.feagi_listener, args=(feagi_opu_channel,), daemon=True).start()
     threading.Thread(target=retina.vision_progress, args=(capabilities, feagi_opu_channel,
                                                           api_address, feagi_settings,
                                        camera_data['vision'],), daemon=True).start()
