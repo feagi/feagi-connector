@@ -114,7 +114,7 @@ def vision_region_coordinates(frame_width=0, frame_height=0, x1=0, x2=0, y1=0, y
         region_coordinates[camera_index + 'LM'] = [x1_prime, y2_prime, x2_prime, frame_height]
     if (camera_index + 'LR') in size_list:
         region_coordinates[camera_index + 'LR'] = [x2_prime, y2_prime, frame_width, frame_height]
-    # print("vision_region_coordinates time total: ", (datetime.now() - start_time).total_seconds())
+    print("vision_region_coordinates time total: ", (datetime.now() - start_time).total_seconds())
     return region_coordinates
 
 
@@ -140,7 +140,7 @@ def split_vision_regions(coordinates, raw_frame_data):
     for region in coordinates:
         frame_segments[region] = raw_frame_data[coordinates[region][1]:coordinates[region][3],
                                  coordinates[region][0]:coordinates[region][2]]
-    # print("split_vision_regions time total: ", (datetime.now() - start_time).total_seconds())
+    print("split_vision_regions time total: ", (datetime.now() - start_time).total_seconds())
     return frame_segments
 
 
@@ -180,7 +180,7 @@ def downsize_regions(frame, resize):
         except:
             compressed_dict = np.zeros(resize, dtype=np.uint8)
             compressed_dict = update_astype(compressed_dict)
-    # print("downsize_regions time total: ", (datetime.now() - start_time).total_seconds())
+    print("downsize_regions time total: ", (datetime.now() - start_time).total_seconds())
     return compressed_dict
 
 
@@ -194,8 +194,8 @@ def create_feagi_data(significant_changes, current, shape):
                 if significant_changes[x, y, z]:
                     key = f'{y}-{(size_of_frame[1] - 1) - x}-{z}'
                     feagi_data[key] = int(current[x, y, z])
-    # print("C change_detector_optimized time total: ",
-    #       (datetime.now() - start_time).total_seconds())
+    print("C change_detector_optimized time total: ",
+          (datetime.now() - start_time).total_seconds())
     return feagi_data
 
 
@@ -227,6 +227,7 @@ def change_detector_grayscale(previous, current, capabilities):
     """
     # Using cv2.absdiff for optimized difference calculation
     if current.shape == previous.shape:
+        start_time = datetime.now()
         if len(capabilities['camera']['blink']) == 0:
             current = effect(current, capabilities)
             difference = cv2.absdiff(previous, current)  # there is more than 5 types
@@ -254,6 +255,7 @@ def change_detector_grayscale(previous, current, capabilities):
         feagi_data = create_feagi_data_grayscale(significant_changes, current, previous.shape)
     else:
         return {}
+    print("grayscale change detect: ", (datetime.now() - start_time).total_seconds())
     return feagi_data
 
 
@@ -273,6 +275,7 @@ def change_detector(previous, current, capabilities):
     """
 
     # Using cv2.absdiff for optimized difference calculation
+    start_time = datetime.now()
     if current.shape == previous.shape:
         if len(capabilities['camera']['blink']) == 0:
           current = effect(current, capabilities)
@@ -297,6 +300,7 @@ def change_detector(previous, current, capabilities):
         feagi_data = create_feagi_data(significant_changes, current, previous.shape)
     else:
         return {}
+    print("change detect: ", (datetime.now() - start_time).total_seconds())
     return dict(feagi_data)
 
 
@@ -391,7 +395,8 @@ def vision_progress(capabilities, feagi_opu_channel, api_address, feagi_settings
                 feagi_settings['feagi_burst_speed'] = pns.check_refresh_rate(message_from_feagi,
                                                                              feagi_settings[
                                                                                  'feagi_burst_speed'])
-        sleep(feagi_settings['feagi_burst_speed'])
+                # print("here: ", capabilities['camera']['gaze_control'], " and burst: ", feagi_settings['feagi_burst_speed'])
+        sleep(0.001)
 
     # return capabilities, feagi_settings['feagi_burst_speed']
 
