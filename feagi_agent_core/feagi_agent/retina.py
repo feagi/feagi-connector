@@ -21,6 +21,7 @@ import numpy as np
 import traceback
 from datetime import datetime
 from feagi_agent import pns_gateway as pns
+from time import sleep
 
 genome_tracker = 0
 previous_genome_timestamp = 0
@@ -93,10 +94,6 @@ def vision_region_coordinates(frame_width=0, frame_height=0, x1=0, x2=0, y1=0, y
     # Pupil controls
     x2_prime = min(x1_prime + int(frame_width * x2 / 100), frame_width)
     y2_prime = min(y1_prime + int(frame_height * y2 / 100), frame_height)
-    print("FRAME WIDTH: ", frame_width)
-    print("FRAME HEIGHT: ", frame_height)
-    print("Gaze: ", x1, y1, x1_prime, y1_prime)
-    print("Pupil: ", x2, y2, x2_prime, y2_prime)
 
     region_coordinates = dict()
     if (camera_index + 'TL') in size_list:
@@ -173,7 +170,6 @@ def downsize_regions(frame, resize):
             compressed_dict = cv2.resize(frame, [resize[0], resize[1]],
                                          interpolation=cv2.INTER_AREA)
         except:
-            print("ERRROR!")
             compressed_dict = np.zeros(resize, dtype=np.uint8)
             compressed_dict = update_astype(compressed_dict)
     if resize[2] == 1:
@@ -182,7 +178,6 @@ def downsize_regions(frame, resize):
             compressed_dict = cv2.resize(frame, [resize[0], resize[1]],
                                          interpolation=cv2.INTER_AREA)
         except:
-            print("ERRROR!")
             compressed_dict = np.zeros(resize, dtype=np.uint8)
             compressed_dict = update_astype(compressed_dict)
     # print("downsize_regions time total: ", (datetime.now() - start_time).total_seconds())
@@ -249,10 +244,10 @@ def change_detector_grayscale(previous, current, capabilities):
                                         cv2.THRESH_TOZERO)[1]
         thresholded = effect(thresholded, capabilities)
         # print(check_brightness(current))
-        cv2.imshow("difference", difference)
-        cv2.imshow("center only", thresholded)
-        cv2.imshow("current", current)
-        cv2.imshow("previous", previous)
+        # cv2.imshow("difference", difference)
+        # cv2.imshow("center only", thresholded)
+        # cv2.imshow("current", current)
+        # cv2.imshow("previous", previous)
         # Convert to boolean array for significant changes
         significant_changes = thresholded > 0
 
@@ -326,10 +321,10 @@ def update_region_split_downsize(raw_frame, capabilities, resize_list,
                                                          resize_list[cortical])
         vision_dict = dict()
 
-        for segment in compressed_data:
-            cv2.imshow(segment, compressed_data[segment])
-        if cv2.waitKey(30) & 0xFF == ord('q'):
-            pass
+        # for segment in compressed_data:
+        #     cv2.imshow(segment, compressed_data[segment])
+        # if cv2.waitKey(30) & 0xFF == ord('q'):
+        #     pass
         for get_region in compressed_data:
             if resize_list[get_region][2] == 3:
                 if previous_frame_data != {}:
@@ -376,25 +371,29 @@ def update_size_list(capabilities):
 
 def vision_progress(capabilities, feagi_opu_channel, api_address, feagi_settings, raw_frame):
     global genome_tracker, previous_genome_timestamp
-    message_from_feagi = pns.signals_from_feagi(feagi_opu_channel)
-    if message_from_feagi is not None:
-        # OPU section STARTS
-        # Update the effect
-        capabilities = pns.fetch_vision_turner(message_from_feagi, capabilities, 20)  # Hardcoded
-        capabilities = pns.fetch_enhancement_data(message_from_feagi, capabilities)
-        capabilities = pns.fetch_threshold_type(message_from_feagi, capabilities)
-        # Update the vres
-        capabilities = pns.fetch_resolution_selected(message_from_feagi, capabilities)
-        # Update resize if genome has been changed:
-        pns.check_genome_status(message_from_feagi)
-        capabilities = pns.obtain_blink_data(raw_frame, message_from_feagi, capabilities)
-        capabilities = pns.monitor_switch(message_from_feagi, capabilities)
-        capabilities = pns.gaze_control_update(message_from_feagi, capabilities)
-        capabilities = pns.pupil_control_update(message_from_feagi, capabilities)
-        feagi_settings['feagi_burst_speed'] = pns.check_refresh_rate(message_from_feagi,
-                                                                     feagi_settings[
-                                                                         'feagi_burst_speed'])
-    return capabilities, feagi_settings['feagi_burst_speed']
+    while True:
+        message_from_feagi = pns.message_from_feagi
+        if message_from_feagi is not None:
+            # OPU section STARTS
+            # Update the effect
+            if 'opu_data' in message_from_feagi:
+                capabilities = pns.fetch_vision_turner(message_from_feagi, capabilities, 20)  # Hardcoded
+                capabilities = pns.fetch_enhancement_data(message_from_feagi, capabilities)
+                capabilities = pns.fetch_threshold_type(message_from_feagi, capabilities)
+                # Update the vres
+                capabilities = pns.fetch_resolution_selected(message_from_feagi, capabilities)
+                # Update resize if genome has been changed:
+                pns.check_genome_status(message_from_feagi)
+                capabilities = pns.obtain_blink_data(raw_frame, message_from_feagi, capabilities)
+                capabilities = pns.monitor_switch(message_from_feagi, capabilities)
+                capabilities = pns.gaze_control_update(message_from_feagi, capabilities)
+                capabilities = pns.pupil_control_update(message_from_feagi, capabilities)
+                feagi_settings['feagi_burst_speed'] = pns.check_refresh_rate(message_from_feagi,
+                                                                             feagi_settings[
+                                                                                 'feagi_burst_speed'])
+        sleep(feagi_settings['feagi_burst_speed'])
+
+    # return capabilities, feagi_settings['feagi_burst_speed']
 
 
 def update_astype(data):
