@@ -257,22 +257,23 @@ def check_genome_status(message_from_feagi):
         genome_tracker = current_tracker
 
 
-def fetch_vision_turner(message_from_feagi, capabilities, size):
-    if "ovtune" in message_from_feagi["opu_data"]:
-        if message_from_feagi["opu_data"]["ovtune"]:
-            for data_point in message_from_feagi["opu_data"]['ovtune']:
-                device_id = data_point.split('-')[0]
-                feagi_aptr = (int(data_point.split('-')[-1]))
-                aptr_cortical_size = full_list_dimension['threshold'][6] - 1
-                max_range = capabilities['camera']["threshold_range"][1]
-                min_range = capabilities['camera']["threshold_range"][0]
-                capabilities['camera']["threshold_default"][int(device_id)] = int(
-                    ((feagi_aptr / aptr_cortical_size) * (max_range - min_range)) + min_range)
-            # for data_point in message_from_feagi["opu_data"]["ovtune"]:
-            #     processed_data_point = feagi.block_to_array(data_point)
-            #     device_id = processed_data_point[0]
-            #     device_power = message_from_feagi["opu_data"]['ovtune'][data_point]
-            #     capabilities['camera']['effect'][device_id] = device_power
+def fetch_vision_turner(message_from_feagi, capabilities):
+    if full_list_dimension:
+        if "ovtune" in message_from_feagi["opu_data"]:
+            if message_from_feagi["opu_data"]["ovtune"]:
+                for data_point in message_from_feagi["opu_data"]['ovtune']:
+                    device_id = data_point.split('-')[0]
+                    feagi_aptr = (int(data_point.split('-')[-1]))
+                    aptr_cortical_size = full_list_dimension['threshold'][6] - 1
+                    max_range = capabilities['camera']["threshold_range"][1]
+                    min_range = capabilities['camera']["threshold_range"][0]
+                    capabilities['camera']["threshold_default"][int(device_id)] = int(
+                        ((feagi_aptr / aptr_cortical_size) * (max_range - min_range)) + min_range)
+                # for data_point in message_from_feagi["opu_data"]["ovtune"]:
+                #     processed_data_point = feagi.block_to_array(data_point)
+                #     device_id = processed_data_point[0]
+                #     device_power = message_from_feagi["opu_data"]['ovtune'][data_point]
+                #     capabilities['camera']['effect'][device_id] = device_power
     return capabilities
 
 
@@ -286,34 +287,35 @@ def fetch_threshold_type(message_from_feagi, capabilities):
 
 
 def fetch_enhancement_data(message_from_feagi, capabilities):
-    if "ov_enh" in message_from_feagi["opu_data"]:
-        if message_from_feagi["opu_data"]["ov_enh"]:
-            for data_point in message_from_feagi["opu_data"]['ov_enh']:
-                device_id = int(data_point.split('-')[0])
-                if device_id == 1:
-                    feagi_aptr = (int(data_point.split('-')[-1]))
-                    aptr_cortical_size = full_list_dimension['enhancement'][6] - 1
-                    max_range = 1.4
-                    min_range = 0.5
-                    capabilities['camera']["enhancement"][int(device_id)] = float(((feagi_aptr
-                                                                                    / aptr_cortical_size) * (
-                                                                                           max_range - min_range)) + min_range)
-                if device_id == 2:
-                    feagi_aptr = (int(data_point.split('-')[-1]))
-                    aptr_cortical_size = full_list_dimension['enhancement'][6] - 1
-                    max_range = 2.0
-                    min_range = 0.8
-                    capabilities['camera']["enhancement"][int(device_id)] = float(((feagi_aptr
-                                                                                    / aptr_cortical_size) * (
-                                                                                           max_range - min_range)) + min_range)
-                if device_id == 0:
-                    feagi_aptr = (int(data_point.split('-')[-1]))
-                    aptr_cortical_size = full_list_dimension['enhancement'][6]
-                    max_range = 100
-                    min_range = -100
-                    capabilities['camera']["enhancement"][int(device_id)] = float(((feagi_aptr
-                                                                                    / aptr_cortical_size) * (
-                                                                                           max_range - min_range)) + min_range)
+    if full_list_dimension:
+        if "ov_enh" in message_from_feagi["opu_data"]:
+            if message_from_feagi["opu_data"]["ov_enh"]:
+                for data_point in message_from_feagi["opu_data"]['ov_enh']:
+                    device_id = int(data_point.split('-')[0])
+                    if device_id == 1:
+                        feagi_aptr = (int(data_point.split('-')[-1]))
+                        aptr_cortical_size = full_list_dimension['enhancement'][6] - 1
+                        max_range = 1.4
+                        min_range = 0.5
+                        capabilities['camera']["enhancement"][int(device_id)] = float(((feagi_aptr
+                                                                                        / aptr_cortical_size) * (
+                                                                                               max_range - min_range)) + min_range)
+                    if device_id == 2:
+                        feagi_aptr = (int(data_point.split('-')[-1]))
+                        aptr_cortical_size = full_list_dimension['enhancement'][6] - 1
+                        max_range = 2.0
+                        min_range = 0.8
+                        capabilities['camera']["enhancement"][int(device_id)] = float(((feagi_aptr
+                                                                                        / aptr_cortical_size) * (
+                                                                                               max_range - min_range)) + min_range)
+                    if device_id == 0:
+                        feagi_aptr = (int(data_point.split('-')[-1]))
+                        aptr_cortical_size = full_list_dimension['enhancement'][6]
+                        max_range = 100
+                        min_range = -100
+                        capabilities['camera']["enhancement"][int(device_id)] = float(((feagi_aptr
+                                                                                        / aptr_cortical_size) * (
+                                                                                               max_range - min_range)) + min_range)
     return capabilities
 
 
