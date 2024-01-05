@@ -67,6 +67,7 @@ if __name__ == "__main__":
     # overwrite manual
     camera_data = dict()
     camera_data['vision'] = dict()
+    threading.Thread(target=pns.feagi_listener, args=(feagi_opu_channel,), daemon=True).start()
     threading.Thread(target=retina.vision_progress, args=(capabilities, feagi_opu_channel,
                                                           api_address, feagi_settings,
                                        camera_data['vision'],), daemon=True).start()
@@ -128,8 +129,8 @@ if __name__ == "__main__":
                 print(capabilities['camera']['gaze_control'])
                 previous_frame_data = compressed_data
                 rgb['camera'] = vision_dict
-            capabilities, feagi_settings['feagi_burst_speed'] = retina.vision_progress(
-                capabilities, feagi_opu_channel, api_address, feagi_settings, raw_frame)
+            # capabilities, feagi_settings['feagi_burst_speed'] = retina.vision_progress(
+            #     capabilities, feagi_opu_channel, api_address, feagi_settings, raw_frame)
             message_to_feagi = pns.generate_feagi_data(rgb, msg_counter, datetime.now(),
                                                        message_to_feagi)
             # Vision process ends of custom
