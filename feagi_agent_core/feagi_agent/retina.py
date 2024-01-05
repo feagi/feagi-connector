@@ -21,7 +21,10 @@ import numpy as np
 import traceback
 from datetime import datetime
 from feagi_agent import pns_gateway as pns
+from feagi_agent import router
 from time import sleep
+import asyncio
+import zmq.asyncio
 
 genome_tracker = 0
 previous_genome_timestamp = 0
@@ -395,7 +398,6 @@ def vision_progress(capabilities, feagi_opu_channel, api_address, feagi_settings
                 feagi_settings['feagi_burst_speed'] = pns.check_refresh_rate(message_from_feagi,
                                                                              feagi_settings[
                                                                                  'feagi_burst_speed'])
-                # print("here: ", capabilities['camera']['gaze_control'], " and burst: ", feagi_settings['feagi_burst_speed'])
         sleep(0.001)
 
     # return capabilities, feagi_settings['feagi_burst_speed']

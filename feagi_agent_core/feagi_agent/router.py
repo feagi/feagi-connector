@@ -45,7 +45,7 @@ def app_host_info():
 
 class PubSub:
     def __init__(self, flags=None):
-        self.context = zmq.Context()
+        self.context = zmq.asyncio.Context()
         self.flags = flags
 
     def send(self, message):
@@ -53,7 +53,7 @@ class PubSub:
 
     def receive(self):
         try:
-            payload = self.socket.recv_pyobj(flags=self.flags)
+            payload = self.socket.recv_pyobj()
             return payload
         except zmq.ZMQError as e:
             if e.errno == zmq.EAGAIN:
@@ -96,28 +96,23 @@ class Sub(PubSub):
             self.socket.connect(address)
 
 
-def fetch_feagi(feagi_opu_channel):
+async def fetch_feagi(feagi_opu_channel):
     """
     Obtain the data from feagi's OPU
     """
-    received_data = feagi_opu_channel.receive()  # Obtain data from FEAGI
-    # Verify if the data is not None
-    if received_data is not None:
+    while True:
+        received_data = await feagi_opu_channel.receive()  # Obtain data from FEAGI
         # Verify if the data is compressed
         if isinstance(received_data, bytes):
             # Decompress
             decompressed_data = lz4.frame.decompress(received_data)
             # Another decompress of json
-            message_from_feagi = pickle.loads(decompressed_data)
-            return message_from_feagi
+            pns.message_from_feagi = pickle.loads(decompressed_data)
         else:
             # Directly obtain without any compressions
-            message_from_feagi = received_data
-            return message_from_feagi
-    else:
-        # It's None so no action will taken once it returns the None
-        message_from_feagi = None
-        return message_from_feagi
+            pns.message_from_feagi = received_data
+
+
 
 def feagi_listener(feagi_opu_channel):
     while True:

@@ -20,6 +20,7 @@ from feagi_agent import feagi_interface as feagi
 from feagi_agent import router
 from time import sleep
 import threading
+import asyncio
 
 # Variable storage #
 raw_aptr = -1
@@ -353,4 +354,4 @@ def feagi_listener(feagi_opu_channel):
     """
     thread for listening FEAGI.
     """
-    threading.Thread(target=router.feagi_listener, args=(feagi_opu_channel,), daemon=True).start()
+    asyncio.run(router.fetch_feagi(feagi_opu_channel))
