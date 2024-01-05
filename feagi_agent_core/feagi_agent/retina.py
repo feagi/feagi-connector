@@ -384,7 +384,7 @@ def vision_progress(capabilities, feagi_opu_channel, api_address, feagi_settings
             # OPU section STARTS
             # Update the effect
             if 'opu_data' in message_from_feagi:
-                capabilities = pns.fetch_vision_turner(message_from_feagi, capabilities, 20)  # Hardcoded
+                capabilities = pns.fetch_vision_turner(message_from_feagi, capabilities)
                 capabilities = pns.fetch_enhancement_data(message_from_feagi, capabilities)
                 capabilities = pns.fetch_threshold_type(message_from_feagi, capabilities)
                 # Update the vres
@@ -517,3 +517,4 @@ def effect(image, capabilities):
     #                                     capabilities['camera']['effect'][threshold2],
     #                                     cv2.THRESH_TOZERO_INV )[1]
     # return image
+
