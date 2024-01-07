@@ -282,14 +282,14 @@ def change_detector(previous, current, capabilities):
     if current.shape == previous.shape:
         if len(capabilities['camera']['blink']) == 0:
           current = effect(current, capabilities)
-          thresholded = cv2.absdiff(previous, current)  # there is more than 5 types
+          difference = cv2.absdiff(previous, current)  # there is more than 5 types
           if capabilities['camera']['threshold_type']:
             capabilities['camera']['threshold_name'] = threshold_detect(capabilities)
-          # _, thresholded = cv2.threshold(difference,
-          #                                capabilities['camera']['threshold_default'][0],
-          #                                capabilities['camera']['threshold_default'][1],
-          #                                cv2.THRESH_TOZERO)
-          # thresholded = effect(thresholded, capabilities)
+          _, thresholded = cv2.threshold(difference,
+                                         capabilities['camera']['threshold_default'][0],
+                                         capabilities['camera']['threshold_default'][1],
+                                         cv2.THRESH_TOZERO)
+          thresholded = effect(thresholded, capabilities)
         else:
           difference = current
           thresholded = cv2.threshold(difference, capabilities['camera']['threshold_default'][2],
