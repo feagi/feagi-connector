@@ -165,50 +165,51 @@ if __name__ == "__main__":
     # threading.Thread(target=bridge_to_godot, daemon=True).start()
     threading.Thread(target=bridge_operation, daemon=True).start()
     device_list = pns.generate_OPU_list(capabilities)
+    feagi_flag = False
+    print("Waiting on FEAGI...")
+    while not feagi_flag:
+        feagi_flag = feagi.is_FEAGI_reachable(
+            os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1"),
+            int(os.environ.get('FEAGI_OPU_PORT', "3000"))
+        )
+        sleep(2)
+    previous_data_frame = {}
+    runtime_data = {"cortical_data": {}, "current_burst_id": None,
+                    "stimulation_period": 0.01, "feagi_state": None,
+                    "feagi_network": None}
+
+    feagi_auth_url = feagi_settings.pop('feagi_auth_url', None)
+    print("FEAGI AUTH URL ------- ", feagi_auth_url)
+
+    # # # FEAGI registration # # # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    # - - - - - - - - - - - - - - - - - - #
+    feagi_settings, runtime_data, api_address, feagi_ipu_channel, feagi_opu_channel = \
+        feagi.connect_to_feagi(feagi_settings, runtime_data, agent_settings, capabilities,
+                               __version__)
+    threading.Thread(target=pns.feagi_listener, args=(feagi_opu_channel,), daemon=True).start()
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    msg_counter = runtime_data["feagi_state"]['burst_counter']
+    runtime_data['accelerator'] = {}
     while True:
-        feagi_flag = False
-        print("Waiting on FEAGI...")
-        while not feagi_flag:
-            feagi_flag = feagi.is_FEAGI_reachable(
-                os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1"),
-                int(os.environ.get('FEAGI_OPU_PORT', "3000"))
-            )
-            sleep(2)
-        previous_data_frame = {}
-        runtime_data = {"cortical_data": {}, "current_burst_id": None,
-                        "stimulation_period": 0.01, "feagi_state": None,
-                        "feagi_network": None}
-
-        feagi_auth_url = feagi_settings.pop('feagi_auth_url', None)
-        print("FEAGI AUTH URL ------- ", feagi_auth_url)
-
-        # # # FEAGI registration # # # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # - - - - - - - - - - - - - - - - - - #
-        feagi_settings, runtime_data, api_address, feagi_ipu_channel, feagi_opu_channel = \
-            feagi.connect_to_feagi(feagi_settings, runtime_data, agent_settings, capabilities,
-                                   __version__)
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        msg_counter = runtime_data["feagi_state"]['burst_counter']
-        runtime_data['accelerator'] = {}
-        while True:
-            try:
-                message_from_feagi = pns.signals_from_feagi(feagi_opu_channel)
-                if message_from_feagi is not None:
-                    # OPU section STARTS
-                    obtained_signals = pns.obtain_opu_data(device_list, message_from_feagi)
-                    action(obtained_signals, device_list)
-                    # OPU section ENDS
-                message_to_feagi = sensors.add_ultrasonic_to_feagi_data(microbit_data['ultrasonic'], message_to_feagi)
-                message_to_feagi = sensors.add_infrared_to_feagi_data(microbit_data['ir'],
-                                                                      message_to_feagi,
-                                                                      capabilities)
-                message_to_feagi = sensors.add_acc_to_feagi_data(microbit_data['accelerator'], message_to_feagi)
-                message_to_feagi['timestamp'] = datetime.now()
-                message_to_feagi['counter'] = msg_counter
-                sleep(feagi_settings['feagi_burst_speed'])
-                pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
-                message_to_feagi.clear()
-            except Exception as e:
-                print("ERROR: ", e)
-                traceback.print_exc()
-                break
+        try:
+            message_from_feagi = pns.message_from_feagi
+            # OPU section STARTS
+            print("here: ", message_from_feagi)
+            if message_from_feagi:
+                obtained_signals = pns.obtain_opu_data(device_list, message_from_feagi)
+                action(obtained_signals, device_list)
+            # OPU section ENDS
+            message_to_feagi = sensors.add_ultrasonic_to_feagi_data(microbit_data['ultrasonic'], message_to_feagi)
+            message_to_feagi = sensors.add_infrared_to_feagi_data(microbit_data['ir'],
+                                                                  message_to_feagi,
+                                                                  capabilities)
+            message_to_feagi = sensors.add_acc_to_feagi_data(microbit_data['accelerator'], message_to_feagi)
+            message_to_feagi['timestamp'] = datetime.now()
+            message_to_feagi['counter'] = msg_counter
+            sleep(feagi_settings['feagi_burst_speed'])
+            pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
+            message_to_feagi.clear()
+        except Exception as e:
+            print("ERROR: ", e)
+            traceback.print_exc()
+            break
