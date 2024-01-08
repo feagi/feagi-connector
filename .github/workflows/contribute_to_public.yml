@@ -11,7 +11,6 @@ on:
 jobs:
   sync:
     runs-on: ubuntu-latest
-
     steps:
     - name: Check out Neuraville code
       uses: actions/checkout@v4
@@ -29,7 +28,7 @@ jobs:
       with:
         repository: feagi/feagi-agent
         ref: staging
-        path: community-feagi
+        path: community-feagi-agent
         token: ${{ secrets.PUBLIC_PAT_MNT }}
         sparse-checkout: .
         fetch-depth: 0
@@ -37,14 +36,14 @@ jobs:
 
     - name: Setup Git Identity for Merge
       run: |
-        cd community-feagi
+        cd community-feagi-agent
         git config user.email "dev@neuraville.com"
         git config user.name "NeuravilleDeveloper"
 
 
     - name: Merge Neuraville code into Community code
       run: |
-        cd community-feagi
+        cd community-feagi-agent
         git remote add neuraville ../neuraville-feagi-agent
         git fetch neuraville
         git merge neuraville/pre-pub-staging --allow-unrelated-histories
@@ -58,7 +57,7 @@ jobs:
 
     - name: Setup Git with PAT and commit changes
       run: |
-        cd community-feagi
+        cd community-feagi-agent
         git config user.email "dev@neuraville.com"
         git config user.name "NeuravilleDeveloper"
         git remote | grep public && git remote remove public
