@@ -194,7 +194,6 @@ if __name__ == "__main__":
         try:
             message_from_feagi = pns.message_from_feagi
             # OPU section STARTS
-            print("here: ", message_from_feagi)
             if message_from_feagi:
                 obtained_signals = pns.obtain_opu_data(device_list, message_from_feagi)
                 action(obtained_signals, device_list)
