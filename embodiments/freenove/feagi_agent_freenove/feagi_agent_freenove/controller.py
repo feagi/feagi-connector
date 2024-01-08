@@ -394,7 +394,6 @@ class Battery:
     def battery_total(self):
         adc = Adc()
         Power = adc.recvADC(2) * 3
-        print(Power)
         return Power
 
 
@@ -567,40 +566,39 @@ def main(feagi_auth_url, feagi_settings, agent_settings, capabilities):
     servo.set_default_position(runtime_data)
     device_list = pns.generate_OPU_list(capabilities)
     response = requests.get(api_address + '/v1/feagi/genome/cortical_area/geometry')
-    capabilities['camera']['size_list'] = retina.obtain_cortical_vision_size(
-        capabilities['camera']["index"], response)
+    size_list= retina.obtain_cortical_vision_size(capabilities['camera']["index"], response)
     raw_frame = []
+    default_capabilities = {}  # It will be generated in update_region_split_downsize. See the
+    # overwrite manual
+    camera_data = {"vision": {}}
+    default_capabilities = pns.create_runtime_default_list(default_capabilities, capabilities)
+    threading.Thread(target=pns.feagi_listener, args=(feagi_opu_channel,), daemon=True).start()
+    threading.Thread(target=retina.vision_progress, args=(default_capabilities, feagi_opu_channel, api_address, feagi_settings,
+                                       camera_data['vision'],), daemon=True).start()
     while True:
         try:
-            if capabilities['camera']['disabled'] is not True:
+            print(default_capabilities['camera'])
+            if default_capabilities['camera']['disabled'] is not True:
                 ret, raw_frame = cam.read()
-                if len(capabilities['camera']['blink']) > 0:
-                    raw_frame = capabilities['camera']['blink']
+                if len(default_capabilities['camera']['blink']) > 0:
+                    raw_frame = default_capabilities['camera']['blink']
                 # Post image into vision
-                previous_frame_data, rgb = retina.update_region_split_downsize(raw_frame,
-                                                                               capabilities,
-                                                                               capabilities[
-                                                                                   'camera'][
-                                                                                   'index'],
-                                                                               capabilities[
-                                                                                   'camera'][
-                                                                                   'size_list'],
-                                                                               previous_frame_data,
-                                                                               rgb)
-                capabilities['camera']['blink'] = []
-                capabilities, feagi_settings['feagi_burst_speed'] = retina.vision_progress(
-                    capabilities, feagi_opu_channel, api_address, feagi_settings, raw_frame)
-
+                previous_frame_data, rgb, default_capabilities = retina.update_region_split_downsize(
+                    raw_frame,
+                    default_capabilities,
+                    size_list,
+                    previous_frame_data,
+                    rgb, capabilities)
+                default_capabilities['camera']['blink'] = []
                 message_to_feagi = pns.generate_feagi_data(rgb, msg_counter, datetime.now(),
                                                            message_to_feagi)
-            message_from_feagi = pns.signals_from_feagi(feagi_opu_channel)
+            message_from_feagi = pns.message_from_feagi
 
-            # Fetch data such as motor, servo, etc and pass to a function (you make ur own action. 
-            if message_from_feagi is not None:
-                obtained_signals = pns.obtain_opu_data(device_list, message_from_feagi)
-                led_flag = action(obtained_signals, led_flag, feagi_settings,
-                                  capabilities, motor_data, rolling_window, motor, servo, led,
-                                  runtime_data)
+            # Fetch data such as motor, servo, etc and pass to a function (you make ur own action.
+            obtained_signals = pns.obtain_opu_data(device_list, message_from_feagi)
+            led_flag = action(obtained_signals, led_flag, feagi_settings,
+                              capabilities, motor_data, rolling_window, motor, servo, led,
+                              runtime_data)
             # add IR data into feagi data
             ir_list = ir_data[0] if ir_data else []
             message_to_feagi = sensors.add_infrared_to_feagi_data(ir_list, message_to_feagi,

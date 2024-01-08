@@ -58,8 +58,8 @@ capabilities = {
         "mirror": False,
         "monitor": 0,
         "blink": [],
-        "gaze_control": {0: 1, 1: 99},
-        "pupil_control": {0: 1, 1: 99},
+        "gaze_control": {0: 50, 1: 40},
+        "pupil_control": {0: 50, 1: 40},
         "vision_range": [1, 99],
         "size_list": [],
         "effect": {},
@@ -68,7 +68,7 @@ capabilities = {
     },
     "image_reader": {
         "loop": True,
-        "pause": 1,
+        "pause": 0,
         "path": "./",
         "test_mode": False
     }
