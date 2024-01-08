@@ -16,6 +16,7 @@ limitations under the License.
 ==============================================================================
 """
 import zmq
+import zmq.asyncio
 import json
 import socket
 import pickle
