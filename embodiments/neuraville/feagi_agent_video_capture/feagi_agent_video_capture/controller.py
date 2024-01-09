@@ -124,10 +124,15 @@ def main(feagi_auth_url, feagi_settings, agent_settings, capabilities, message_t
     raw_frame = []
     default_capabilities = {}  # It will be generated in update_region_split_downsize. See the
     # overwrite manual
+    default_capabilities = pns.create_runtime_default_list(default_capabilities, capabilities)
+    threading.Thread(target=pns.feagi_listener, args=(feagi_opu_channel,), daemon=True).start()
+    threading.Thread(target=retina.vision_progress, args=(default_capabilities, feagi_opu_channel, api_address, feagi_settings,
+                                       camera_data['vision'],), daemon=True).start()
     while True:
         try:
             if camera_data['vision'] is not None:
                 raw_frame = camera_data['vision']
+            default_capabilities['camera']['blink'] = []
             if 'camera' in default_capabilities:
                 if default_capabilities['camera']['blink'] != []:
                     raw_frame = default_capabilities['camera']['blink']
@@ -137,14 +142,10 @@ def main(feagi_auth_url, feagi_settings, agent_settings, capabilities, message_t
                 size_list,
                 previous_frame_data,
                 rgb, capabilities)
-            default_capabilities['camera']['blink'] = []
-            default_capabilities, feagi_settings['feagi_burst_speed'] = \
-                retina.vision_progress(default_capabilities, feagi_opu_channel, api_address, feagi_settings,
-                                       raw_frame)
-
             message_to_feagi = pns.generate_feagi_data(rgb, msg_counter, datetime.now(),
                                                        message_to_feagi)
-            sleep(feagi_settings['feagi_burst_speed'])
+            # print(default_capabilities['camera']['gaze_control'][0])
+            sleep(feagi_settings['feagi_burst_speed']) #bottleneck
             pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
             message_to_feagi.clear()
             for i in rgb['camera']:

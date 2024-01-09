@@ -56,16 +56,12 @@ capabilities = {
         "type": "ipu",
         "disabled": False,
         "index": "00",
-        "threshold_default": [50, 255, 130, 51],  # min #1, max #1, min #2, max #2,
-        "threshold_type": {},  # simple thresholding types. see the retina.threshold_detect function
-        "threshold_name": 0,  # Binary_threshold as a default
-        "mirror": True,  # flip the image
-        "blink": [],  # cv2 ndarray raw data of an image. Controlled by blink OPU in genome
-        "gaze_control": {0: 1, 1: 99},  # Controlled by gaze_control in genome
-        "pupil_control": {0: 1, 1: 99},  # Controlled by pupil_control in genome
-        "vision_range": [1, 99],  # min, max
-        "size_list": [],  # To get the size in real time based on genome's change/update
-        "enhancement": {}  # Enable ov_enh OPU on inside the genome
+        "mirror": True,
+        # "enhancement": {1:80, 2:80, 4: 80}, # Example. Brightness, Constrast, Shadow
+        # "gaze_control": {0: 25, 1: 55}, # Gaze shifts right
+        # "pupil_control": {0: 25, 1: 55}, # Pupil shifts up
+        # "threshold_default": [50, 255, 130, 51] # min value, max value, min value, max value in
+        # threshold setting. first and second is for regular webcam. Second is for vision blink OPU
     },
     "battery": {
         "type": "ipu",
@@ -89,6 +85,9 @@ capabilities = {
         "type": "opu"
     },
     "navigation": {
+        "type": "opu"
+    },
+    "speed": {
         "type": "opu"
     }
 }
