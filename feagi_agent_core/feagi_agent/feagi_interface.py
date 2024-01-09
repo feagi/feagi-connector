@@ -215,9 +215,9 @@ def opu_processor(data):
                         device_id = data_point[0]
                         device_power = data_point[2]
                         processed_opu_data['speed'][device_id] = device_power
-            if 'o__pos' in opu_data:
-                if opu_data['o__pos']:
-                    for data_point in opu_data['o__pos']:
+            if 'o_spos' in opu_data:
+                if opu_data['o_spos']:
+                    for data_point in opu_data['o_spos']:
                         processed_data_point = block_to_array(data_point)
                         device_id = processed_data_point[0]
                         device_power = processed_data_point[2]
