@@ -8,6 +8,7 @@ from configuration import *
 from rclpy.node import Node
 from version import __version__
 from feagi_agent import pns_gateway as pns
+from feagi_agent import sensors
 import cv2
 import os
 from datetime import datetime
@@ -389,15 +390,13 @@ while keyboard_flag:
                                                                    data=message_to_feagi)
         # Encoder position
         encoder_for_feagi = dict()
-        encoder_for_feagi['encoder_data'] = dict()
         try:
             for encoder_data in runtime_data['actual_encoder_position']:
-                encoder_for_feagi['encoder_data'][encoder_data] = \
+                encoder_for_feagi[encoder_data] = \
                 runtime_data['actual_encoder_position'][encoder_data][
                     4]
-            message_to_feagi, bat = FEAGI.compose_message_to_feagi(
-                original_message=encoder_for_feagi,
-                data=message_to_feagi)
+            message_to_feagi = sensors.add_encoder_to_feagi_data(encoder_for_feagi,
+                                                                 message_to_feagi)
         except Exception as e:
             print("error: ", e)
 
