@@ -74,6 +74,9 @@ capabilities = {
                 'micro': 50,
                 'macro': 150
             }
+    },
+    "speed": {
+        "type": "opu"
     }
 }
 
