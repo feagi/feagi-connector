@@ -80,18 +80,13 @@ capabilities = {
         "type": "ipu",
         "disabled": False,
         "index": "00",
-        "iso_default": 0.67,
-        "central_vision_allocation_percentage": [90, 80],
-        "central_vision_resolution": [64, 64],
-        "peripheral_vision_resolution": [8, 8],
-        "resolution_presets": [[8, 8], [16, 16], [32, 32], [64, 64], [128, 128], [256, 256],
-                               [400, 400], [500, 500], [800, 800], [1024, 900]],
-        "previous_data": {},
-        "aperture_range": [0.2, 2],
-        "iso_range": [0.1, 2],
-        "aperture_default": 0.2,
-        "mirror": True
-    },
+        "mirror": True,
+        # "enhancement": {1:80, 2:80, 4: 80}, # Example. Brightness, Constrast, Shadow
+        # "gaze_control": {0: 25, 1: 55}, # Gaze shifts right
+        # "pupil_control": {0: 25, 1: 55}, # Pupil shifts up
+        # "threshold_default": [50, 255, 130, 51] # min value, max value, min value, max value in
+        # threshold setting. first and second is for regular webcam. Second is for vision blink OPU
+    }
 }
 
 message_to_feagi = {"data": {}}
