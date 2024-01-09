@@ -1,5 +1,6 @@
 import time
 import requests
+import threading
 import configuration
 from configuration import *
 from djitellopy import Tello
@@ -9,9 +10,12 @@ from feagi_agent import retina
 from feagi_agent import sensors
 from feagi_agent import pns_gateway as pns
 from feagi_agent import feagi_interface as FEAGI
+import cv2
 
 previous_frame_data = dict()
 flag = False
+camera_data = {"vision": {}}
+
 
 
 def get_battery(full_data):
@@ -183,7 +187,7 @@ def start_camera(self):
 
 def navigate_to_xyz(self, x=0, y=0, z=0, s=0):
     cmd = 'go {} {} {} {}'.format(x, y, z, s)
-    self.send_control_command(cmd)
+    self.send_command_without_return(cmd)
 
 
 def convert_gyro_into_feagi(value, resolution, range_number):
@@ -206,31 +210,30 @@ def offset_z(value, resolution, range_number):
         return 0
 
 
-def action(obtained_signals, device_list, flying_flag):
-    for device in device_list:
-        if 'misc' in obtained_signals:
-            for i in obtained_signals['misc']:
-                misc_control(tello, i, battery)
-        if flying_flag:
-            if 'navigation' in obtained_signals:
-                if obtained_signals['navigation']:
-                    try:
-                        data0 = obtained_signals['navigation'][0] * 10
-                    except Exception as e:
-                        data0 = 0
-                    try:
-                        data1 = obtained_signals['navigation'][1] * 10
-                    except Exception as e:
-                        data1 = 0
-                    try:
-                        data2 = obtained_signals['navigation'][2] * 10
-                    except Exception as e:
-                        data2 = 0
-                    try:
-                        speed = obtained_signals['speed'][0] * 10
-                    except Exception as e:
-                        speed = 0
-                    navigate_to_xyz(tello, data0, data1, data2, speed)
+def action(obtained_signals, flying_flag):
+    if 'misc' in obtained_signals:
+        for i in obtained_signals['misc']:
+            misc_control(tello, i, battery)
+    # if flying_flag:
+    if 'navigation' in obtained_signals:
+        if obtained_signals['navigation']:
+            try:
+                data0 = obtained_signals['navigation'][0] * 10
+            except Exception as e:
+                data0 = 0
+            try:
+                data1 = obtained_signals['navigation'][1] * 10
+            except Exception as e:
+                data1 = 0
+            try:
+                data2 = obtained_signals['navigation'][2] * 10
+            except Exception as e:
+                data2 = 0
+            try:
+                speed = obtained_signals['speed'][0] * 10
+            except Exception as e:
+                speed = 0
+            navigate_to_xyz(tello, data0, data1, data2, speed)
 
 
 if __name__ == '__main__':
@@ -253,7 +256,6 @@ if __name__ == '__main__':
     flying_flag = False
     rgb = dict()
     rgb['camera'] = dict()
-    capabilities['camera']['current_select'] = [[], []]
     device_list = pns.generate_OPU_list(capabilities)  # get the OPU sensors
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     # - - - # Initializer section
@@ -265,16 +267,18 @@ if __name__ == '__main__':
     print("Connected with Tello drone.")
     start_camera(tello)
     response = requests.get(api_address + '/v1/feagi/genome/cortical_area/geometry')
-    capabilities['camera']['size_list'] = retina.obtain_cortical_vision_size(
-        capabilities['camera']["index"], response)
+    size_list = retina.obtain_cortical_vision_size(capabilities['camera']["index"], response)
+    default_capabilities = {}  # It will be generated in update_region_split_downsize. See the
+    # overwrite manual
+    default_capabilities = pns.create_runtime_default_list(default_capabilities, capabilities)
+    threading.Thread(target=pns.feagi_listener, args=(feagi_opu_channel,), daemon=True).start()
+    threading.Thread(target=retina.vision_progress, args=(default_capabilities, feagi_opu_channel, api_address, feagi_settings, camera_data['vision'],), daemon=True).start()
     while True:
         try:
-            message_from_feagi = pns.signals_from_feagi(feagi_opu_channel)
-            if message_from_feagi is not None:
+            message_from_feagi = pns.message_from_feagi
+            if message_from_feagi:
                 obtained_signals = pns.obtain_opu_data(device_list, message_from_feagi)
-                # Fetch data such as flip, move, etc and pass to a function (you make ur own
-                # action.)
-                action(obtained_signals, device_list, flying_flag)
+                action(obtained_signals, flying_flag)
 
             # Gather all data from the robot to prepare for FEAGI
             data = tello.get_current_state()
@@ -284,22 +288,17 @@ if __name__ == '__main__':
             bat = get_battery(data)
             battery = bat['battery_charge_level']
             raw_frame = full_frame(tello)
-            if len(capabilities['camera']['blink']) > 0:
-                raw_frame = capabilities['camera']['blink']
+            camera_data['vision'] = raw_frame
+            default_capabilities['camera']['blink'] = []
+            if len(default_capabilities['camera']['blink']) > 0:
+                raw_frame = default_capabilities['camera']['blink']
             # Post image into vision
-            previous_frame_data, rgb = retina.update_region_split_downsize(raw_frame,
-                                                                           capabilities,
-                                                                           capabilities[
-                                                                               'camera'][
-                                                                               'index'],
-                                                                           capabilities[
-                                                                               'camera'][
-                                                                               'size_list'],
-                                                                           previous_frame_data,
-                                                                           rgb)
-            capabilities['camera']['blink'] = []
-            capabilities, feagi_settings['feagi_burst_speed'] = retina.vision_progress(
-                capabilities, feagi_opu_channel, api_address, feagi_settings, raw_frame)
+            previous_frame_data, rgb, default_capabilities = retina.update_region_split_downsize(
+                raw_frame,
+                default_capabilities,
+                size_list,
+                previous_frame_data,
+                rgb, capabilities)
 
             # INSERT SENSORS INTO the FEAGI DATA SECTION BEGIN
             message_to_feagi = pns.generate_feagi_data(rgb, msg_counter, datetime.now(),
@@ -313,13 +312,9 @@ if __name__ == '__main__':
             # Add sonar data into feagi data. Leveraging the same process as ultrasonic.
             message_to_feagi = sensors.add_ultrasonic_to_feagi_data(sonar, message_to_feagi)
 
-            # Preparing to send data to FEAGI
-            configuration.message_to_feagi['timestamp'] = datetime.now()
-            configuration.message_to_feagi['counter'] = msg_counter
+            # Sending data to FEAGI
             pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
             configuration.message_to_feagi.clear()
-            # if message_from_feagi is not None:
-            #     feagi_settings['feagi_burst_speed'] = message_from_feagi['burst_frequency']
             time.sleep(feagi_settings['feagi_burst_speed'])
         except KeyboardInterrupt as ke:
             print("ERROR: ", ke)
