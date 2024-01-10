@@ -577,7 +577,6 @@ def main(feagi_auth_url, feagi_settings, agent_settings, capabilities):
                                        camera_data['vision'],), daemon=True).start()
     while True:
         try:
-            print(default_capabilities['camera'])
             if default_capabilities['camera']['disabled'] is not True:
                 ret, raw_frame = cam.read()
                 if len(default_capabilities['camera']['blink']) > 0:
