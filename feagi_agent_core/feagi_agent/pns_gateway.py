@@ -358,4 +358,3 @@ def feagi_listener(feagi_opu_channel):
     thread for listening FEAGI.
     """
     asyncio.run(router.fetch_feagi(feagi_opu_channel))
-
