@@ -34,7 +34,7 @@ jobs:
       run: |
         python3 -m build feagi_agent_core/
         cd feagi_agent_core/
-        python3 -m twine upload --repository testpypi -u $TWINE_USERNAME -p $TWINE_PASSWORD dist/*
+        python3 -m twine upload --repository testpypi dist/*
       env:
-        TWINE_USERNAME: ${{ secrets.TESTPYPI_USERNAME }}
+        TWINE_USERNAME: ${{ secrets.TESTPYPI_TOKEN }}
         TWINE_PASSWORD: ${{ secrets.TESTPYPI_PASSWORD }}
