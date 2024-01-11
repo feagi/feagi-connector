@@ -17,8 +17,10 @@ limitations under the License.
 """
 
 from feagi_agent import feagi_interface as feagi
+from feagi_agent import retina
 from feagi_agent import router
 from time import sleep
+import requests
 import threading
 import asyncio
 
@@ -26,6 +28,7 @@ import asyncio
 raw_aptr = -1
 global_ID_cortical_size = None
 full_list_dimension = []
+resize_list = {}
 previous_genome_timestamp = 0
 genome_tracker = 0
 message_from_feagi = {}
@@ -241,8 +244,8 @@ def fetch_full_dimensions():
     return router.fetch_cortical_dimensions()
 
 
-def check_genome_status(message_from_feagi):
-    global previous_genome_timestamp, genome_tracker, full_list_dimension
+def check_genome_status(message_from_feagi, capabilities):
+    global previous_genome_timestamp, genome_tracker, full_list_dimension, resize_list
     if message_from_feagi['genome_changed'] is not None:
         if full_list_dimension is None:
             full_list_dimension = []
@@ -251,6 +254,9 @@ def check_genome_status(message_from_feagi):
         genome_changed = detect_genome_change(message_from_feagi)
         if genome_changed != previous_genome_timestamp:
             full_list_dimension = fetch_full_dimensions()
+            response = requests.get(router.global_api_address + '/v1/feagi/genome/cortical_area/geometry')
+            resize_list = retina.obtain_cortical_vision_size(capabilities['camera']["index"],
+                                                           response)
             previous_genome_timestamp = message_from_feagi["genome_changed"]
         current_tracker = obtain_genome_number(genome_tracker, message_from_feagi)
         if genome_tracker != current_tracker:
