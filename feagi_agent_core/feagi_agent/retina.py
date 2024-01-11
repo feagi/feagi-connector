@@ -310,6 +310,8 @@ def change_detector(previous, current, capabilities):
 def update_region_split_downsize(raw_frame, capabilities, resize_list,
                                  previous_frame_data,
                                  rgb, actual_capabilities):
+    if pns.resize_list:
+        resize_list = pns.resize_list
     capabilities = pns.create_runtime_default_list(capabilities, actual_capabilities)
     if resize_list:
         region_coordinates = vision_region_coordinates(frame_width=raw_frame.shape[1],
@@ -347,8 +349,8 @@ def update_region_split_downsize(raw_frame, capabilities, resize_list,
                         capabilities)
         previous_frame_data = compressed_data
         rgb['camera'] = vision_dict
-        return previous_frame_data, rgb, capabilities
-    return resize_list, resize_list, capabilities  # sending empty dict
+        return previous_frame_data, rgb, capabilities, resize_list
+    return resize_list, resize_list, capabilities, resize_list  # sending empty dict
 
 
 def obtain_cortical_vision_size(camera_index, response):
@@ -390,7 +392,7 @@ def vision_progress(capabilities, feagi_opu_channel, api_address, feagi_settings
                 # Update the vres
                 capabilities = pns.fetch_resolution_selected(message_from_feagi, capabilities)
                 # Update resize if genome has been changed:
-                pns.check_genome_status(message_from_feagi)
+                pns.check_genome_status(message_from_feagi, capabilities)
                 capabilities = pns.obtain_blink_data(raw_frame, message_from_feagi, capabilities)
                 capabilities = pns.monitor_switch(message_from_feagi, capabilities)
                 capabilities = pns.gaze_control_update(message_from_feagi, capabilities)

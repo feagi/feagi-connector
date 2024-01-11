@@ -152,7 +152,8 @@ if __name__ == "__main__":
                     if 'camera' in default_capabilities:
                         if default_capabilities['camera']['blink'] != []:
                             raw_frame = default_capabilities['camera']['blink']
-                    previous_frame_data, rgb, default_capabilities = retina.update_region_split_downsize(
+                    previous_frame_data, rgb, default_capabilities, \
+                    size_list = retina.update_region_split_downsize(
                         raw_frame,
                         default_capabilities,
                         size_list,
@@ -165,8 +166,9 @@ if __name__ == "__main__":
                     sleep(feagi_settings['feagi_burst_speed'])  # bottleneck
                     pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
                     message_to_feagi.clear()
-                    for i in rgb['camera']:
-                        rgb['camera'][i].clear()
+                    if 'camera' in rgb:
+                        for i in rgb['camera']:
+                            rgb['camera'][i].clear()
             except Exception as e:
                 # pass
                 print("ERROR! : ", e)
