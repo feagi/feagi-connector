@@ -19,7 +19,6 @@ limitations under the License.
 feagi_settings = {
     "feagi_url": None,  # gets updated
     "feagi_auth_url": None,  # composer for getting the Feagi URL link - First Priority
-    "feagi_dns": None,  # URL https://neurobotics.studio - Second priority
     "feagi_host": "127.0.0.1",  # feagi IP  - third priority
     "feagi_api_port": "8000",  # feagi Port - third priority
     "magic_link": ""
