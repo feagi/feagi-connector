@@ -6,6 +6,7 @@ import os
 import sysconfig
 import feagi_agent_video_capture
 import traceback
+import requests
 from time import sleep
 from feagi_agent_video_capture.configuration import *
 
@@ -19,6 +20,8 @@ if __name__ == '__main__':
     parser.add_argument('-video', '--video', help='Use the path to video to read', required=False)
     parser.add_argument('-image', '--image', help='Use the path to image to read', required=False)
     parser.add_argument('-port', '--port', help='Change the port instead of default 8000.',
+                        required=False)
+    parser.add_argument('-magic_link', '--magic_link', help='Get the magic link from NRS button',
                         required=False)
     args = vars(parser.parse_args())
     if args['ip']:
@@ -38,6 +41,12 @@ if __name__ == '__main__':
         feagi_settings["feagi_api_port"] = args['port']
     if args['image']:
       capabilities["camera"]["image"] = args['image']
+    if args['magic_link']:
+        network_output = requests.get(args['magic_link']).json()
+        capabilities['feagi_url'] = network_output['feagi_url']
+        capabilities['feagi_api_port'] = network_output['feagi_api_port']
+        # capabilities['feagi_opu_port'] = network_output['feagi_opu_port']
+
     if __name__ == '__main__':
         inital_feagi_setting = feagi_settings.copy()
         inital_agent_settings = agent_settings.copy()
