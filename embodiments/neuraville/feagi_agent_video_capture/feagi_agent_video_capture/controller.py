@@ -136,7 +136,8 @@ def main(feagi_auth_url, feagi_settings, agent_settings, capabilities, message_t
             if 'camera' in default_capabilities:
                 if default_capabilities['camera']['blink'] != []:
                     raw_frame = default_capabilities['camera']['blink']
-            previous_frame_data, rgb, default_capabilities = retina.update_region_split_downsize(
+            previous_frame_data, rgb, default_capabilities, \
+            size_list = retina.update_region_split_downsize(
                 raw_frame,
                 default_capabilities,
                 size_list,
