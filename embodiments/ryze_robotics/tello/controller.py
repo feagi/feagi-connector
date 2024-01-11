@@ -293,7 +293,8 @@ if __name__ == '__main__':
             if len(default_capabilities['camera']['blink']) > 0:
                 raw_frame = default_capabilities['camera']['blink']
             # Post image into vision
-            previous_frame_data, rgb, default_capabilities = retina.update_region_split_downsize(
+            previous_frame_data, rgb, default_capabilities, \
+            size_list = retina.update_region_split_downsize(
                 raw_frame,
                 default_capabilities,
                 size_list,

@@ -169,7 +169,7 @@ def on_camera_image(cli, image):
     # Obtain the size automatically which will be needed in next line after the next line
     size = pitina.obtain_size(image)
     # Convert into ndarray based on the size it gets
-    new_rgb = retina.pitina_to_retina(image.getdata(), size)
+    new_rgb = retina.RGB_list_to_ndarray(image.getdata(), size)
     # update astype to work well with retina and cv2
     new_rgb = retina.update_astype(new_rgb)
     if capabilities['camera']['mirror']:
@@ -209,7 +209,6 @@ def robot_status(cli):
 
 
 def move_head(cli, angle, max, min):
-    print("ANGLE: ", angle)
     if min <= angle <= max:
         cli.set_head_angle(angle)  # move head
         return True
@@ -231,7 +230,6 @@ def action(obtained_data, arms_angle, head_angle):
     motor_count = capabilities['motor']['count']
     if 'motor' in obtained_data:
         if obtained_data['motor'] is not {}:
-            print("here: ", obtained_data['motor'])
             for data_point in obtained_data['motor']:
                 if data_point in [0, 1, 2, 3]:
                     device_power = obtained_data['motor'][data_point]
@@ -365,7 +363,7 @@ if __name__ == '__main__':
             # OPU section ENDS
             if "o_misc" in message_from_feagi["opu_data"]:
                 if message_from_feagi["opu_data"]["o_misc"]:
-                    print(message_from_feagi["opu_data"]["o_misc"])
+                    print("misc: ", message_from_feagi["opu_data"]["o_misc"])
             if "o_eye1" in message_from_feagi["opu_data"]:
                 if message_from_feagi["opu_data"]["o_eye1"]:
                     for i in message_from_feagi["opu_data"]["o_eye1"]:
@@ -404,7 +402,7 @@ if __name__ == '__main__':
             if 'camera' in default_capabilities:
                 if default_capabilities['camera']['blink'] != []:
                     raw_frame = default_capabilities['camera']['blink']
-            previous_frame_data, rgb, default_capabilities = retina.update_region_split_downsize(
+            previous_frame_data, rgb, default_capabilities, size_list = retina.update_region_split_downsize(
                 raw_frame,
                 default_capabilities,
                 size_list,
