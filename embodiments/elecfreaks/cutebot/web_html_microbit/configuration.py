@@ -43,7 +43,6 @@ capabilities = {
         "type": "opu",
         "disabled": False,
         "count": 1,
-        'topic_identifier': '/M',
         "cortical_mapping": "o_mper",
         "rolling_window_len": 5,
         "diameter_of_wheel": 0.065,
@@ -55,12 +54,6 @@ capabilities = {
         "count": 2,
         "cortical_mapping": "i__inf",
         'topic_identifier': 'IR'
-    },
-    "motor_position": {
-        "type": "opu"
-    },
-    "motor_percentage": {
-        "type": "opu"
     }
 }
 
