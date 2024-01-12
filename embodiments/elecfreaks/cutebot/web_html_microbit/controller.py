@@ -110,91 +110,88 @@ def websocket_operation():
     asyncio.run(main())
 
 
-def action(obtained_data, device_list):
-    #print("here: obtained_data)
-    for device in device_list:
-        # print("here: ", obtained_data)
-        WS_STRING = ""
-        if 'motor_percentage' in obtained_data:
-            if obtained_data['motor_percentage']:
-                if len(obtained_data['motor_percentage']) >= 3:
-                    if 0 in obtained_data['motor_percentage']:
-                        if 1 in obtained_data['motor_percentage']:
-                            if obtained_data['motor_percentage'][0] >= obtained_data['motor_percentage'][1]:
-                                obtained_data['motor_percentage'].pop(1)
-                            else:
-                                obtained_data['motor_percentage'].pop(0)
-                    if 2 in obtained_data['motor_percentage']:
-                        if 3 in obtained_data['motor_percentage']:
-                            if obtained_data['motor_percentage'][2] >= obtained_data['motor_percentage'][3]:
-                                obtained_data['motor_percentage'].pop(3)
-                            else:
-                                obtained_data['motor_percentage'].pop(2)
-                new_dict = {'motor': {}}
-                for x in obtained_data['motor_percentage']:
-                    if x in [0, 1, 2, 3]:
-                        new_dict['motor'][x] = obtained_data['motor_percentage'][x]
-                for i in sorted(new_dict['motor']):  # Ensure that it's in order for microbit
-                    if i in [0, 1]:
-                        data_power = new_dict['motor'][i]
-                        if data_power <= 0:
-                            data_power = 1
-                        WS_STRING += str(i) + str(data_power-1).zfill(2)  # Append the motor data as a two-digit
-                        # string
-                    elif i in [2, 3]:
-                        data_power = new_dict['motor'][i]
-                        if data_power <= 0:
-                            data_power = 1
-                        WS_STRING += str(i) + str(data_power-1).zfill(2)  # Append the motor data as a two-digit
-                        # string
-                    else:
-                        WS_STRING += str(i) + "00"  # If the motor value is not present, append "00"
-        if 'motor_position' in obtained_data:
+def action(obtained_data):
+    if 'motor_percentage' in obtained_data:
+        if obtained_data['motor_percentage']:
             WS_STRING = ""
-            if obtained_data['motor_position']:
-                if len(obtained_data['motor_position']) >= 3:
-                    if 0 in obtained_data['motor_position']:
-                        if 1 in obtained_data['motor_position']:
-                            if obtained_data['motor_position'][0] >= obtained_data['motor_position'][1]:
-                                obtained_data['motor_position'].pop(1)
-                            else:
-                                obtained_data['motor_position'].pop(0)
-                    if 2 in obtained_data['motor_position']:
-                        if 3 in obtained_data['motor_position']:
-                            if obtained_data['motor_position'][2] >= obtained_data['motor_position'][3]:
-                                obtained_data['motor_position'].pop(3)
-                            else:
-                                obtained_data['motor_position'].pop(2)
-                new_dict = {'motor': {}}
-                for x in obtained_data['motor_position']:
-                    if x in [0, 1, 2, 3]:
-                        new_dict['motor'][x] = obtained_data['motor_position'][x]
-                for i in sorted(
-                        new_dict['motor']):  # Ensure that it's in order for microbit
-                    if i in [0, 1]:
-                        data_power = new_dict['motor'][i]
-                        if data_power <= 0:
-                            data_power = 1
-                        WS_STRING += str(i) + str(data_power * 10).zfill(2)  # Append the motor
-                        # data as a two-digit string
-                    elif i in [2, 3]:
-                        data_power = new_dict['motor'][i]
-                        if data_power <= 0:
-                            data_power = 1
-                        WS_STRING += str(i) + str(data_power * 10).zfill(2)  # Append the motor data
-                        # as a two-digit  string
-                    else:
-                        WS_STRING += str(
-                            i) + "00"  # If the motor value is not present, append "00"
-                print("HERE: ", WS_STRING)
-                if WS_STRING != "":
-                    if len(WS_STRING) != 6:
-                        if int(WS_STRING[0]) < 2:
-                            WS_STRING = WS_STRING + "500"
+            if len(obtained_data['motor_percentage']) >= 3:
+                if 0 in obtained_data['motor_percentage']:
+                    if 1 in obtained_data['motor_percentage']:
+                        if obtained_data['motor_percentage'][0] >= obtained_data['motor_percentage'][1]:
+                            obtained_data['motor_percentage'].pop(1)
                         else:
-                            WS_STRING = "500" + WS_STRING
-                    WS_STRING = WS_STRING + "#"
-                    ws.append(WS_STRING)
+                            obtained_data['motor_percentage'].pop(0)
+                if 2 in obtained_data['motor_percentage']:
+                    if 3 in obtained_data['motor_percentage']:
+                        if obtained_data['motor_percentage'][2] >= obtained_data['motor_percentage'][3]:
+                            obtained_data['motor_percentage'].pop(3)
+                        else:
+                            obtained_data['motor_percentage'].pop(2)
+            new_dict = {'motor': {}}
+            for x in obtained_data['motor_percentage']:
+                if x in [0, 1, 2, 3]:
+                    new_dict['motor'][x] = obtained_data['motor_percentage'][x]
+            for i in sorted(new_dict['motor']):  # Ensure that it's in order for microbit
+                if i in [0, 1]:
+                    data_power = new_dict['motor'][i]
+                    if data_power <= 0:
+                        data_power = 1
+                    WS_STRING += str(i) + str(data_power-1).zfill(2)  # Append the motor data as a two-digit
+                    # string
+                elif i in [2, 3]:
+                    data_power = new_dict['motor'][i]
+                    if data_power <= 0:
+                        data_power = 1
+                    WS_STRING += str(i) + str(data_power-1).zfill(2)  # Append the motor data as a two-digit
+                    # string
+                else:
+                    WS_STRING += str(i) + "00"  # If the motor value is not present, append "00"
+    if 'motor_position' in obtained_data:
+        if obtained_data['motor_position']:
+            WS_STRING = ""
+            if len(obtained_data['motor_position']) >= 3:
+                if 0 in obtained_data['motor_position']:
+                    if 1 in obtained_data['motor_position']:
+                        if obtained_data['motor_position'][0] >= obtained_data['motor_position'][1]:
+                            obtained_data['motor_position'].pop(1)
+                        else:
+                            obtained_data['motor_position'].pop(0)
+                if 2 in obtained_data['motor_position']:
+                    if 3 in obtained_data['motor_position']:
+                        if obtained_data['motor_position'][2] >= obtained_data['motor_position'][3]:
+                            obtained_data['motor_position'].pop(3)
+                        else:
+                            obtained_data['motor_position'].pop(2)
+            new_dict = {'motor': {}}
+            for x in obtained_data['motor_position']:
+                if x in [0, 1, 2, 3]:
+                    new_dict['motor'][x] = obtained_data['motor_position'][x]
+            for i in sorted(
+                    new_dict['motor']):  # Ensure that it's in order for microbit
+                if i in [0, 1]:
+                    data_power = new_dict['motor'][i]
+                    if data_power <= 0:
+                        data_power = 1
+                    WS_STRING += str(i) + str(data_power * 10).zfill(2)  # Append the motor
+                    # data as a two-digit string
+                elif i in [2, 3]:
+                    data_power = new_dict['motor'][i]
+                    if data_power <= 0:
+                        data_power = 1
+                    WS_STRING += str(i) + str(data_power * 10).zfill(2)  # Append the motor data
+                    # as a two-digit  string
+                else:
+                    WS_STRING += str(
+                        i) + "00"  # If the motor value is not present, append "00"
+    print("HERE: ", WS_STRING)
+    if WS_STRING != "":
+        if len(WS_STRING) != 6:
+            if int(WS_STRING[0]) < 2:
+                WS_STRING = WS_STRING + "500"
+            else:
+                WS_STRING = "500" + WS_STRING
+        WS_STRING = WS_STRING + "#"
+        ws.append(WS_STRING)
 
 
 if __name__ == "__main__":
@@ -204,7 +201,6 @@ if __name__ == "__main__":
     threading.Thread(target=websocket_operation, daemon=True).start()
     # threading.Thread(target=bridge_to_godot, daemon=True).start()
     threading.Thread(target=bridge_operation, daemon=True).start()
-    device_list = pns.generate_OPU_list(capabilities)
     feagi_flag = False
     print("Waiting on FEAGI...")
     while not feagi_flag:
@@ -235,8 +231,8 @@ if __name__ == "__main__":
             message_from_feagi = pns.message_from_feagi
             # OPU section STARTS
             if message_from_feagi:
-                obtained_signals = pns.obtain_opu_data(device_list, message_from_feagi)
-                action(obtained_signals, device_list)
+                obtained_signals = pns.obtain_opu_data(message_from_feagi)
+                action(obtained_signals)
             # OPU section ENDS
             message_to_feagi = sensors.add_ultrasonic_to_feagi_data(microbit_data['ultrasonic'], message_to_feagi)
             message_to_feagi = sensors.add_infrared_to_feagi_data(microbit_data['ir'],
