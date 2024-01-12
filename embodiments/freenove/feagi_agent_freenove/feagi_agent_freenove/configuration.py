@@ -89,6 +89,12 @@ capabilities = {
     },
     "led": {
         "type": "opu"
+    },
+    "motor_position": {
+        "type": "opu"
+    },
+    "motor_percentage": {
+        "type": "opu"
     }
 }
 

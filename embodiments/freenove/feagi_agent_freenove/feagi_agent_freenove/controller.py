@@ -417,10 +417,26 @@ def action(obtained_data, led_flag, feagi_settings, capabilities, motor_data,
                 for i in range(8):
                     led.LED_on(i, 0, 0, 0)
                 led_flag = False
-    if 'motor' in obtained_data:
-        if obtained_data['motor'] is not {}:
-            for data_point in obtained_data['motor']:
-                device_power = obtained_data['motor'][data_point]
+    if 'motor_percentage' in obtained_data:
+        capabilities["motor"]["power_amount"] = 70
+        if obtained_data['motor_percentage'] is not {}:
+            for data_point in obtained_data['motor_percentage']:
+                device_power = obtained_data['motor_percentage'][data_point]
+                device_power = motor.power_convert(data_point, device_power)
+                device_id = motor.motor_converter(data_point)
+                if device_id not in motor_data:
+                    motor_data[device_id] = dict()
+                rolling_window[device_id].append(device_power)
+                rolling_window[device_id].popleft()
+    else:
+        for _ in range(motor_count):
+            rolling_window[_].append(0)
+            rolling_window[_].popleft()
+    if 'motor_position' in obtained_data:
+        capabilities["motor"]["power_amount"] = 650
+        if obtained_data['motor_position'] is not {}:
+            for data_point in obtained_data['motor_position']:
+                device_power = obtained_data['motor_position'][data_point]
                 device_power = motor.power_convert(data_point, device_power)
                 device_id = motor.motor_converter(data_point)
                 if device_id not in motor_data:
@@ -432,10 +448,10 @@ def action(obtained_data, led_flag, feagi_settings, capabilities, motor_data,
             rolling_window[_].append(0)
             rolling_window[_].popleft()
     if capabilities['servo']['disabled'] is not True:
-        if 'servo' in obtained_data:
-            for data_point in obtained_data['servo']:
+        if 'servo_percentage' in obtained_data:
+            for data_point in obtained_data['servo_percentage']:
                 device_id = data_point
-                device_power = obtained_data['servo'][data_point]
+                device_power = obtained_data['servo_percentage'][data_point]
                 servo.move(feagi_device_id=device_id, power=device_power,
                            capabilities=capabilities, feagi_settings=feagi_settings,
                            runtime_data=runtime_data)
@@ -582,12 +598,13 @@ def main(feagi_auth_url, feagi_settings, agent_settings, capabilities):
                 if len(default_capabilities['camera']['blink']) > 0:
                     raw_frame = default_capabilities['camera']['blink']
                 # Post image into vision
-                previous_frame_data, rgb, default_capabilities = retina.update_region_split_downsize(
-                    raw_frame,
-                    default_capabilities,
-                    size_list,
-                    previous_frame_data,
-                    rgb, capabilities)
+                previous_frame_data, rgb, default_capabilities, size_list = \
+                    retina.update_region_split_downsize(
+                        raw_frame,
+                        default_capabilities,
+                        size_list,
+                        previous_frame_data,
+                        rgb, capabilities)
                 default_capabilities['camera']['blink'] = []
                 message_to_feagi = pns.generate_feagi_data(rgb, msg_counter, datetime.now(),
                                                            message_to_feagi)
