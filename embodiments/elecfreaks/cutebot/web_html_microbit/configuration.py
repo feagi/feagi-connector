@@ -57,6 +57,12 @@ capabilities = {
         "refresh_rate": 1,
         "cortical_mapping": "i__inf",
         'topic_identifier': 'IR'
+    },
+    "motor_position":{
+        "type": "opu"
+    },
+    "motor_percentage": {
+        "type": "opu"
     }
 }
 
