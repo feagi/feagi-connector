@@ -175,16 +175,14 @@ def action(obtained_data, device_list):
                         data_power = new_dict['motor'][i]
                         if data_power <= 0:
                             data_power = 1
-                        WS_STRING += str(i) + str(data_power - 1).zfill(
-                            2)  # Append the motor data as a two-digit
-                        # string
+                        WS_STRING += str(i) + str(data_power * 10).zfill(2)  # Append the motor
+                        # data as a two-digit string
                     elif i in [2, 3]:
                         data_power = new_dict['motor'][i]
                         if data_power <= 0:
                             data_power = 1
-                        WS_STRING += str(i) + str(data_power - 1).zfill(
-                            2)  # Append the motor data as a two-digit
-                        # string
+                        WS_STRING += str(i) + str(data_power * 10).zfill(2)  # Append the motor data
+                        # as a two-digit  string
                     else:
                         WS_STRING += str(
                             i) + "00"  # If the motor value is not present, append "00"
