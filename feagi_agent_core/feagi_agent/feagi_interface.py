@@ -156,25 +156,25 @@ def opu_processor(data):
                               "vision_acuity": {}, "motor_position": {}}
         opu_data = data["opu_data"]
         if opu_data is not None:
-            if 'o__mot' in opu_data:
-                for data_point in opu_data['o__mot']:
+            if 'o_mper' in opu_data:
+                for data_point in opu_data['o_mper']:
                     processed_data_point = block_to_array(data_point)
                     device_id = processed_data_point[0]
-                    device_power = opu_data['o__mot'][data_point]
+                    device_power = opu_data['o_mper'][data_point]
                     processed_opu_data['motor_percentage'][device_id] = device_power
-            if 'op_mot' in opu_data:
-                if opu_data['op_mot']:
-                    for data_point in opu_data['op_mot']:
+            if 'o_mpos' in opu_data:
+                if opu_data['o_mpos']:
+                    for data_point in opu_data['o_mpos']:
                         processed_data_point = block_to_array(data_point)
                         device_id = processed_data_point[0]
                         device_power = processed_data_point[2]
                         processed_opu_data['motor_position'][device_id] = device_power
-            if 'o__ser' in opu_data:
-                if opu_data['o__ser']:
-                    for data_point in opu_data['o__ser']:
+            if 'o_sper' in opu_data:
+                if opu_data['o_sper']:
+                    for data_point in opu_data['o_sper']:
                         processed_data_point = block_to_array(data_point)
                         device_id = processed_data_point[0]
-                        device_power = opu_data['o__ser'][data_point]
+                        device_power = opu_data['o_sper'][data_point]
                         processed_opu_data['servo_percentage'][device_id] = device_power
             if 'o_cbat' in opu_data:
                 if opu_data['o__bat']:
