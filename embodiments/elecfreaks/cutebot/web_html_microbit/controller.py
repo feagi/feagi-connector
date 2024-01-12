@@ -113,7 +113,7 @@ def websocket_operation():
 def action(obtained_data, device_list):
     #print("here: obtained_data)
     for device in device_list:
-        print("here: ", obtained_data)
+        # print("here: ", obtained_data)
         WS_STRING = ""
         if 'motor_percentage' in obtained_data:
             if obtained_data['motor_percentage']:
@@ -149,44 +149,45 @@ def action(obtained_data, device_list):
                         # string
                     else:
                         WS_STRING += str(i) + "00"  # If the motor value is not present, append "00"
-                if 'motor_position' in obtained_data:
-                    if obtained_data['motor_position']:
-                        if len(obtained_data['motor_position']) >= 3:
-                            if 0 in obtained_data['motor_position']:
-                                if 1 in obtained_data['motor_position']:
-                                    if obtained_data['motor_position'][0] >= obtained_data['motor_position'][1]:
-                                        obtained_data['motor_position'].pop(1)
-                                    else:
-                                        obtained_data['motor_position'].pop(0)
-                            if 2 in obtained_data['motor_position']:
-                                if 3 in obtained_data['motor_position']:
-                                    if obtained_data['motor_position'][2] >= obtained_data['motor_position'][3]:
-                                        obtained_data['motor_position'].pop(3)
-                                    else:
-                                        obtained_data['motor_position'].pop(2)
-                        new_dict = {'motor': {}}
-                        for x in obtained_data['motor_position']:
-                            if x in [0, 1, 2, 3]:
-                                new_dict['motor'][x] = obtained_data['motor_position'][x]
-                        for i in sorted(
-                                new_dict['motor']):  # Ensure that it's in order for microbit
-                            if i in [0, 1]:
-                                data_power = new_dict['motor'][i]
-                                if data_power <= 0:
-                                    data_power = 1
-                                WS_STRING += str(i) + str(data_power - 1).zfill(
-                                    2)  # Append the motor data as a two-digit
-                                # string
-                            elif i in [2, 3]:
-                                data_power = new_dict['motor'][i]
-                                if data_power <= 0:
-                                    data_power = 1
-                                WS_STRING += str(i) + str(data_power - 1).zfill(
-                                    2)  # Append the motor data as a two-digit
-                                # string
+        if 'motor_position' in obtained_data:
+            WS_STRING = ""
+            if obtained_data['motor_position']:
+                if len(obtained_data['motor_position']) >= 3:
+                    if 0 in obtained_data['motor_position']:
+                        if 1 in obtained_data['motor_position']:
+                            if obtained_data['motor_position'][0] >= obtained_data['motor_position'][1]:
+                                obtained_data['motor_position'].pop(1)
                             else:
-                                WS_STRING += str(
-                                    i) + "00"  # If the motor value is not present, append "00"
+                                obtained_data['motor_position'].pop(0)
+                    if 2 in obtained_data['motor_position']:
+                        if 3 in obtained_data['motor_position']:
+                            if obtained_data['motor_position'][2] >= obtained_data['motor_position'][3]:
+                                obtained_data['motor_position'].pop(3)
+                            else:
+                                obtained_data['motor_position'].pop(2)
+                new_dict = {'motor': {}}
+                for x in obtained_data['motor_position']:
+                    if x in [0, 1, 2, 3]:
+                        new_dict['motor'][x] = obtained_data['motor_position'][x]
+                for i in sorted(
+                        new_dict['motor']):  # Ensure that it's in order for microbit
+                    if i in [0, 1]:
+                        data_power = new_dict['motor'][i]
+                        if data_power <= 0:
+                            data_power = 1
+                        WS_STRING += str(i) + str(data_power - 1).zfill(
+                            2)  # Append the motor data as a two-digit
+                        # string
+                    elif i in [2, 3]:
+                        data_power = new_dict['motor'][i]
+                        if data_power <= 0:
+                            data_power = 1
+                        WS_STRING += str(i) + str(data_power - 1).zfill(
+                            2)  # Append the motor data as a two-digit
+                        # string
+                    else:
+                        WS_STRING += str(
+                            i) + "00"  # If the motor value is not present, append "00"
                 print("HERE: ", WS_STRING)
                 if WS_STRING != "":
                     if len(WS_STRING) != 6:
