@@ -44,7 +44,6 @@ capabilities = {
         "disabled": False,
         "count": 1,
         'topic_identifier': '/M',
-        "refresh_rate": 1,
         "cortical_mapping": "o__mot",
         "rolling_window_len": 5,
         "diameter_of_wheel": 0.065,
@@ -54,11 +53,10 @@ capabilities = {
         "type": "ipu",
         "disabled": False,
         "count": 2,
-        "refresh_rate": 1,
         "cortical_mapping": "i__inf",
         'topic_identifier': 'IR'
     },
-    "motor_position":{
+    "motor_position": {
         "type": "opu"
     },
     "motor_percentage": {
