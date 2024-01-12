@@ -356,7 +356,7 @@ if __name__ == '__main__':
     while True:
         try:
             message_from_feagi = pns.message_from_feagi
-            print(message_from_feagi['opu_data']['o__mot'])
+            print(message_from_feagi['opu_data']['o_mper'])
             obtained_signals = pns.obtain_opu_data(device_list, message_from_feagi)
             angle_of_arms, angle_of_head = action(obtained_signals, angle_of_arms,
                                                   angle_of_head)

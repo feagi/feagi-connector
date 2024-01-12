@@ -105,9 +105,9 @@ while flag:
         if message_from_feagi is not None:
             opu_data = message_from_feagi["opu_data"]
             print(message_from_feagi)
-            if "o__mot" in opu_data:
-                print(opu_data["o__mot"])
-                for i in opu_data['o__mot']:
+            if "o_mper" in opu_data:
+                print(opu_data["o_mper"])
+                for i in opu_data['o_mper']:
                     print("Sending now:" , i)
                     if i == "0-0-0":
                         ubit.uart = 'f#'
