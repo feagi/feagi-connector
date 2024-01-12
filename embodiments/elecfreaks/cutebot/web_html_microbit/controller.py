@@ -111,6 +111,7 @@ def websocket_operation():
 
 
 def action(obtained_data):
+    WS_STRING = ""
     if 'motor_percentage' in obtained_data:
         if obtained_data['motor_percentage']:
             WS_STRING = ""
