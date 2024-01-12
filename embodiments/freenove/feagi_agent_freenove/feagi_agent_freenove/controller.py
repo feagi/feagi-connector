@@ -580,7 +580,6 @@ def main(feagi_auth_url, feagi_settings, agent_settings, capabilities):
     cam = cv2.VideoCapture(0)  # you need to do sudo rpi-update to be able to use this
     motor.stop()
     servo.set_default_position(runtime_data)
-    device_list = pns.generate_OPU_list(capabilities)
     response = requests.get(api_address + '/v1/feagi/genome/cortical_area/geometry')
     size_list= retina.obtain_cortical_vision_size(capabilities['camera']["index"], response)
     raw_frame = []
@@ -599,19 +598,17 @@ def main(feagi_auth_url, feagi_settings, agent_settings, capabilities):
                     raw_frame = default_capabilities['camera']['blink']
                 # Post image into vision
                 previous_frame_data, rgb, default_capabilities, size_list = \
-                    retina.update_region_split_downsize(
-                        raw_frame,
-                        default_capabilities,
-                        size_list,
-                        previous_frame_data,
-                        rgb, capabilities)
+                    retina.update_region_split_downsize(raw_frame, default_capabilities, size_list,
+                                                        previous_frame_data,
+                                                        rgb,
+                                                        capabilities)
                 default_capabilities['camera']['blink'] = []
                 message_to_feagi = pns.generate_feagi_data(rgb, msg_counter, datetime.now(),
                                                            message_to_feagi)
             message_from_feagi = pns.message_from_feagi
 
             # Fetch data such as motor, servo, etc and pass to a function (you make ur own action.
-            obtained_signals = pns.obtain_opu_data(device_list, message_from_feagi)
+            obtained_signals = pns.obtain_opu_data(message_from_feagi)
             led_flag = action(obtained_signals, led_flag, feagi_settings,
                               capabilities, motor_data, rolling_window, motor, servo, led,
                               runtime_data)

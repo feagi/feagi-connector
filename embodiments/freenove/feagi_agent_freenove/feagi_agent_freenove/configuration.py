@@ -46,7 +46,6 @@ capabilities = {
         "type": "opu",
         "disabled": False,
         "count": 4,
-        'topic_identifier': '/M',
         "rolling_window_len": 2,
         "diameter_of_wheel": 0.065,
         "power_amount": 10
@@ -80,15 +79,6 @@ capabilities = {
         # "pupil_control": {0: 25, 1: 55}, # Pupil shifts up
         "threshold_default": [100, 255, 130, 51] # min value, max value, min value, max value in
         # threshold setting. first and second is for regular webcam. Second is for vision blink OPU
-    },
-    "led": {
-        "type": "opu"
-    },
-    "motor_position": {
-        "type": "opu"
-    },
-    "motor_percentage": {
-        "type": "opu"
     }
 }
 
