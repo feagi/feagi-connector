@@ -150,10 +150,11 @@ def compose_message_to_feagi(original_message, data=None, battery=0):
 
 def opu_processor(data):
     try:
-        processed_opu_data = {'motor_percentage': {}, 'servo_percentage': {}, 'battery': {}, 'discharged_battery': {},
-                              'reset': {}, 'camera': {}, 'misc': {}, 'navigation': {}, 'speed': {},
-                              'servo_position': {}, "led": {}, "vision_resolution": {},
-                              "vision_acuity": {}, "motor_position": {}}
+        processed_opu_data = {'motor_percentage': {}, 'servo_percentage': {}, 'battery': {},
+                              'discharged_battery': {}, 'reset': {}, 'camera': {}, 'misc': {},
+                              "control": {}, 'navigation':{}, 'speed': {}, 'servo_position': {},
+                              "led": {}, "vision_resolution": {}, "vision_acuity": {},
+                              "motor_position": {}}
         opu_data = data["opu_data"]
         if opu_data is not None:
             if 'o_mper' in opu_data:
@@ -200,6 +201,13 @@ def opu_processor(data):
                         device_id = processed_data_point[0]
                         device_power = opu_data['o_misc'][data_point]
                         processed_opu_data['misc'][device_id] = device_power
+            if 'o__con' in opu_data:
+                if opu_data['o__con']:
+                    for data_point in opu_data['o__con']:
+                        processed_data_point = block_to_array(data_point)
+                        device_id = processed_data_point[0]
+                        device_power = opu_data['o__con'][data_point]
+                        processed_opu_data['control'][device_id] = device_power
             if 'o__led' in opu_data:
                 if opu_data['o__led']:
                     for data_point in opu_data['o__led']:
