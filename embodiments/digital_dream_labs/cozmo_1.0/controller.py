@@ -38,7 +38,7 @@ from collections import deque
 import numpy as np
 from time import sleep
 import traceback
-import cv2
+import math
 import motor_functions
 
 runtime_data = {
@@ -81,7 +81,8 @@ def on_robot_state(cli, pkt: pycozmo.protocol_encoder.RobotState):
     backpack_touch_sensor_raw: Raw data from the robot's backpack touch sensor.
     curr_path_segment: The ID of the current path segment.
     """
-    robot['accelerator'] = {"0": pkt.accel_x - 1000, "1": pkt.accel_y - 1000, "2": pkt.accel_z -1000}
+    robot['accelerator'] = {"0": pkt.accel_x - 1000, "1": pkt.accel_y - 1000,
+                            "2": pkt.accel_z - 1000}
     robot['ultrasonic'] = pkt.cliff_data_raw
     robot["gyro"] = [pkt.gyro_x, pkt.gyro_y, pkt.gyro_z]
     robot['servo_head'] = pkt.head_angle_rad
@@ -228,11 +229,11 @@ def lift_arms(cli, angle, max, min):
 
 def action(obtained_data, arms_angle, head_angle):
     motor_count = capabilities['motor']['count']
-    if 'motor' in obtained_data:
-        if obtained_data['motor'] is not {}:
-            for data_point in obtained_data['motor']:
+    if 'motor_percentage' in obtained_data:
+        if obtained_data['motor_percentage'] is not {}:
+            for data_point in obtained_data['motor_percentage']:
                 if data_point in [0, 1, 2, 3]:
-                    device_power = obtained_data['motor'][data_point]
+                    device_power = obtained_data['motor_percentage'][data_point]
                     device_id = float(data_point)
                     if device_id not in motor_data:
                         motor_data[device_id] = dict()
@@ -242,32 +243,61 @@ def action(obtained_data, arms_angle, head_angle):
         for _ in range(motor_count):
             rolling_window[_].append(0)
             rolling_window[_].popleft()
-    if "servo" in obtained_data:
-        if obtained_data["servo"] is not {}:
-            for i in obtained_data['servo']:
+    if 'motor_position' in obtained_data:
+        if obtained_data['motor_position'] is not {}:
+            for data_point in obtained_data['motor_position']:
+                if data_point in [0, 1, 2, 3]:
+                    device_power = obtained_data['motor_position'][data_point] * capabilities[
+                        'servo']['power_amount']
+                    device_id = float(data_point)
+                    if device_id not in motor_data:
+                        motor_data[device_id] = dict()
+                    rolling_window[device_id].append(device_power)
+                    rolling_window[device_id].popleft()
+    else:
+        for _ in range(motor_count):
+            rolling_window[_].append(0)
+            rolling_window[_].popleft()
+    if "servo_percentage" in obtained_data:
+        if obtained_data['servo_percentage'] is not {}:
+            for i in obtained_data['servo_percentage']:
                 if i == 0:
                     test_head_angle = head_angle
-                    test_head_angle += obtained_data['servo'][i] / capabilities["servo"][
+                    test_head_angle += obtained_data['servo_percentage'][i] / capabilities["servo"][
                         "power_amount"]
                     if move_head(cli, test_head_angle, max, min):
                         head_angle = test_head_angle
                 elif i == 1:
                     test_head_angle = head_angle
-                    test_head_angle -= obtained_data['servo'][i] / capabilities["servo"][
+                    test_head_angle -= obtained_data['servo_percentage'][i] / capabilities["servo"][
                         "power_amount"]
                     if move_head(cli, head_angle, max, min):
                         head_angle = test_head_angle
                 if i == 2:
                     test_arm_angle = arms_angle
-                    test_arm_angle += obtained_data['servo'][i] / 40
+                    test_arm_angle += obtained_data['servo_percentage'][i] / 40
                     if lift_arms(cli, test_arm_angle, max_lift, min_lift):
                         arms_angle = test_arm_angle
                 elif i == 3:
                     test_arm_angle = arms_angle
-                    test_arm_angle -= obtained_data['servo'][i] / 40
+                    test_arm_angle -= obtained_data['servo_percentage'][i] / 40
                     if lift_arms(cli, test_arm_angle, max_lift, min_lift):
                         arms_angle = test_arm_angle
-            obtained_data['servo'].clear()
+            obtained_data['servo_percentage'].clear()
+    if "servo_position" in obtained_data:
+        if obtained_data['servo_position'] is not {}:
+            for i in obtained_data['servo_position']:
+                if i == 0:
+                    test_head_angle = float(((obtained_data['servo_position'][i] / 10) * (max -
+                                                                                          min)) + min)
+                    if move_head(cli, test_head_angle, max, min):
+                        head_angle = test_head_angle
+                if i == 1:
+                    test_arm_angle = int(((obtained_data['servo_position'][i] / 10) * (87.5 - 37))
+                                         + 37)
+                    if lift_arms(cli, test_arm_angle, max_lift, min_lift):
+                        arms_angle = test_arm_angle
+            obtained_data['servo_position'].clear()
     if "misc" in obtained_data:
         if obtained_data["misc"]:
             print("face: ", face_selected, " misc: ", obtained_data["misc"])
@@ -356,8 +386,9 @@ if __name__ == '__main__':
     while True:
         try:
             message_from_feagi = pns.message_from_feagi
-            print(message_from_feagi['opu_data']['o__mot'])
-            obtained_signals = pns.obtain_opu_data(device_list, message_from_feagi)
+            if message_from_feagi['opu_data']['o_mper']:
+                print(message_from_feagi['opu_data']['o_mper'])
+            obtained_signals = pns.obtain_opu_data(message_from_feagi)
             angle_of_arms, angle_of_head = action(obtained_signals, angle_of_arms,
                                                   angle_of_head)
             # OPU section ENDS
@@ -396,8 +427,8 @@ if __name__ == '__main__':
                         if split_data[0] == '0':
                             motor_functions.display_lines(cli)
             raw_frame = camera_data['vision']
-            # cv2.imshow("test", new_rgb)
-            # cv2.waitKey(30)
+            # # cv2.imshow("test", new_rgb)
+            # # cv2.waitKey(30)
             default_capabilities['camera']['blink'] = []
             if 'camera' in default_capabilities:
                 if default_capabilities['camera']['blink'] != []:
@@ -415,13 +446,12 @@ if __name__ == '__main__':
             pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
             message_to_feagi.clear()
             battery = robot['battery']
-            ultrasonic_data = robot['ultrasonic'][0] # obtain ultrasonic data
+            ultrasonic_data = robot['ultrasonic'][0]  # obtain ultrasonic data
             message_to_feagi = sensors.add_ultrasonic_to_feagi_data(ultrasonic_data,
                                                                     message_to_feagi)
             message_to_feagi = sensors.add_acc_to_feagi_data(robot['accelerator'],
                                                              message_to_feagi)
             message_to_feagi = sensors.add_battery_to_feagi_data(battery, message_to_feagi)
-
 
             for i in rgb['camera']:
                 rgb['camera'][i].clear()

@@ -164,7 +164,7 @@ class Servo:
         """
         This will convert from godot to motor's id. Let's say, you have 4x10 (width x depth from static_genome).
         So, you click 2 (actually 4 but 2 for one servo on backward/forward) to go forward. It will be like this:
-        o__ser': {'1-0-9': 1, '3-0-9': 1}
+        o_sper': {'1-0-9': 1, '3-0-9': 1}
         which is 1,3. So this code will convert from 1,3 to 0,1 on motor id.
 
         Since 0-1 is servo 0, 2-3 is servo 1 and so on. In this case, 0 and 2 is for forward and 1 and 3 is for backward
@@ -187,7 +187,7 @@ class Servo:
     def motor_converter(motor_id):
         """
         This will convert from godot to motor's id. Let's say, you have 8x10 (width x depth from
-        static_genome). So, you click 4 to go forward. It will be like this: o__mot': {'1-0-9':
+        static_genome). So, you click 4 to go forward. It will be like this: o_mper': {'1-0-9':
         1, '5-0-9': 1, '3-0-9': 1, '7-0-9': 1} which is 1,3,5,7. So this code will convert from
         1,3,5,7 to 0,1,2,3 on motor id.
 
@@ -309,7 +309,7 @@ class Motor:
         """
         This will convert from godot to motor's id. Let's say, you have 8x10 (width x depth from static_genome).
         So, you click 4 to go forward. It will be like this:
-        o__mot': {'1-0-9': 1, '5-0-9': 1, '3-0-9': 1, '7-0-9': 1}
+        o_mper': {'1-0-9': 1, '5-0-9': 1, '3-0-9': 1, '7-0-9': 1}
         which is 1,3,5,7. So this code will convert from 1,3,5,7 to 0,1,2,3 on motor id.
 
         Since 0-1 is motor 1, 2-3 is motor 2 and so on. In this case, 0 is for forward and 1 is for backward.
@@ -417,10 +417,26 @@ def action(obtained_data, led_flag, feagi_settings, capabilities, motor_data,
                 for i in range(8):
                     led.LED_on(i, 0, 0, 0)
                 led_flag = False
-    if 'motor' in obtained_data:
-        if obtained_data['motor'] is not {}:
-            for data_point in obtained_data['motor']:
-                device_power = obtained_data['motor'][data_point]
+    if 'motor_percentage' in obtained_data:
+        capabilities["motor"]["power_amount"] = 70
+        if obtained_data['motor_percentage'] is not {}:
+            for data_point in obtained_data['motor_percentage']:
+                device_power = obtained_data['motor_percentage'][data_point]
+                device_power = motor.power_convert(data_point, device_power)
+                device_id = motor.motor_converter(data_point)
+                if device_id not in motor_data:
+                    motor_data[device_id] = dict()
+                rolling_window[device_id].append(device_power)
+                rolling_window[device_id].popleft()
+    else:
+        for _ in range(motor_count):
+            rolling_window[_].append(0)
+            rolling_window[_].popleft()
+    if 'motor_position' in obtained_data:
+        capabilities["motor"]["power_amount"] = 650
+        if obtained_data['motor_position'] is not {}:
+            for data_point in obtained_data['motor_position']:
+                device_power = obtained_data['motor_position'][data_point]
                 device_power = motor.power_convert(data_point, device_power)
                 device_id = motor.motor_converter(data_point)
                 if device_id not in motor_data:
@@ -432,10 +448,10 @@ def action(obtained_data, led_flag, feagi_settings, capabilities, motor_data,
             rolling_window[_].append(0)
             rolling_window[_].popleft()
     if capabilities['servo']['disabled'] is not True:
-        if 'servo' in obtained_data:
-            for data_point in obtained_data['servo']:
+        if 'servo_percentage' in obtained_data:
+            for data_point in obtained_data['servo_percentage']:
                 device_id = data_point
-                device_power = obtained_data['servo'][data_point]
+                device_power = obtained_data['servo_percentage'][data_point]
                 servo.move(feagi_device_id=device_id, power=device_power,
                            capabilities=capabilities, feagi_settings=feagi_settings,
                            runtime_data=runtime_data)
@@ -564,7 +580,6 @@ def main(feagi_auth_url, feagi_settings, agent_settings, capabilities):
     cam = cv2.VideoCapture(0)  # you need to do sudo rpi-update to be able to use this
     motor.stop()
     servo.set_default_position(runtime_data)
-    device_list = pns.generate_OPU_list(capabilities)
     response = requests.get(api_address + '/v1/feagi/genome/cortical_area/geometry')
     size_list= retina.obtain_cortical_vision_size(capabilities['camera']["index"], response)
     raw_frame = []
@@ -582,19 +597,18 @@ def main(feagi_auth_url, feagi_settings, agent_settings, capabilities):
                 if len(default_capabilities['camera']['blink']) > 0:
                     raw_frame = default_capabilities['camera']['blink']
                 # Post image into vision
-                previous_frame_data, rgb, default_capabilities = retina.update_region_split_downsize(
-                    raw_frame,
-                    default_capabilities,
-                    size_list,
-                    previous_frame_data,
-                    rgb, capabilities)
+                previous_frame_data, rgb, default_capabilities, size_list = \
+                    retina.update_region_split_downsize(raw_frame, default_capabilities, size_list,
+                                                        previous_frame_data,
+                                                        rgb,
+                                                        capabilities)
                 default_capabilities['camera']['blink'] = []
                 message_to_feagi = pns.generate_feagi_data(rgb, msg_counter, datetime.now(),
                                                            message_to_feagi)
             message_from_feagi = pns.message_from_feagi
 
             # Fetch data such as motor, servo, etc and pass to a function (you make ur own action.
-            obtained_signals = pns.obtain_opu_data(device_list, message_from_feagi)
+            obtained_signals = pns.obtain_opu_data(message_from_feagi)
             led_flag = action(obtained_signals, led_flag, feagi_settings,
                               capabilities, motor_data, rolling_window, motor, servo, led,
                               runtime_data)

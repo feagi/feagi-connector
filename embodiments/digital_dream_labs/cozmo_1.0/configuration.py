@@ -37,8 +37,6 @@ capabilities = {
     "servo": {
         "type": "opu",
         "disabled": False,
-        "refresh_rate": 1,
-        "cortical_mapping": "o__ser",
         'count': 2,
         'topic_identifier': '/S',
         'power_amount': 1000
@@ -49,8 +47,6 @@ capabilities = {
         "disabled": False,
         "count": 4,
         'topic_identifier': '/M',
-        "refresh_rate": 1,
-        "cortical_mapping": "o__mot",
         "rolling_window_len": 2,
         "diameter_of_wheel": 0.065,
         "power_amount": 65
@@ -62,7 +58,6 @@ capabilities = {
         "type": "ipu",
         "disabled": False,
         "count": 3,
-        "refresh_rate": 1,
         "cortical_mapping": "i__inf",
         'topic_identifier': 'IR'
     },
@@ -70,7 +65,6 @@ capabilities = {
         "type": "ipu",
         "disabled": False,
         "count": 4,
-        "refresh_rate": 1,
         "cortical_mapping": "i__bat",
         "capacity": 100,
         "depletion_per_burst": 0.01,
