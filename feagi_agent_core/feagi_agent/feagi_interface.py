@@ -201,12 +201,12 @@ def opu_processor(data):
                         device_id = processed_data_point[0]
                         device_power = opu_data['o_misc'][data_point]
                         processed_opu_data['misc'][device_id] = device_power
-            if 'o__con' in opu_data:
-                if opu_data['o__con']:
-                    for data_point in opu_data['o__con']:
+            if 'o_ctrl' in opu_data:
+                if opu_data['o_ctrl']:
+                    for data_point in opu_data['o_ctrl']:
                         processed_data_point = block_to_array(data_point)
                         device_id = processed_data_point[0]
-                        device_power = opu_data['o__con'][data_point]
+                        device_power = opu_data['o_ctrl'][data_point]
                         processed_opu_data['control'][device_id] = device_power
             if 'o__led' in opu_data:
                 if opu_data['o__led']:
