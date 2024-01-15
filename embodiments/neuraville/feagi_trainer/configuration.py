@@ -27,13 +27,11 @@ feagi_settings = {
     "feagi_api_port": os.environ.get('FEAGI_API_PORT', "8000")
 }
 agent_settings = {
-    "agent_data_port": "10006",
-    "agent_id": "javascript_webcam",
+    "agent_data_port": "10009",
+    "agent_id": "feagi_trainer",
     "agent_type": "embodiment",
     'TTL': 2,
     'last_message': 0,
-    'godot_websocket_ip': "0.0.0.0",
-    'godot_websocket_port': os.environ.get('WS_WEBCAM_PORT', "9051"),
     'compression': True
 }
 
