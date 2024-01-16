@@ -216,15 +216,32 @@ def opu_processor(data):
                         device_id = processed_data_point[0]
                         device_power = opu_data['o_misc'][data_point]
                         processed_opu_data['misc'][device_id] = device_power
-            if 'o_mctl' in opu_data:
-                if opu_data['o_mctl']:
-                    for data_point in opu_data['o_mctl']:
-                        processed_data_point = block_to_array(data_point)
-                        device_id = processed_data_point[0]
-                        device_power = opu_data['o_mctl'][data_point]
-                        device_id = build_up_from_mctl(processed_data_point, device_power)
-                        if device_id is not None:
-                            processed_opu_data['motion_control'][device_id] = device_power
+            if len(pns.full_list_dimension) > 0:
+                if "motion_control_opu" in pns.full_list_dimension:
+                    if pns.full_list_dimension['motion_control_opu'][6] == 1:
+                        if 'o_mctl' in opu_data:
+                            if opu_data['o_mctl']:
+                                for data_point in opu_data['o_mctl']:
+                                    processed_data_point = block_to_array(data_point)
+                                    device_id = processed_data_point[0]
+                                    device_power = opu_data['o_mctl'][data_point]
+                                    device_power = mctl_neuron_update(device_power)
+                                    device_id = build_up_from_mctl(processed_data_point)
+                                    if device_id is not None:
+                                        processed_opu_data['motion_control'][device_id] = device_power
+                                print("here: ", processed_opu_data['motion_control'])
+                    else:
+                        if 'o_mctl' in opu_data:
+                            if opu_data['o_mctl']:
+                                for data_point in opu_data['o_mctl']:
+                                    processed_data_point = block_to_array(data_point)
+                                    device_id = processed_data_point[0]
+                                    device_power = mctl_neuron_update(processed_data_point[2])
+                                    device_id = build_up_from_mctl(processed_data_point)
+                                    if device_id is not None:
+                                        processed_opu_data['motion_control'][device_id] = device_power
+                                print("here: ", processed_opu_data['motion_control'])
+
             if 'o__led' in opu_data:
                 if opu_data['o__led']:
                     for data_point in opu_data['o__led']:
@@ -310,28 +327,27 @@ def connect_to_feagi(feagi_settings, runtime_data, agent_settings, capabilities,
     router.global_feagi_opu_channel = feagi_opu_channel
     return feagi_settings, runtime_data, api_address, feagi_ipu_channel, feagi_opu_channel
 
-def build_up_from_mctl(id, power):
-    if id[0] == 0 and id[1] == 0:
-        return "move_left"
-    if id[0] == 0 and id[1] == 1:
-        return "roll_left"
-    if id[0] == 0 and id[1] == 2:
-        return "yaw_left"
-    if id[0] == 1 and id[1] == 0:
-        return "move_up"
-    if id[0] == 1 and id[1] == 1:
-        return "pitch_forward"
-    if id[0] == 2 and id[1] == 0:
-        return "move_down"
-    if id[0] == 2 and id[1] == 1:
-        return "pitch_back"
-    if id[0] == 2 and id[1] == 1:
-        return "roll_right"
-    if id[0] == 2 and id[1] == 2:
-        return "yaw_right"
-    if id[0] == 3 and id[1] == 0:
-        return "move_right"
-    if id[0] == 3 and id[1] == 1:
-        return "roll_right"
-    if id[0] == 3 and id[1] == 2:
-        return "yaw_right"
+def build_up_from_mctl(id):
+    action_map = {
+        (0, 0): "move_left",
+        (0, 1): "roll_left",
+        (0, 2): "yaw_left",
+        (1, 0): "move_up",
+        (1, 1): "pitch_forward",
+        (2, 0): "move_down",
+        (2, 1): "pitch_back",
+        (3, 0): "move_right",
+        (3, 1): "roll_right",
+        (3, 2): "yaw_right"
+    }
+
+    # Get the action from the dictionary, return None if not found
+    return action_map.get((id[0], id[1]))
+
+def mctl_neuron_update(feagi_power):
+    z_depth = pns.full_list_dimension['motion_control_opu'][6]
+    print("feagi power: ", feagi_power)
+    if feagi_power/z_depth == 0.0:
+        return feagi_power/100.0
+    else:
+        return feagi_power / z_depth
