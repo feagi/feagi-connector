@@ -397,8 +397,7 @@ class Battery:
         return Power
 
 
-def action(obtained_data, led_flag, feagi_settings, capabilities, motor_data,
-           rolling_window, motor, servo, led, runtime_data):
+def action(obtained_data, led_flag, feagi_settings, capabilities, motor_data, rolling_window, motor, servo, led, runtime_data):
     motor_count = capabilities['motor']['count']
     if 'led' in obtained_data:
         if obtained_data['led'] != {}:
@@ -409,34 +408,18 @@ def action(obtained_data, led_flag, feagi_settings, capabilities, motor_data,
                 if data_point_status[data_point]:
                     led.LED_on(
                         data_point,
-                        int((obtained_data['led'][data_point] / 100) * 255),
-                        0, 0)
+                        int((obtained_data['led'][data_point] / 100) * 255), 0, 0)
                 data_point_status[data_point] = not data_point_status[data_point]
         else:
             if led_flag:
                 for i in range(8):
                     led.LED_on(i, 0, 0, 0)
                 led_flag = False
-    if 'motor_percentage' in obtained_data:
-        capabilities["motor"]["power_amount"] = 70
-        if obtained_data['motor_percentage'] is not {}:
-            for data_point in obtained_data['motor_percentage']:
-                device_power = obtained_data['motor_percentage'][data_point]
-                device_power = motor.power_convert(data_point, device_power)
-                device_id = motor.motor_converter(data_point)
-                if device_id not in motor_data:
-                    motor_data[device_id] = dict()
-                rolling_window[device_id].append(device_power)
-                rolling_window[device_id].popleft()
-    else:
-        for _ in range(motor_count):
-            rolling_window[_].append(0)
-            rolling_window[_].popleft()
-    if 'motor_position' in obtained_data:
-        capabilities["motor"]["power_amount"] = 650
-        if obtained_data['motor_position'] is not {}:
-            for data_point in obtained_data['motor_position']:
-                device_power = obtained_data['motor_position'][data_point]
+    if 'motor' in obtained_data:
+        if obtained_data['motor'] is not {}:
+            for data_point in obtained_data['motor']:
+                device_power = obtained_data['motor'][data_point]
+                device_power = int(actuators.motor_generate_power(4094, device_power))
                 device_power = motor.power_convert(data_point, device_power)
                 device_id = motor.motor_converter(data_point)
                 if device_id not in motor_data:
@@ -489,7 +472,6 @@ async def move_control(motor, feagi_settings, capabilities, rolling_window):
     while True:
         for id in range(motor_count):
             motor_power = window_average(rolling_window[id])
-            motor_power = motor_power * capabilities["motor"]["power_amount"]
             motor.move(id, motor_power)
         sleep(feagi_settings['feagi_burst_speed'])
 
