@@ -431,10 +431,10 @@ def action(obtained_data, led_flag, feagi_settings, capabilities, motor_data, ro
             rolling_window[_].append(0)
             rolling_window[_].popleft()
     if capabilities['servo']['disabled'] is not True:
-        if 'servo_percentage' in obtained_data:
-            for data_point in obtained_data['servo_percentage']:
+        if 'servo' in obtained_data:
+            for data_point in obtained_data['servo']:
                 device_id = data_point
-                device_power = obtained_data['servo_percentage'][data_point]
+                device_power = obtained_data['servo'][data_point]
                 servo.move(feagi_device_id=device_id, power=device_power,
                            capabilities=capabilities, feagi_settings=feagi_settings,
                            runtime_data=runtime_data)
