@@ -1,5 +1,6 @@
 import traceback
 from feagi_agent import router
+from feagi_agent import pns_gateway as pns
 from feagi_agent.version import __version__
 from time import sleep
 import requests
@@ -150,33 +151,45 @@ def compose_message_to_feagi(original_message, data=None, battery=0):
 
 def opu_processor(data):
     try:
-        processed_opu_data = {'motor_percentage': {}, 'servo_percentage': {}, 'battery': {},
+        processed_opu_data = {'motor': {}, 'servo': {}, 'battery': {},
                               'discharged_battery': {}, 'reset': {}, 'camera': {}, 'misc': {},
-                              "control": {}, 'navigation':{}, 'speed': {}, 'servo_position': {},
-                              "led": {}, "vision_resolution": {}, "vision_acuity": {},
-                              "motor_position": {}}
+                              "control": {}, 'navigation':{}, 'speed': {}, "led": {},
+                              "vision_resolution": {}, "vision_acuity": {}}
         opu_data = data["opu_data"]
         if opu_data is not None:
-            if 'o_mper' in opu_data:
-                for data_point in opu_data['o_mper']:
-                    processed_data_point = block_to_array(data_point)
-                    device_id = processed_data_point[0]
-                    device_power = opu_data['o_mper'][data_point]
-                    processed_opu_data['motor_percentage'][device_id] = device_power
-            if 'o_mpos' in opu_data:
-                if opu_data['o_mpos']:
-                    for data_point in opu_data['o_mpos']:
-                        processed_data_point = block_to_array(data_point)
-                        device_id = processed_data_point[0]
-                        device_power = processed_data_point[2]
-                        processed_opu_data['motor_position'][device_id] = device_power
-            if 'o_sper' in opu_data:
-                if opu_data['o_sper']:
-                    for data_point in opu_data['o_sper']:
-                        processed_data_point = block_to_array(data_point)
-                        device_id = processed_data_point[0]
-                        device_power = opu_data['o_sper'][data_point]
-                        processed_opu_data['servo_percentage'][device_id] = device_power
+            if len(pns.full_list_dimension) > 0:
+                if pns.full_list_dimension['motor_opu'][6] == 1:
+                    if 'o__mot' in opu_data: # motor percentage
+                        for data_point in opu_data['o__mot']:
+                            processed_data_point = block_to_array(data_point)
+                            device_id = processed_data_point[0]
+                            device_power = opu_data['o__mot'][data_point]
+                            processed_opu_data['motor'][device_id] = device_power
+                else:
+                    if 'o__mot' in opu_data: # motor position
+                        if opu_data['o__mot']:
+                            for data_point in opu_data['o__mot']:
+                                processed_data_point = block_to_array(data_point)
+                                device_id = processed_data_point[0]
+                                device_power = processed_data_point[2]
+                                processed_opu_data['motor'][device_id] = device_power
+            if len(pns.full_list_dimension) > 0:
+                if pns.full_list_dimension['servo_opu'][6] == 1:
+                    if 'o__ser' in opu_data:
+                        if opu_data['o__ser']:
+                            for data_point in opu_data['o__ser']:
+                                processed_data_point = block_to_array(data_point)
+                                device_id = processed_data_point[0]
+                                device_power = opu_data['o__ser'][data_point]
+                                processed_opu_data['servo_percentage'][device_id] = device_power
+                else:
+                    if 'o__ser' in opu_data:
+                        if opu_data['o__ser']:
+                            for data_point in opu_data['o__ser']:
+                                processed_data_point = block_to_array(data_point)
+                                device_id = processed_data_point[0]
+                                device_power = processed_data_point[2]
+                                processed_opu_data['servo_position'][device_id] = device_power
             if 'o_cbat' in opu_data:
                 if opu_data['o__bat']:
                     for data_point in opu_data['o_cbat']:
@@ -230,13 +243,6 @@ def opu_processor(data):
                         device_id = data_point[0]
                         device_power = data_point[2]
                         processed_opu_data['speed'][device_id] = device_power
-            if 'o_spos' in opu_data:
-                if opu_data['o_spos']:
-                    for data_point in opu_data['o_spos']:
-                        processed_data_point = block_to_array(data_point)
-                        device_id = processed_data_point[0]
-                        device_power = processed_data_point[2]
-                        processed_opu_data['servo_position'][device_id] = device_power
             if 'o_vres' in opu_data:
                 if opu_data['o_vres']:
                     for data_point in opu_data['o_vres']:
