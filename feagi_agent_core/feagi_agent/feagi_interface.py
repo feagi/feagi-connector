@@ -153,18 +153,19 @@ def opu_processor(data):
     try:
         processed_opu_data = {'motor': {}, 'servo': {}, 'battery': {},
                               'discharged_battery': {}, 'reset': {}, 'camera': {}, 'misc': {},
-                              "control": {}, 'navigation':{}, 'speed': {}, "led": {},
+                              "motion_control": {}, 'navigation':{}, 'speed': {}, "led": {},
                               "vision_resolution": {}, "vision_acuity": {}}
         opu_data = data["opu_data"]
         if opu_data is not None:
             if len(pns.full_list_dimension) > 0:
-                if pns.full_list_dimension['motor_opu'][6] == 1:
-                    if 'o__mot' in opu_data: # motor percentage
-                        for data_point in opu_data['o__mot']:
-                            processed_data_point = block_to_array(data_point)
-                            device_id = processed_data_point[0]
-                            device_power = opu_data['o__mot'][data_point]
-                            processed_opu_data['motor'][device_id] = device_power
+                if "motor_opu" in pns.full_list_dimension:
+                    if pns.full_list_dimension['motor_opu'][6] == 1:
+                        if 'o__mot' in opu_data: # motor percentage
+                            for data_point in opu_data['o__mot']:
+                                processed_data_point = block_to_array(data_point)
+                                device_id = processed_data_point[0]
+                                device_power = opu_data['o__mot'][data_point]
+                                processed_opu_data['motor'][device_id] = device_power
                 else:
                     if 'o__mot' in opu_data: # motor position
                         if opu_data['o__mot']:
@@ -174,14 +175,15 @@ def opu_processor(data):
                                 device_power = processed_data_point[2]
                                 processed_opu_data['motor'][device_id] = device_power
             if len(pns.full_list_dimension) > 0:
-                if pns.full_list_dimension['servo_opu'][6] == 1:
-                    if 'o__ser' in opu_data:
-                        if opu_data['o__ser']:
-                            for data_point in opu_data['o__ser']:
-                                processed_data_point = block_to_array(data_point)
-                                device_id = processed_data_point[0]
-                                device_power = opu_data['o__ser'][data_point]
-                                processed_opu_data['servo_percentage'][device_id] = device_power
+                if "servo_opu" in pns.full_list_dimension:
+                    if pns.full_list_dimension['servo_opu'][6] == 1:
+                        if 'o__ser' in opu_data:
+                            if opu_data['o__ser']:
+                                for data_point in opu_data['o__ser']:
+                                    processed_data_point = block_to_array(data_point)
+                                    device_id = processed_data_point[0]
+                                    device_power = opu_data['o__ser'][data_point]
+                                    processed_opu_data['servo_percentage'][device_id] = device_power
                 else:
                     if 'o__ser' in opu_data:
                         if opu_data['o__ser']:
@@ -214,13 +216,15 @@ def opu_processor(data):
                         device_id = processed_data_point[0]
                         device_power = opu_data['o_misc'][data_point]
                         processed_opu_data['misc'][device_id] = device_power
-            if 'o_ctrl' in opu_data:
-                if opu_data['o_ctrl']:
-                    for data_point in opu_data['o_ctrl']:
+            if 'o_mctl' in opu_data:
+                if opu_data['o_mctl']:
+                    for data_point in opu_data['o_mctl']:
                         processed_data_point = block_to_array(data_point)
                         device_id = processed_data_point[0]
-                        device_power = opu_data['o_ctrl'][data_point]
-                        processed_opu_data['control'][device_id] = device_power
+                        device_power = opu_data['o_mctl'][data_point]
+                        device_id = build_up_from_mctl(processed_data_point, device_power)
+                        if device_id is not None:
+                            processed_opu_data['motion_control'][device_id] = device_power
             if 'o__led' in opu_data:
                 if opu_data['o__led']:
                     for data_point in opu_data['o__led']:
@@ -305,3 +309,29 @@ def connect_to_feagi(feagi_settings, runtime_data, agent_settings, capabilities,
     feagi_opu_channel = sub_initializer(opu_address=opu_channel_address)
     router.global_feagi_opu_channel = feagi_opu_channel
     return feagi_settings, runtime_data, api_address, feagi_ipu_channel, feagi_opu_channel
+
+def build_up_from_mctl(id, power):
+    if id[0] == 0 and id[1] == 0:
+        return "move_left"
+    if id[0] == 0 and id[1] == 1:
+        return "roll_left"
+    if id[0] == 0 and id[1] == 2:
+        return "yaw_left"
+    if id[0] == 1 and id[1] == 0:
+        return "move_up"
+    if id[0] == 1 and id[1] == 1:
+        return "pitch_forward"
+    if id[0] == 2 and id[1] == 0:
+        return "move_down"
+    if id[0] == 2 and id[1] == 1:
+        return "pitch_back"
+    if id[0] == 2 and id[1] == 1:
+        return "roll_right"
+    if id[0] == 2 and id[1] == 2:
+        return "yaw_right"
+    if id[0] == 3 and id[1] == 0:
+        return "move_right"
+    if id[0] == 3 and id[1] == 1:
+        return "roll_right"
+    if id[0] == 3 and id[1] == 2:
+        return "yaw_right"
