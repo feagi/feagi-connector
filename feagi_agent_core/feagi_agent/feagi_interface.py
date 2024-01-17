@@ -153,21 +153,21 @@ def opu_processor(data):
     try:
         processed_opu_data = {'motor': {}, 'servo': {}, 'battery': {},
                               'discharged_battery': {}, 'reset': {}, 'camera': {}, 'misc': {},
-                              "motion_control": {}, 'navigation':{}, 'speed': {}, "led": {},
+                              "motion_control": {}, 'navigation': {}, 'speed': {}, "led": {},
                               "vision_resolution": {}, "vision_acuity": {}}
         opu_data = data["opu_data"]
         if opu_data is not None:
             if len(pns.full_list_dimension) > 0:
                 if "motor_opu" in pns.full_list_dimension:
                     if pns.full_list_dimension['motor_opu'][6] == 1:
-                        if 'o__mot' in opu_data: # motor percentage
+                        if 'o__mot' in opu_data:  # motor percentage
                             for data_point in opu_data['o__mot']:
                                 processed_data_point = block_to_array(data_point)
                                 device_id = processed_data_point[0]
                                 device_power = opu_data['o__mot'][data_point]
                                 processed_opu_data['motor'][device_id] = device_power
                 else:
-                    if 'o__mot' in opu_data: # motor position
+                    if 'o__mot' in opu_data:  # motor position
                         if opu_data['o__mot']:
                             for data_point in opu_data['o__mot']:
                                 processed_data_point = block_to_array(data_point)
@@ -218,29 +218,22 @@ def opu_processor(data):
                         processed_opu_data['misc'][device_id] = device_power
             if len(pns.full_list_dimension) > 0:
                 if "motion_control_opu" in pns.full_list_dimension:
-                    if pns.full_list_dimension['motion_control_opu'][6] == 1:
-                        if 'o_mctl' in opu_data:
-                            if opu_data['o_mctl']:
-                                for data_point in opu_data['o_mctl']:
-                                    processed_data_point = block_to_array(data_point)
-                                    device_id = processed_data_point[0]
-                                    device_power = opu_data['o_mctl'][data_point]
-                                    device_power = mctl_neuron_update(device_power)
-                                    device_id = build_up_from_mctl(processed_data_point)
-                                    if device_id is not None:
-                                        processed_opu_data['motion_control'][device_id] = device_power
-                                print("here: ", processed_opu_data['motion_control'])
-                    else:
-                        if 'o_mctl' in opu_data:
-                            if opu_data['o_mctl']:
-                                for data_point in opu_data['o_mctl']:
-                                    processed_data_point = block_to_array(data_point)
-                                    device_id = processed_data_point[0]
-                                    device_power = mctl_neuron_update(processed_data_point[2])
-                                    device_id = build_up_from_mctl(processed_data_point)
-                                    if device_id is not None:
-                                        processed_opu_data['motion_control'][device_id] = device_power
-                                print("here: ", processed_opu_data['motion_control'])
+                    if 'o_mctl' in opu_data:
+                        if opu_data['o_mctl']:
+                            for data_point in opu_data['o_mctl']:
+                                processed_data_point = block_to_array(data_point)
+                                device_id = processed_data_point[0]
+                                device_power = opu_data['o_mctl'][data_point]
+                                selected = processed_data_point[2]
+                                if processed_data_point[2] / pns.full_list_dimension[
+                                    'motion_control_opu'][6] == 0:
+                                    device_power = mctl_neuron_update(device_power, selected)
+                                else:
+                                    device_power = mctl_neuron_update(processed_data_point[2],
+                                                                      selected)
+                                device_id = build_up_from_mctl(processed_data_point)
+                                if device_id is not None:
+                                    processed_opu_data['motion_control'][device_id] = device_power
 
             if 'o__led' in opu_data:
                 if opu_data['o__led']:
@@ -327,6 +320,7 @@ def connect_to_feagi(feagi_settings, runtime_data, agent_settings, capabilities,
     router.global_feagi_opu_channel = feagi_opu_channel
     return feagi_settings, runtime_data, api_address, feagi_ipu_channel, feagi_opu_channel
 
+
 def build_up_from_mctl(id):
     action_map = {
         (0, 0): "move_left",
@@ -344,10 +338,10 @@ def build_up_from_mctl(id):
     # Get the action from the dictionary, return None if not found
     return action_map.get((id[0], id[1]))
 
-def mctl_neuron_update(feagi_power):
+
+def mctl_neuron_update(feagi_power, id):
     z_depth = pns.full_list_dimension['motion_control_opu'][6]
-    print("feagi power: ", feagi_power)
-    if feagi_power/z_depth == 0.0:
-        return feagi_power/100.0
+    if id / z_depth == 0:
+        return feagi_power / 100.0
     else:
         return feagi_power / z_depth
