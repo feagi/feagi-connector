@@ -21,3 +21,19 @@ def motor_generate_power(power_maximum, feagi_power):
         return power_maximum * (feagi_power/100)
     else:
         return (feagi_power / z_depth) * power_maximum
+
+def start_ultrasonic(feagi_settings):
+    asyncio.run(read_ultrasonic(feagi_settings))
+
+
+async def move_control(motor, feagi_settings, capabilities, rolling_window):
+    motor_count = capabilities['motor']['count']
+    while True:
+        for id in range(motor_count):
+            motor_power = window_average(rolling_window[id])
+            motor.move(id, motor_power)
+        sleep(feagi_settings['feagi_burst_speed'])
+
+
+def start_motor(motor, feagi_settings, capabilities, rolling_window):
+    asyncio.run(move_control(motor, feagi_settings, capabilities, rolling_window))
