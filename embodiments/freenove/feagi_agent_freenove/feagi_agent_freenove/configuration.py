@@ -48,7 +48,7 @@ capabilities = {
         "count": 4,
         "rolling_window_len": 2,
         "diameter_of_wheel": 0.065,
-        "power_amount": 10
+        "power_amount": 4094
     },
     "infrared": {
         "type": "ipu",
