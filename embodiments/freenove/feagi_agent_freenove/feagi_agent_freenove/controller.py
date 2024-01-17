@@ -419,7 +419,7 @@ def action(obtained_data, led_flag, feagi_settings, capabilities, motor_data, ro
         if obtained_data['motor'] is not {}:
             for data_point in obtained_data['motor']:
                 device_power = obtained_data['motor'][data_point]
-                device_power = int(actuators.motor_generate_power(4094, device_power))
+                device_power = int(actuators.motor_generate_power(capabilities['motor']['power_amount'], device_power))
                 device_power = motor.power_convert(data_point, device_power)
                 device_id = motor.motor_converter(data_point)
                 if device_id not in motor_data:
@@ -463,23 +463,6 @@ async def read_ultrasonic(feagi_settings):
         sleep(feagi_settings['feagi_burst_speed'])
 
 
-def start_ultrasonic(feagi_settings):
-    asyncio.run(read_ultrasonic(feagi_settings))
-
-
-async def move_control(motor, feagi_settings, capabilities, rolling_window):
-    motor_count = capabilities['motor']['count']
-    while True:
-        for id in range(motor_count):
-            motor_power = window_average(rolling_window[id])
-            motor.move(id, motor_power)
-        sleep(feagi_settings['feagi_burst_speed'])
-
-
-def start_motor(motor, feagi_settings, capabilities, rolling_window):
-    asyncio.run(move_control(motor, feagi_settings, capabilities, rolling_window))
-
-
 async def listening_feagi(feagi_dict, feagi_opu_channel, feagi_settings):
     while True:
         if len(feagi_dict) > 2:
@@ -494,7 +477,6 @@ def start_feagi_bridge(feagi_dict, feagi_opu_channel, feagi_settings):
 def main(feagi_auth_url, feagi_settings, agent_settings, capabilities):
     GPIO.cleanup()
     # # FEAGI REACHABLE CHECKER # #
-    feagi_flag = False
     print("retrying...")
     print("Waiting on FEAGI...")
     # while not feagi_flag:
