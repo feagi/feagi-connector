@@ -203,7 +203,6 @@ def opu_processor(data):
                     for data_point in opu_data['o_dbat']:
                         intensity = data_point
                         processed_opu_data['battery'] = intensity
-
             if 'o_init' in opu_data:
                 if opu_data['o_init']:
                     for data_point in opu_data['o_init']:
@@ -225,12 +224,10 @@ def opu_processor(data):
                                 device_id = processed_data_point[0]
                                 device_power = opu_data['o_mctl'][data_point]
                                 selected = processed_data_point[2]
-                                if processed_data_point[2] / pns.full_list_dimension[
-                                    'motion_control_opu'][6] == 0:
+                                if processed_data_point[2] / pns.full_list_dimension['motion_control_opu'][6] == 0:
                                     device_power = mctl_neuron_update(device_power, selected)
                                 else:
-                                    device_power = mctl_neuron_update(processed_data_point[2],
-                                                                      selected)
+                                    device_power = mctl_neuron_update(processed_data_point[2],selected)
                                 device_id = build_up_from_mctl(processed_data_point)
                                 if device_id is not None:
                                     processed_opu_data['motion_control'][device_id] = device_power
