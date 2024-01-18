@@ -67,7 +67,6 @@ capabilities = {
         "type": "ipu",
         "disabled": False,
         "count": 4,
-        "refresh_rate": 1,
         "cortical_mapping": "i__bat",
         "capacity": 100,
         "depletion_per_burst": 0.01,
