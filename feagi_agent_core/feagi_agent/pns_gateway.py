@@ -256,7 +256,24 @@ def check_genome_status(message_from_feagi, capabilities):
             full_list_dimension = fetch_full_dimensions()
             response = requests.get(router.global_api_address + '/v1/feagi/genome/cortical_area/geometry')
             resize_list = retina.obtain_cortical_vision_size(capabilities['camera']["index"],
-                                                           response)
+                                                             response)
+            previous_genome_timestamp = message_from_feagi["genome_changed"]
+        current_tracker = obtain_genome_number(genome_tracker, message_from_feagi)
+        if genome_tracker != current_tracker:
+            full_list_dimension = fetch_full_dimensions()
+            genome_tracker = current_tracker
+
+
+def check_genome_status_no_vision(message_from_feagi):
+    global previous_genome_timestamp, genome_tracker, full_list_dimension, resize_list
+    if message_from_feagi['genome_changed'] is not None:
+        if full_list_dimension is None:
+            full_list_dimension = []
+        if len(full_list_dimension) == 0:
+            full_list_dimension = fetch_full_dimensions()
+        genome_changed = detect_genome_change(message_from_feagi)
+        if genome_changed != previous_genome_timestamp:
+            full_list_dimension = fetch_full_dimensions()
             previous_genome_timestamp = message_from_feagi["genome_changed"]
         current_tracker = obtain_genome_number(genome_tracker, message_from_feagi)
         if genome_tracker != current_tracker:
@@ -358,6 +375,7 @@ def camera_config_update(list, capabilities):
         list['camera']['pupil_control'] = capabilities['camera']['pupil_control']
     if "enhancement" in capabilities['camera']:
         list['camera']['enhancement'] = capabilities['camera']['enhancement']
+
 
 def feagi_listener(feagi_opu_channel):
     """
