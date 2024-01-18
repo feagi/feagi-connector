@@ -255,46 +255,6 @@ def action(obtained_data, arms_angle, head_angle):
                 test_arm_angle += servo_power / 40
             if lift_arms(cli, test_arm_angle, max_lift, min_lift):
                 arms_angle = test_arm_angle
-    if "servo_percentage" in obtained_data:
-        if obtained_data['servo_percentage'] is not {}:
-            for i in obtained_data['servo_percentage']:
-                if i == 0:
-                    test_head_angle = head_angle
-                    test_head_angle += obtained_data['servo_percentage'][i] / capabilities["servo"][
-                        "power_amount"]
-                    if move_head(cli, test_head_angle, max, min):
-                        head_angle = test_head_angle
-                elif i == 1:
-                    test_head_angle = head_angle
-                    test_head_angle -= obtained_data['servo_percentage'][i] / capabilities["servo"][
-                        "power_amount"]
-                    if move_head(cli, head_angle, max, min):
-                        head_angle = test_head_angle
-                if i == 2:
-                    test_arm_angle = arms_angle
-                    test_arm_angle += obtained_data['servo_percentage'][i] / 40
-                    if lift_arms(cli, test_arm_angle, max_lift, min_lift):
-                        arms_angle = test_arm_angle
-                elif i == 3:
-                    test_arm_angle = arms_angle
-                    test_arm_angle -= obtained_data['servo_percentage'][i] / 40
-                    if lift_arms(cli, test_arm_angle, max_lift, min_lift):
-                        arms_angle = test_arm_angle
-            obtained_data['servo_percentage'].clear()
-    if "servo_position" in obtained_data:
-        if obtained_data['servo_position'] is not {}:
-            for i in obtained_data['servo_position']:
-                if i == 0:
-                    test_head_angle = float(((obtained_data['servo_position'][i] / 10) * (max -
-                                                                                          min)) + min)
-                    if move_head(cli, test_head_angle, max, min):
-                        head_angle = test_head_angle
-                if i == 1:
-                    test_arm_angle = int(((obtained_data['servo_position'][i] / 10) * (87.5 - 37))
-                                         + 37)
-                    if lift_arms(cli, test_arm_angle, max_lift, min_lift):
-                        arms_angle = test_arm_angle
-            obtained_data['servo_position'].clear()
     if "misc" in obtained_data:
         if obtained_data["misc"]:
             print("face: ", face_selected, " misc: ", obtained_data["misc"])
@@ -421,21 +381,21 @@ if __name__ == '__main__':
                         split_data = i.split("-")
                         if split_data[0] == '0':
                             motor_functions.display_lines(cli)
-            raw_frame = camera_data['vision']
-            # # cv2.imshow("test", new_rgb)
-            # # cv2.waitKey(30)
-            default_capabilities['camera']['blink'] = []
-            if 'camera' in default_capabilities:
-                if default_capabilities['camera']['blink'] != []:
-                    raw_frame = default_capabilities['camera']['blink']
-            previous_frame_data, rgb, default_capabilities, size_list = retina.update_region_split_downsize(
-                raw_frame,
-                default_capabilities,
-                size_list,
-                previous_frame_data,
-                rgb, capabilities)
-            message_to_feagi = pns.generate_feagi_data(rgb, msg_counter, datetime.now(),
-                                                       message_to_feagi)
+            # raw_frame = camera_data['vision']
+            # # # cv2.imshow("test", new_rgb)
+            # # # cv2.waitKey(30)
+            # default_capabilities['camera']['blink'] = []
+            # if 'camera' in default_capabilities:
+            #     if default_capabilities['camera']['blink'] != []:
+            #         raw_frame = default_capabilities['camera']['blink']
+            # previous_frame_data, rgb, default_capabilities, size_list = retina.update_region_split_downsize(
+            #     raw_frame,
+            #     default_capabilities,
+            #     size_list,
+            #     previous_frame_data,
+            #     rgb, capabilities)
+            # message_to_feagi = pns.generate_feagi_data(rgb, msg_counter, datetime.now(),
+            #                                            message_to_feagi)
             # print(default_capabilities['camera']['gaze_control'][0])
             sleep(feagi_settings['feagi_burst_speed'])  # bottleneck
             pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
