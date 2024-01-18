@@ -57,8 +57,8 @@ def power_convert(motor_id, power):
         return abs(power)
 
 
-def get_motor_data(obtained_data, power_maximum, motor_count, moving_average, id_converter=True,
-                   power_inverse=False):
+def get_motor_data(obtained_data, power_maximum, motor_count, moving_average, id_converter=False, power_inverse=False):
+    motor_data = dict()
     if 'motor' in obtained_data:
         if obtained_data['motor'] is not {}:
             for data_point in obtained_data['motor']:
@@ -72,14 +72,14 @@ def get_motor_data(obtained_data, power_maximum, motor_count, moving_average, id
                     device_id = motor_converter(data_point)
                 else:
                     device_id = data_point
-                moving_average = update_moving_average(moving_average, device_id, device_power)
+                if device_id in moving_average:
+                    moving_average = update_moving_average(moving_average, device_id, device_power)
+            for id in moving_average:
+                motor_data[id] = window_average(moving_average[id])
     else:
         for _ in range(motor_count):
             moving_average[_].append(0)
             moving_average[_].popleft()
-    motor_data = dict()
-    for id in moving_average:
-        motor_data[id] = window_average(moving_average[id])
     return motor_data
 
 
