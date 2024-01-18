@@ -80,6 +80,7 @@ if __name__ == "__main__":
             message_to_feagi = feagi_trainer.id_training_with_image(message_to_feagi, name_id)
             # Post image into vision
             # CUSTOM MADE ONLY #############################
+            size_list = pns.resize_list
             if size_list:
                 region_coordinates = retina.vision_region_coordinates(frame_width=raw_frame.shape[1],
                                                                       frame_height=raw_frame.shape[0],
@@ -96,10 +97,10 @@ if __name__ == "__main__":
                     compressed_data[cortical] = retina.downsize_regions(segmented_frame_data[
                                                                             cortical],
                                                                         size_list[cortical])
-                for segment in compressed_data:
-                    cv2.imshow(segment, compressed_data[segment])
-                if cv2.waitKey(30) & 0xFF == ord('q'):
-                    pass
+                # for segment in compressed_data:
+                #     cv2.imshow(segment, compressed_data[segment])
+                # if cv2.waitKey(30) & 0xFF == ord('q'):
+                #     pass
                 vision_dict = dict()
                 for get_region in compressed_data:
                     if size_list[get_region][2] == 3:

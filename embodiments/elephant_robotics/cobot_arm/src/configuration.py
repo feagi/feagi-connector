@@ -46,8 +46,7 @@ capabilities = {
     "servo": {
         "type": "opu",
         "disabled": False,
-        "refresh_rate": 1,
-        "cortical_mapping": "o__ser",
+        "cortical_mapping": "o_sper",
         'count': 7,
         'topic_identifier': '/S',
         'port': {

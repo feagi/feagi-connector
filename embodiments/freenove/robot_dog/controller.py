@@ -222,7 +222,7 @@ class Servo:
         """
         This will convert from godot to motor's id. Let's say, you have 4x10 (width x depth from static_genome).
         So, you click 2 (actually 4 but 2 for one servo on backward/forward) to go forward. It will be like this:
-        o__ser': {'1-0-9': 1, '3-0-9': 1}
+        o_sper': {'1-0-9': 1, '3-0-9': 1}
         which is 1,3. So this code will convert from 1,3 to 0,1 on motor id.
 
         Since 0-1 is servo 0, 2-3 is servo 1 and so on. In this case, 0 and 2 is for forward and 1 and 3 is for backward
@@ -246,7 +246,7 @@ class Servo:
         """
         This will convert from godot to motor's id. Let's say, you have 8x10 (width x depth from static_genome).
         So, you click 4 to go forward. It will be like this:
-        o__mot': {'1-0-9': 1, '5-0-9': 1, '3-0-9': 1, '7-0-9': 1}
+        o_mper': {'1-0-9': 1, '5-0-9': 1, '3-0-9': 1, '7-0-9': 1}
         which is 1,3,5,7. So this code will convert from 1,3,5,7 to 0,1,2,3 on motor id.
 
         Since 0-1 is motor 1, 2-3 is motor 2 and so on. In this case, 0 is for forward and 1 is for backward.
@@ -370,7 +370,7 @@ class Motor:
         """
         This will convert from godot to motor's id. Let's say, you have 8x10 (width x depth from static_genome).
         So, you click 4 to go forward. It will be like this:
-        o__mot': {'1-0-9': 1, '5-0-9': 1, '3-0-9': 1, '7-0-9': 1}
+        o_mper': {'1-0-9': 1, '5-0-9': 1, '3-0-9': 1, '7-0-9': 1}
         which is 1,3,5,7. So this code will convert from 1,3,5,7 to 0,1,2,3 on motor id.
 
         Since 0-1 is motor 1, 2-3 is motor 2 and so on. In this case, 0 is for forward and 1 is for backward.

@@ -37,8 +37,6 @@ capabilities = {
     "servo": {
         "type": "opu",
         "disabled": False,
-        "refresh_rate": 1,
-        "cortical_mapping": "o__ser",
         'count': 2,
         'topic_identifier': '/S',
         'power_amount': 0.5
@@ -48,18 +46,14 @@ capabilities = {
         "type": "opu",
         "disabled": False,
         "count": 4,
-        'topic_identifier': '/M',
-        "refresh_rate": 1,
-        "cortical_mapping": "o__mot",
         "rolling_window_len": 2,
         "diameter_of_wheel": 0.065,
-        "power_amount": 10
+        "power_amount": 4094
     },
     "infrared": {
         "type": "ipu",
         "disabled": False,
         "count": 3,
-        "refresh_rate": 1,
         "cortical_mapping": "i__inf",
         'topic_identifier': 'IR'
     },
@@ -67,7 +61,6 @@ capabilities = {
         "type": "ipu",
         "disabled": False,
         "count": 4,
-        "refresh_rate": 1,
         "cortical_mapping": "i__bat",
         "capacity": 100,
         "depletion_per_burst": 0.01,
@@ -86,9 +79,6 @@ capabilities = {
         # "pupil_control": {0: 25, 1: 55}, # Pupil shifts up
         "threshold_default": [100, 255, 130, 51] # min value, max value, min value, max value in
         # threshold setting. first and second is for regular webcam. Second is for vision blink OPU
-    },
-    "led": {
-        "type": "opu"
     }
 }
 

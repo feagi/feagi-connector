@@ -18,27 +18,25 @@ limitations under the License.
 
 import time
 from PIL import Image
-import pycozmo
 from feagi_agent import feagi_interface as FEAGI
-from feagi_agent import retina as retina
-from feagi_agent import pns_gateway as pns
 from feagi_agent import PIL_retina as pitina
+from feagi_agent import pns_gateway as pns
+from feagi_agent import retina as retina
+from feagi_agent import actuators
 from feagi_agent import sensors
 from configuration import *
-from typing import Optional, List
 from version import __version__
 import facial_expression
-import requests
-import sys
-import os
 import threading
+import requests
+import pycozmo
+import os
 import asyncio
 from datetime import datetime
 from collections import deque
 import numpy as np
 from time import sleep
 import traceback
-import cv2
 import motor_functions
 
 runtime_data = {
@@ -81,7 +79,8 @@ def on_robot_state(cli, pkt: pycozmo.protocol_encoder.RobotState):
     backpack_touch_sensor_raw: Raw data from the robot's backpack touch sensor.
     curr_path_segment: The ID of the current path segment.
     """
-    robot['accelerator'] = {"0": pkt.accel_x - 1000, "1": pkt.accel_y - 1000, "2": pkt.accel_z -1000}
+    robot['accelerator'] = {"0": pkt.accel_x - 1000, "1": pkt.accel_y - 1000,
+                            "2": pkt.accel_z - 1000}
     robot['ultrasonic'] = pkt.cliff_data_raw
     robot["gyro"] = [pkt.gyro_x, pkt.gyro_y, pkt.gyro_z]
     robot['servo_head'] = pkt.head_angle_rad
@@ -178,26 +177,19 @@ def on_camera_image(cli, image):
     time.sleep(0.01)
 
 
-async def move_control(cli, feagi_settings, capabilities, rolling_window):
-    motor_count = capabilities['motor']['count']
-    while True:
-        wheel_speeds = {"rf": 0, "rb": 0, "lf": 0, "lb": 0}
-        for id in range(motor_count):
-            motor_power = window_average(rolling_window[id])
-            if id in [0, 1]:
-                wheel_speeds["r" + ["f", "b"][id]] = float(motor_power)
-            if id in [2, 3]:
-                wheel_speeds["l" + ["f", "b"][id - 2]] = float(motor_power)
-        rwheel_speed = wheel_speeds["rf"] - wheel_speeds["rb"]
-        lwheel_speed = wheel_speeds["lf"] - wheel_speeds["lb"]
-        motor_functions.drive_wheels(cli, lwheel_speed=lwheel_speed,
-                                     rwheel_speed=rwheel_speed,
-                                     duration=feagi_settings['feagi_burst_speed'])
-        sleep(feagi_settings['feagi_burst_speed'])
-
-
-def start_motor(motor, feagi_settings, capabilities, rolling_window):
-    asyncio.run(move_control(motor, feagi_settings, capabilities, rolling_window))
+def move_control(cli, id, rolling_window):
+    wheel_speeds = {"rf": 0, "rb": 0, "lf": 0, "lb": 0}
+    if id in [0, 1]:
+        wheel_speeds["r" + ["f", "b"][id]] = float(motor_power)
+    if id in [2, 3]:
+        wheel_speeds["l" + ["f", "b"][id - 2]] = float(motor_power)
+    rwheel_speed = wheel_speeds["rf"] - wheel_speeds["rb"]
+    lwheel_speed = wheel_speeds["lf"] - wheel_speeds["lb"]
+    motor_functions.drive_wheels(cli,
+                                 lwheel_speed=lwheel_speed,
+                                 rwheel_speed=rwheel_speed,
+                                 duration=feagi_settings['feagi_burst_speed'])
+    sleep(feagi_settings['feagi_burst_speed'])
 
 
 def vision_initalization(cli):
@@ -227,47 +219,42 @@ def lift_arms(cli, angle, max, min):
 
 
 def action(obtained_data, arms_angle, head_angle):
-    motor_count = capabilities['motor']['count']
-    if 'motor' in obtained_data:
-        if obtained_data['motor'] is not {}:
-            for data_point in obtained_data['motor']:
-                if data_point in [0, 1, 2, 3]:
-                    device_power = obtained_data['motor'][data_point]
-                    device_id = float(data_point)
-                    if device_id not in motor_data:
-                        motor_data[device_id] = dict()
-                    rolling_window[device_id].append(device_power)
-                    rolling_window[device_id].popleft()
-    else:
-        for _ in range(motor_count):
-            rolling_window[_].append(0)
-            rolling_window[_].popleft()
-    if "servo" in obtained_data:
-        if obtained_data["servo"] is not {}:
-            for i in obtained_data['servo']:
-                if i == 0:
-                    test_head_angle = head_angle
-                    test_head_angle += obtained_data['servo'][i] / capabilities["servo"][
-                        "power_amount"]
-                    if move_head(cli, test_head_angle, max, min):
-                        head_angle = test_head_angle
-                elif i == 1:
-                    test_head_angle = head_angle
-                    test_head_angle -= obtained_data['servo'][i] / capabilities["servo"][
-                        "power_amount"]
-                    if move_head(cli, head_angle, max, min):
-                        head_angle = test_head_angle
-                if i == 2:
-                    test_arm_angle = arms_angle
-                    test_arm_angle += obtained_data['servo'][i] / 40
-                    if lift_arms(cli, test_arm_angle, max_lift, min_lift):
-                        arms_angle = test_arm_angle
-                elif i == 3:
-                    test_arm_angle = arms_angle
-                    test_arm_angle -= obtained_data['servo'][i] / 40
-                    if lift_arms(cli, test_arm_angle, max_lift, min_lift):
-                        arms_angle = test_arm_angle
-            obtained_data['servo'].clear()
+    recieve_motor_data = actuators.get_motor_data(obtained_data,
+                                                  capabilities['motor']['power_amount'],
+                                                  capabilities['motor']['count'], rolling_window,
+                                                  id_converter=False)
+    recieve_servo_data = actuators.get_servo_data(obtained_data)
+    wheel_speeds = {"rf": 0, "rb": 0, "lf": 0, "lb": 0}
+    for id in recieve_motor_data:
+        if id in [0, 1]:
+            wheel_speeds["r" + ["f", "b"][id]] = float(recieve_motor_data[id])
+        if id in [2, 3]:
+            wheel_speeds["l" + ["f", "b"][id - 2]] = float(recieve_motor_data[id])
+        rwheel_speed = wheel_speeds["rf"] - wheel_speeds["rb"]
+        lwheel_speed = wheel_speeds["lf"] - wheel_speeds["lb"]
+        motor_functions.drive_wheels(cli,
+                                     lwheel_speed=lwheel_speed,
+                                     rwheel_speed=rwheel_speed,
+                                     duration=feagi_settings['feagi_burst_speed'])
+
+    for id in recieve_servo_data: # example output: {0: 100, 2: 100}
+        servo_power = actuators.servo_generate_power(150, recieve_servo_data[id], id)
+        if id in [0, 1]:
+            test_head_angle = head_angle
+            if id == 1:
+                test_head_angle -= servo_power / capabilities["servo"]["power_amount"]
+            else:
+                test_head_angle += servo_power / capabilities["servo"]["power_amount"]
+            if move_head(cli, test_head_angle, max, min):
+                head_angle = test_head_angle
+        if id in [2, 3]:
+            test_arm_angle = arms_angle
+            if id == 2:
+                test_arm_angle -= servo_power / 40
+            else:
+                test_arm_angle += servo_power / 40
+            if lift_arms(cli, test_arm_angle, max_lift, min_lift):
+                arms_angle = test_arm_angle
     if "misc" in obtained_data:
         if obtained_data["misc"]:
             print("face: ", face_selected, " misc: ", obtained_data["misc"])
@@ -324,9 +311,9 @@ if __name__ == '__main__':
     min = pycozmo.robot.MIN_HEAD_ANGLE.radians + 0.1
     max_lift = pycozmo.MAX_LIFT_HEIGHT.mm - 5
     min_lift = pycozmo.MIN_LIFT_HEIGHT.mm + 5
-    threading.Thread(target=start_motor, args=(cli, feagi_settings,
-                                               capabilities,
-                                               rolling_window,), daemon=True).start()
+    # threading.Thread(target=actuators.start_motor, args=(motor.move, feagi_settings, capabilities,
+    #                                            rolling_window, rolling_window_len, ),
+    #                  daemon=True).start()
     angle_of_head = \
         (pycozmo.robot.MAX_HEAD_ANGLE.radians - pycozmo.robot.MIN_HEAD_ANGLE.radians) / 2.0
     angle_of_arms = 50  # TODO: How to obtain the arms encoders in real time
@@ -356,8 +343,7 @@ if __name__ == '__main__':
     while True:
         try:
             message_from_feagi = pns.message_from_feagi
-            print(message_from_feagi['opu_data']['o__mot'])
-            obtained_signals = pns.obtain_opu_data(device_list, message_from_feagi)
+            obtained_signals = pns.obtain_opu_data(message_from_feagi)
             angle_of_arms, angle_of_head = action(obtained_signals, angle_of_arms,
                                                   angle_of_head)
             # OPU section ENDS
@@ -395,33 +381,32 @@ if __name__ == '__main__':
                         split_data = i.split("-")
                         if split_data[0] == '0':
                             motor_functions.display_lines(cli)
-            raw_frame = camera_data['vision']
-            # cv2.imshow("test", new_rgb)
-            # cv2.waitKey(30)
-            default_capabilities['camera']['blink'] = []
-            if 'camera' in default_capabilities:
-                if default_capabilities['camera']['blink'] != []:
-                    raw_frame = default_capabilities['camera']['blink']
-            previous_frame_data, rgb, default_capabilities, size_list = retina.update_region_split_downsize(
-                raw_frame,
-                default_capabilities,
-                size_list,
-                previous_frame_data,
-                rgb, capabilities)
-            message_to_feagi = pns.generate_feagi_data(rgb, msg_counter, datetime.now(),
-                                                       message_to_feagi)
+            # raw_frame = camera_data['vision']
+            # # # cv2.imshow("test", new_rgb)
+            # # # cv2.waitKey(30)
+            # default_capabilities['camera']['blink'] = []
+            # if 'camera' in default_capabilities:
+            #     if default_capabilities['camera']['blink'] != []:
+            #         raw_frame = default_capabilities['camera']['blink']
+            # previous_frame_data, rgb, default_capabilities, size_list = retina.update_region_split_downsize(
+            #     raw_frame,
+            #     default_capabilities,
+            #     size_list,
+            #     previous_frame_data,
+            #     rgb, capabilities)
+            # message_to_feagi = pns.generate_feagi_data(rgb, msg_counter, datetime.now(),
+            #                                            message_to_feagi)
             # print(default_capabilities['camera']['gaze_control'][0])
             sleep(feagi_settings['feagi_burst_speed'])  # bottleneck
             pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
             message_to_feagi.clear()
             battery = robot['battery']
-            ultrasonic_data = robot['ultrasonic'][0] # obtain ultrasonic data
+            ultrasonic_data = robot['ultrasonic'][0]  # obtain ultrasonic data
             message_to_feagi = sensors.add_ultrasonic_to_feagi_data(ultrasonic_data,
                                                                     message_to_feagi)
             message_to_feagi = sensors.add_acc_to_feagi_data(robot['accelerator'],
                                                              message_to_feagi)
             message_to_feagi = sensors.add_battery_to_feagi_data(battery, message_to_feagi)
-
 
             for i in rgb['camera']:
                 rgb['camera'][i].clear()

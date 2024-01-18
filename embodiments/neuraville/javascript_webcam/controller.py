@@ -73,6 +73,7 @@ async def echo(websocket):
     The function echoes the data it receives from other connected websockets
     and sends the data from FEAGI to the connected websockets.
     """
+    ws.append({"newRefreshRate": 60})
     async for message in websocket:
         if not ws_operation:
             ws_operation.append(websocket)
@@ -81,6 +82,7 @@ async def echo(websocket):
         test = message
         rgb_array['current'] = list(lz4.frame.decompress(test))
         webcam_size['size'] = []
+
 
 
 async def main():
@@ -114,8 +116,7 @@ if __name__ == "__main__":
         print("Waiting on FEAGI...")
         while not feagi_flag:
             feagi_flag = feagi.is_FEAGI_reachable(os.environ.get('FEAGI_HOST_INTERNAL',
-                                                                 "127.0.0.1"), int(os.environ.get(
-                'FEAGI_OPU_PORT', "3000")))
+                                                                 "127.0.0.1"), int(os.environ.get('FEAGI_OPU_PORT', "3000")))
             sleep(2)
         print("DONE")
         previous_data_frame = {}
@@ -135,6 +136,7 @@ if __name__ == "__main__":
         raw_frame = []
         default_capabilities = {}  # It will be generated in update_region_split_downsize. See the
         # overwrite manual
+        previous_burst = 0
         default_capabilities = pns.create_runtime_default_list(default_capabilities, capabilities)
         threading.Thread(target=pns.feagi_listener, args=(feagi_opu_channel,), daemon=True).start()
         threading.Thread(target=retina.vision_progress,
@@ -162,7 +164,9 @@ if __name__ == "__main__":
                     default_capabilities['camera']['blink'] = []
                     message_to_feagi = pns.generate_feagi_data(rgb, msg_counter, datetime.now(),
                                                                message_to_feagi)
-                    # print(default_capabilities['camera']['gaze_control'][0])
+                    # if previous_burst != feagi_settings['feagi_burst_speed']:
+                    #     ws.append({"newRefreshRate": feagi_settings['feagi_burst_speed']})
+                    #     previous_burst = feagi_settings['feagi_burst_speed']
                     sleep(feagi_settings['feagi_burst_speed'])  # bottleneck
                     pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
                     message_to_feagi.clear()
