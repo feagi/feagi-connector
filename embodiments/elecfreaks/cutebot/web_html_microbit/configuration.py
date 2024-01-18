@@ -53,7 +53,8 @@ capabilities = {
         "disabled": False,
         "count": 2,
         "cortical_mapping": "i__inf",
-        'topic_identifier': 'IR'
+        'topic_identifier': 'IR',
+        "power_amount": 10
     }
 }
 
