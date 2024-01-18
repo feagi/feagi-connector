@@ -57,13 +57,14 @@ def power_convert(motor_id, power):
         return abs(power)
 
 
-def get_motor_data(obtained_data, power_maximum, motor_count, rolling_window):
+def get_motor_data(obtained_data, power_maximum, motor_count, rolling_window, power_converter=True):
     if 'motor' in obtained_data:
         if obtained_data['motor'] is not {}:
             for data_point in obtained_data['motor']:
                 device_power = obtained_data['motor'][data_point]
                 device_power = int(motor_generate_power(power_maximum, device_power))
-                device_power = power_convert(data_point, device_power)
+                if power_converter:
+                    device_power = power_convert(data_point, device_power)
                 device_id = motor_converter(data_point)
                 rolling_window = update_rolling_window(rolling_window, device_id, device_power)
     else:
