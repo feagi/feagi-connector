@@ -237,11 +237,11 @@ def action(obtained_data, arms_angle, head_angle):
                                      rwheel_speed=rwheel_speed,
                                      duration=feagi_settings['feagi_burst_speed'])
 
-    for id in recieve_servo_data:
+    for id in recieve_servo_data: # example output: {0: 100, 2: 100}
         servo_power = actuators.servo_generate_power(150, recieve_servo_data[id], id)
         if id in [0, 1]:
             test_head_angle = head_angle
-            if id is 1:
+            if id == 1:
                 test_head_angle -= servo_power / capabilities["servo"]["power_amount"]
             else:
                 test_head_angle += servo_power / capabilities["servo"]["power_amount"]
