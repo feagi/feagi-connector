@@ -174,24 +174,16 @@ def opu_processor(data):
                                 device_id = processed_data_point[0]
                                 device_power = processed_data_point[2]
                                 processed_opu_data['motor'][device_id] = device_power
-            if len(pns.full_list_dimension) > 0:
-                if "servo_opu" in pns.full_list_dimension:
-                    if pns.full_list_dimension['servo_opu'][6] == 1:
-                        if 'o__ser' in opu_data:
-                            if opu_data['o__ser']:
-                                for data_point in opu_data['o__ser']:
-                                    processed_data_point = block_to_array(data_point)
-                                    device_id = processed_data_point[0]
-                                    device_power = opu_data['o__ser'][data_point]
-                                    processed_opu_data['servo_percentage'][device_id] = device_power
-                else:
-                    if 'o__ser' in opu_data:
-                        if opu_data['o__ser']:
-                            for data_point in opu_data['o__ser']:
-                                processed_data_point = block_to_array(data_point)
-                                device_id = processed_data_point[0]
-                                device_power = processed_data_point[2]
-                                processed_opu_data['servo_position'][device_id] = device_power
+            if 'o__ser' in opu_data:
+                if opu_data['o__ser']:
+                    for data_point in opu_data['o__ser']:
+                        processed_data_point = block_to_array(data_point)
+                        device_id = processed_data_point[0]
+                        if processed_data_point[2] / pns.full_list_dimension['servo_opu'][6] == 0:
+                            device_power = opu_data['o__ser'][data_point]
+                        else:
+                            device_power = processed_data_point[2]
+                        processed_opu_data['servo'][device_id] = device_power
             if 'o_cbat' in opu_data:
                 if opu_data['o__bat']:
                     for data_point in opu_data['o_cbat']:
@@ -224,10 +216,12 @@ def opu_processor(data):
                                 device_id = processed_data_point[0]
                                 device_power = opu_data['o_mctl'][data_point]
                                 selected = processed_data_point[2]
-                                if processed_data_point[2] / pns.full_list_dimension['motion_control_opu'][6] == 0:
+                                if processed_data_point[2] / \
+                                        pns.full_list_dimension['motion_control_opu'][6] == 0:
                                     device_power = mctl_neuron_update(device_power, selected)
                                 else:
-                                    device_power = mctl_neuron_update(processed_data_point[2],selected)
+                                    device_power = mctl_neuron_update(processed_data_point[2],
+                                                                      selected)
                                 device_id = build_up_from_mctl(processed_data_point)
                                 if device_id is not None:
                                     processed_opu_data['motion_control'][device_id] = device_power
