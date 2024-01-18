@@ -1,6 +1,15 @@
 #!/usr/bin/env python3
-from feagi_agent import feagi_interface as feagi
+import asyncio
+from time import sleep
+from collections import deque
 from feagi_agent import pns_gateway as pns
+from feagi_agent import feagi_interface as feagi
+
+motor_data = dict()
+
+
+def window_average(sequence):
+    return sum(sequence) // len(sequence)
 
 
 def obtain_opu_data(device_list, message_from_feagi):
@@ -18,22 +27,66 @@ def obtain_opu_data(device_list, message_from_feagi):
 def motor_generate_power(power_maximum, feagi_power):
     z_depth = pns.full_list_dimension['motor_opu'][6]
     if z_depth == 1:
-        return power_maximum * (feagi_power/100)
+        return power_maximum * (feagi_power / 100)
     else:
         return (feagi_power / z_depth) * power_maximum
 
-def start_ultrasonic(feagi_settings):
-    asyncio.run(read_ultrasonic(feagi_settings))
+
+def servo_generate_power(power, feagi_power, id):
+    z_depth = pns.full_list_dimension['servo_opu'][6]
+    if id / z_depth == 0:
+        return power * (feagi_power / 100)
+    else:
+        return (feagi_power / z_depth) * power
 
 
-async def move_control(motor, feagi_settings, capabilities, rolling_window):
-    motor_count = capabilities['motor']['count']
-    while True:
-        for id in range(motor_count):
-            motor_power = window_average(rolling_window[id])
-            motor.move(id, motor_power)
-        sleep(feagi_settings['feagi_burst_speed'])
+def motor_converter(motor_id):
+    """
+    This function converts motor IDs from 1,3,5,7 to 0,1,2,3.
+    """
+    if motor_id % 2 == 0:
+        return motor_id // 2
+    else:
+        return (motor_id - 1) // 2
 
 
-def start_motor(motor, feagi_settings, capabilities, rolling_window):
-    asyncio.run(move_control(motor, feagi_settings, capabilities, rolling_window))
+def power_convert(motor_id, power):
+    if motor_id % 2 == 0:
+        return -1 * power
+    else:
+        return abs(power)
+
+
+def get_motor_data(obtained_data, power_maximum, motor_count, rolling_window):
+    if 'motor' in obtained_data:
+        if obtained_data['motor'] is not {}:
+            for data_point in obtained_data['motor']:
+                device_power = obtained_data['motor'][data_point]
+                device_power = int(motor_generate_power(power_maximum, device_power))
+                device_power = power_convert(data_point, device_power)
+                device_id = motor_converter(data_point)
+                rolling_window = update_rolling_window(rolling_window, device_id, device_power)
+    else:
+        for _ in range(motor_count):
+            rolling_window[_].append(0)
+            rolling_window[_].popleft()
+    motor_data = dict()
+    for id in rolling_window:
+        motor_data[id] = window_average(rolling_window[id])
+    return motor_data
+
+
+def update_rolling_window(rolling_window, device_id, device_power):
+    rolling_window[device_id].append(device_power)
+    rolling_window[device_id].popleft()
+    return rolling_window
+
+
+def get_servo_data(obtained_data):
+    servo_data = dict()
+    if 'servo' in obtained_data:
+        for data_point in obtained_data['servo']:
+            device_id = data_point
+            device_power = obtained_data['servo'][data_point]
+            servo_data[device_id] = device_power
+    return servo_data
