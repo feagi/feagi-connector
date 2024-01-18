@@ -49,7 +49,7 @@ capabilities = {
         'topic_identifier': '/M',
         "rolling_window_len": 2,
         "diameter_of_wheel": 0.065,
-        "power_amount": 65
+        "power_amount": 500
     },
     "misc": {
         "type": "opu"
