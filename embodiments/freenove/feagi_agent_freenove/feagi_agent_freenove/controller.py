@@ -79,7 +79,8 @@ class Servo:
         self.PwmServo = PCA9685(0x40, debug=True)
         self.PwmServo.setPWMFreq(50)
         self.device_position = float()
-        self.servo_ranges = {i: [78, 160] for i in range(13)}
+        self.servo_ranges = {i: [10, 170] for i in range(13)}
+        self.servo_ranges[1] = [76, 140]
 
     def setServoPwm(self, channel, angle, error=10):
         angle = float(angle)
@@ -313,13 +314,13 @@ class Motor:
         # motor_total = capabilities['motor']['count'] #be sure to update your motor total in
         # configuration.py increment = 0 for motor in range(motor_total): if motor_id <= motor +
         # 1: print("motor_id: ", motor_id) increment += 1 return increment
-        if motor_id <= 1:
+        if motor_id == 0:
             return 0
-        elif motor_id <= 3:
+        elif motor_id == 1:
             return 3
-        elif motor_id <= 5:
+        elif motor_id == 2:
             return 1
-        elif motor_id <= 7:
+        elif motor_id == 3:
             return 2
         else:
             print("Input has been refused. Please put motor ID.")
@@ -395,17 +396,24 @@ class Battery:
 
 def action(obtained_data, led_flag, feagi_settings, capabilities, rolling_window, motor,
            servo, led, runtime_data):
+    motor_count = capabilities['motor']['count']
     recieve_motor_data = actuators.get_motor_data(obtained_data,
                                                   capabilities['motor']['power_amount'],
-                                                  capabilities['motor']['count'], rolling_window)
+                                                  motor_count, rolling_window,
+                                                  id_converter=True, power_inverse=True)
     recieve_servo_data = actuators.get_servo_data(obtained_data)
     # Do some custom work with motor data
-    for id in recieve_motor_data:
-        motor.move(id, recieve_motor_data[id])
+    for id in range(motor_count):
+        if id in recieve_motor_data:
+            converted_id = motor.motor_converter(id)
+            motor.move(converted_id, recieve_motor_data[id])
+        else:
+            motor.move(id, 0)
+    # print(rolling_window)
     # Do some custom work with servo data as well
     if capabilities['servo']['disabled'] is not True:
         for id in recieve_servo_data:
-            servo_power = actuators.servo_generate_power(150, recieve_servo_data[id], id)
+            servo_power = actuators.servo_generate_power(180, recieve_servo_data[id], id)
             servo.move(feagi_device_id=id, power=servo_power,
                        capabilities=capabilities, feagi_settings=feagi_settings,
                        runtime_data=runtime_data)
@@ -523,7 +531,7 @@ def main(feagi_auth_url, feagi_settings, agent_settings, capabilities):
     threading.Thread(target=start_IR, args=(feagi_settings,), daemon=True).start()
     # threading.Thread(target=start_feagi_bridge, args=(feagi_dict, feagi_opu_channel,
     #                                                   feagi_settings,), daemon=True).start()
-    # threading.Thread(target=actuators.start_motor, args=(motor.move, feagi_settings, capabilities,
+    # threading.Thread(target=start_motor, args=(motor.move, feagi_settings, capabilities,
     #                                            rolling_window, rolling_window_len, ),
     #                  daemon=True).start()
     motor_count = capabilities['motor']['count']
