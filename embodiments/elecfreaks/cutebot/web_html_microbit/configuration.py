@@ -42,11 +42,9 @@ capabilities = {
     "motor": {
         "type": "opu",
         "disabled": False,
-        "count": 1,
-        "cortical_mapping": "o_mper",
-        "rolling_window_len": 5,
-        "diameter_of_wheel": 0.065,
-        "power_amount": 0.1
+        "count": 4,  # 2 wheels but 4 for (forward/backward wheel) * 2
+        "rolling_window_len": 1,
+        "power_amount": 100
     },
     "infrared": {
         "type": "ipu",

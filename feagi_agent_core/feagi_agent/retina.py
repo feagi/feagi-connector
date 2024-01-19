@@ -389,8 +389,6 @@ def vision_progress(capabilities, feagi_opu_channel, api_address, feagi_settings
                 capabilities = pns.fetch_vision_turner(message_from_feagi, capabilities)
                 capabilities = pns.fetch_enhancement_data(message_from_feagi, capabilities)
                 capabilities = pns.fetch_threshold_type(message_from_feagi, capabilities)
-                # Update the vres
-                capabilities = pns.fetch_resolution_selected(message_from_feagi, capabilities)
                 # Update resize if genome has been changed:
                 pns.check_genome_status(message_from_feagi, capabilities)
                 capabilities = pns.obtain_blink_data(raw_frame, message_from_feagi, capabilities)
