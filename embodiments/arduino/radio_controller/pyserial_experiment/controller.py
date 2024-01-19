@@ -48,7 +48,6 @@ if __name__ == "__main__":
                                __version__)
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     msg_counter = runtime_data["feagi_state"]['burst_counter']
-    device_list = pns.generate_OPU_list(capabilities)
 
     # Experimenting...delete this
     data = dict()
@@ -63,7 +62,7 @@ if __name__ == "__main__":
 
         # Fetch data such as motor, servo, etc and pass to a function (you make ur own action. 
         if message_from_feagi is not None:
-            obtained_signals = pns.obtain_opu_data(device_list, message_from_feagi)
+            obtained_signals = pns.obtain_opu_data(message_from_feagi)
             new_dict = dict()
             if 'motor' in obtained_signals:
                 if obtained_signals['motor']:
