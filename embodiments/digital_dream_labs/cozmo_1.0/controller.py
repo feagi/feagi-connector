@@ -338,7 +338,6 @@ if __name__ == '__main__':
     size_list = retina.obtain_cortical_vision_size(capabilities['camera']["index"], response)
     time.sleep(2)
     # vision ends
-    device_list = pns.generate_OPU_list(capabilities)  # get the OPU sensors
 
     while True:
         try:
