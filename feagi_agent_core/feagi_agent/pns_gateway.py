@@ -306,6 +306,16 @@ def fetch_threshold_type(message_from_feagi, capabilities):
     return capabilities
 
 
+def fetch_mirror_opu(message_from_feagi, capabilities):
+    if "ovflph" in message_from_feagi["opu_data"]:
+        if message_from_feagi["opu_data"]["ovflph"]:
+            if capabilities['camera']["mirror"]:
+                capabilities['camera']["mirror"] = False
+            else:
+                capabilities['camera']["mirror"] = True
+    return capabilities
+
+
 def fetch_enhancement_data(message_from_feagi, capabilities):
     if full_list_dimension:
         if "ov_enh" in message_from_feagi["opu_data"]:
@@ -355,7 +365,7 @@ def create_runtime_default_list(list, capabilities):
                 "threshold_type": {},
                 # simple thresholding types. see the retina.threshold_detect function
                 "threshold_name": 0,  # Binary_threshold as a default
-                "mirror": True,  # flip the image
+                "mirror": False,  # flip the image
                 "blink": [],  # cv2 ndarray raw data of an image. Controlled by blink OPU in genome
                 "gaze_control": {0: 1, 1: 1},  # Controlled by gaze_control in genome
                 "pupil_control": {0: 99, 1: 99},  # Controlled by pupil_control in genome
