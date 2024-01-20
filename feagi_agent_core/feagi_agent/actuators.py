@@ -57,7 +57,8 @@ def power_convert(motor_id, power):
         return abs(power)
 
 
-def get_motor_data(obtained_data, power_maximum, motor_count, moving_average, id_converter=False, power_inverse=False):
+def get_motor_data(obtained_data, power_maximum, motor_count, moving_average, id_converter=False,
+                   power_inverse=False):
     motor_data = dict()
     if 'motor' in obtained_data:
         if obtained_data['motor'] is not {}:
@@ -97,3 +98,11 @@ def get_servo_data(obtained_data):
             device_power = obtained_data['servo'][data_point]
             servo_data[device_id] = device_power
     return servo_data
+
+
+def get_led_data(obtained_data):
+    led_data = dict()
+    if 'led' in obtained_data:
+        for data_point in obtained_data['led']:
+            led_data[data_point] = obtained_data['led'][data_point]
+    return led_data
