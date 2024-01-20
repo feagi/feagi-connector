@@ -314,6 +314,8 @@ def update_region_split_downsize(raw_frame, capabilities, resize_list,
         resize_list = pns.resize_list
     capabilities = pns.create_runtime_default_list(capabilities, actual_capabilities)
     if resize_list:
+        if capabilities["camera"]["mirror"]:
+            raw_frame = cv2.flip(raw_frame, 1)
         region_coordinates = vision_region_coordinates(frame_width=raw_frame.shape[1],
                                                        frame_height=raw_frame.shape[0],
                                                        x1=abs(capabilities['camera']['gaze_control'][0]),
@@ -382,25 +384,21 @@ def vision_progress(capabilities, feagi_opu_channel, api_address, feagi_settings
     global genome_tracker, previous_genome_timestamp
     while True:
         message_from_feagi = pns.message_from_feagi
-        if message_from_feagi is not None:
-            # OPU section STARTS
-            # Update the effect
-            if 'opu_data' in message_from_feagi:
-                capabilities = pns.fetch_vision_turner(message_from_feagi, capabilities)
-                capabilities = pns.fetch_enhancement_data(message_from_feagi, capabilities)
-                capabilities = pns.fetch_threshold_type(message_from_feagi, capabilities)
-                # Update the vres
-                capabilities = pns.fetch_resolution_selected(message_from_feagi, capabilities)
-                # Update resize if genome has been changed:
-                pns.check_genome_status(message_from_feagi, capabilities)
-                capabilities = pns.obtain_blink_data(raw_frame, message_from_feagi, capabilities)
-                capabilities = pns.monitor_switch(message_from_feagi, capabilities)
-                capabilities = pns.gaze_control_update(message_from_feagi, capabilities)
-                capabilities = pns.pupil_control_update(message_from_feagi, capabilities)
-                feagi_settings['feagi_burst_speed'] = pns.check_refresh_rate(message_from_feagi,
-                                                                             feagi_settings[
-                                                                                 'feagi_burst_speed'])
-        sleep(0.001)
+        if message_from_feagi is not None and message_from_feagi:
+            capabilities = pns.fetch_vision_turner(message_from_feagi, capabilities)
+            capabilities = pns.fetch_enhancement_data(message_from_feagi, capabilities)
+            capabilities = pns.fetch_threshold_type(message_from_feagi, capabilities)
+            capabilities = pns.fetch_mirror_opu(message_from_feagi, capabilities)
+            # Update resize if genome has been changed:
+            pns.check_genome_status(message_from_feagi, capabilities)
+            capabilities = pns.obtain_blink_data(raw_frame, message_from_feagi, capabilities)
+            capabilities = pns.monitor_switch(message_from_feagi, capabilities)
+            capabilities = pns.gaze_control_update(message_from_feagi, capabilities)
+            capabilities = pns.pupil_control_update(message_from_feagi, capabilities)
+            feagi_settings['feagi_burst_speed'] = pns.check_refresh_rate(message_from_feagi,
+                                                                         feagi_settings[
+                                                                             'feagi_burst_speed'])
+        sleep(feagi_settings['feagi_burst_speed'])
 
     # return capabilities, feagi_settings['feagi_burst_speed']
 
