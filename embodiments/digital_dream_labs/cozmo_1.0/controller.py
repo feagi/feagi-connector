@@ -230,12 +230,12 @@ def action(obtained_data, arms_angle, head_angle):
             wheel_speeds["r" + ["f", "b"][id]] = float(recieve_motor_data[id])
         if id in [2, 3]:
             wheel_speeds["l" + ["f", "b"][id - 2]] = float(recieve_motor_data[id])
-        rwheel_speed = wheel_speeds["rf"] - wheel_speeds["rb"]
-        lwheel_speed = wheel_speeds["lf"] - wheel_speeds["lb"]
-        motor_functions.drive_wheels(cli,
-                                     lwheel_speed=lwheel_speed,
-                                     rwheel_speed=rwheel_speed,
-                                     duration=feagi_settings['feagi_burst_speed'])
+    rwheel_speed = wheel_speeds["rf"] - wheel_speeds["rb"]
+    lwheel_speed = wheel_speeds["lf"] - wheel_speeds["lb"]
+    motor_functions.drive_wheels(cli,
+                                 lwheel_speed=lwheel_speed,
+                                 rwheel_speed=rwheel_speed,
+                                 duration=feagi_settings['feagi_burst_speed']/2)
 
     for id in recieve_servo_data: # example output: {0: 100, 2: 100}
         servo_power = actuators.servo_generate_power(150, recieve_servo_data[id], id)
@@ -338,7 +338,6 @@ if __name__ == '__main__':
     size_list = retina.obtain_cortical_vision_size(capabilities['camera']["index"], response)
     time.sleep(2)
     # vision ends
-    device_list = pns.generate_OPU_list(capabilities)  # get the OPU sensors
 
     while True:
         try:
