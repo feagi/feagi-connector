@@ -386,7 +386,7 @@ def create_runtime_default_list(list, capabilities):
                 "threshold_type": {},
                 # simple thresholding types. see the retina.threshold_detect function
                 "threshold_name": 0,  # Binary_threshold as a default
-                "mirror": False,  # flip the image
+                "mirror": True,  # flip the image
                 "blink": [],  # cv2 ndarray raw data of an image. Controlled by blink OPU in genome
                 "gaze_control": {0: 1, 1: 1},  # Controlled by gaze_control in genome
                 "pupil_control": {0: 99, 1: 99},  # Controlled by pupil_control in genome
