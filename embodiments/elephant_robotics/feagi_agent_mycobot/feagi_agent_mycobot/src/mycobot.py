@@ -254,7 +254,7 @@ class Arm:
             print("Input has been refused. Please put encoder ID.")
 
 
-def action(obtained_data, device_list, runtime_data):
+def action(obtained_data, runtime_data):
     if 'servo_position' in obtained_data:
         try:
             if obtained_data['servo_position'] is not {}:
@@ -330,8 +330,6 @@ for i in range(1, capabilities['servo']['count'], 1):
     runtime_data['actual_encoder_position'][i] = deque([0, 0, 0, 0, 0])
 global_arm['0'].set_speed(100)
 
-device_list = pns.generate_OPU_list(capabilities)  # get the OPU sensors
-
 # # # FEAGI registration # # # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # - - - - - - - - - - - - - - - - - - #
 feagi_settings, runtime_data, api_address, feagi_ipu_channel, feagi_opu_channel = \
@@ -378,8 +376,8 @@ while keyboard_flag:
         # OPU section
         message_from_feagi = pns.message_from_feagi
         if message_from_feagi:
-            obtained_signals = pns.obtain_opu_data(device_list, message_from_feagi)
-            action(obtained_signals, device_list, runtime_data)
+            obtained_signals = pns.obtain_opu_data(message_from_feagi)
+            action(obtained_signals, runtime_data)
             # print(opu_data)
 
             # Encoder speed IPU
