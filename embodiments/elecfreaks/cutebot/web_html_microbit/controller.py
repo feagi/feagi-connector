@@ -191,6 +191,8 @@ if __name__ == "__main__":
             # OPU section STARTS
             if message_from_feagi:
                 pns.check_genome_status_no_vision(message_from_feagi)
+                feagi_settings['feagi_burst_speed'] = pns.check_refresh_rate(message_from_feagi,
+                                                                             feagi_settings['feagi_burst_speed'])
                 obtained_signals = pns.obtain_opu_data(message_from_feagi)
                 action(obtained_signals)
             # OPU section ENDS
