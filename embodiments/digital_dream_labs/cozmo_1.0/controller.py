@@ -334,8 +334,7 @@ if __name__ == '__main__':
     threading.Thread(target=retina.vision_progress,
                      args=(default_capabilities, feagi_opu_channel, api_address, feagi_settings,
                            camera_data['vision'],), daemon=True).start()
-    response = requests.get(api_address + '/v1/cortical_area/cortical_area/geometry')
-    size_list = retina.obtain_cortical_vision_size(capabilities['camera']["index"], response)
+
     time.sleep(2)
     # vision ends
 
