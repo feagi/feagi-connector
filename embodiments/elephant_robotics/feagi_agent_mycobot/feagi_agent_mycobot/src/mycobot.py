@@ -376,6 +376,7 @@ while keyboard_flag:
         # OPU section
         message_from_feagi = pns.message_from_feagi
         if message_from_feagi:
+            pns.check_genome_status_no_vision(message_from_feagi)
             obtained_signals = pns.obtain_opu_data(message_from_feagi)
             action(obtained_signals, runtime_data)
             # print(opu_data)
