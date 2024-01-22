@@ -1,0 +1,38 @@
+name: testing_microbit_ctlr_to_gcr
+on:
+  push:
+    branches:
+      - gcr-test
+    paths:
+      - 'embodiments/elecfreaks/cutebot/web_html_microbit/**'
+      - 'generate_version.sh'
+  workflow_dispatch:
+
+jobs:
+  Build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Download Current repo
+      uses: actions/checkout@v2
+    - name: Update Dockerfile
+      run: |
+        cd embodiments/elecfreaks/cutebot/web_html_microbit/
+        if [ -f Dockerfile ]; then
+            sed -e 's|COPY controller.py /root/|COPY /embodiments/elecfreaks/cutebot/web_html_microbit/controller.py /root/|' \
+                -e 's|COPY configuration.py /root/|COPY /embodiments/elecfreaks/cutebot/web_html_microbit/configuration.py /root/|' \
+                -e 's|COPY version.py /root/|COPY /embodiments/elecfreaks/cutebot/web_html_microbit/version.py /root/|' \
+                "Dockerfile" > "NewDockerfile"
+        fi
+        mv NewDockerfile Dockerfile
+    - name: check file
+      run: |
+        cd embodiments/elecfreaks/cutebot/web_html_microbit/ && ls && cat Dockerfile
+    - name: Push to GCR GitHub Action
+      uses: RafikFarhad/push-to-gcr-github-action@v4.1
+      with:
+        gcloud_service_key: ${{secrets.GCR_SERVICE}}
+        project_id: feagi-poc
+        image_name: feagi-dev/microbit_controller
+        image_tag: ${{ github.run_number }}, latest
+        dockerfile: ./embodiments/elecfreaks/cutebot/web_html_microbit/Dockerfile
