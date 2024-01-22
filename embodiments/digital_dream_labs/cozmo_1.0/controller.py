@@ -386,10 +386,9 @@ if __name__ == '__main__':
             # if 'camera' in default_capabilities:
             #     if default_capabilities['camera']['blink'] != []:
             #         raw_frame = default_capabilities['camera']['blink']
-            # previous_frame_data, rgb, default_capabilities, size_list = retina.update_region_split_downsize(
+            # previous_frame_data, rgb, default_capabilities = retina.update_region_split_downsize(
             #     raw_frame,
             #     default_capabilities,
-            #     size_list,
             #     previous_frame_data,
             #     rgb, capabilities)
             # message_to_feagi = pns.generate_feagi_data(rgb, msg_counter, datetime.now(),
