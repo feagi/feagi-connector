@@ -394,16 +394,15 @@ class Battery:
         return Power
 
 
-def process_video(default_capabilities, capabilities, cam, size_list,
-                  previous_frame_data, rgb):
+def process_video(default_capabilities, capabilities, cam, previous_frame_data, rgb):
     while True:
         if default_capabilities['camera']['disabled'] is not True:
             ret, raw_frame = cam.read()
             if len(default_capabilities['camera']['blink']) > 0:
                 raw_frame = default_capabilities['camera']['blink']
             # Post image into vision
-            previous_frame_data, rgb, default_capabilities, size_list = \
-                retina.update_region_split_downsize(raw_frame, default_capabilities, size_list,
+            previous_frame_data, rgb, default_capabilities = \
+                retina.update_region_split_downsize(raw_frame, default_capabilities,
                                                     previous_frame_data,
                                                     rgb,
                                                     capabilities)
@@ -548,8 +547,7 @@ def main(feagi_auth_url, feagi_settings, agent_settings, capabilities):
     motor.stop()
     cam = cv2.VideoCapture(0)  # you need to do sudo rpi-update to be able to use this
     servo.set_default_position(runtime_data)
-    response = requests.get(api_address + '/v1/cortical_area/cortical_area/geometry')
-    size_list = retina.obtain_cortical_vision_size(capabilities['camera']["index"], response)
+
     raw_frame = []
     default_capabilities = {}  # It will be generated in update_region_split_downsize. See the
     # overwrite manual
@@ -560,8 +558,7 @@ def main(feagi_auth_url, feagi_settings, agent_settings, capabilities):
                      args=(default_capabilities, feagi_opu_channel, api_address, feagi_settings,
                            camera_data['vision'],), daemon=True).start()
     threading.Thread(target=process_video, args=(default_capabilities, capabilities, cam,
-                                                 size_list, previous_frame_data, rgb),
-                     daemon=True).start()
+                                                 previous_frame_data, rgb), daemon=True).start()
 
     while True:
         try:
