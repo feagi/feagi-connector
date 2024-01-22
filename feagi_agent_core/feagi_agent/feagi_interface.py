@@ -69,11 +69,11 @@ def feagi_setting_for_registration(feagi_settings, agent_settings):
 
 
 def feagi_api_burst_engine():
-    return '/v1/feagi/feagi/burst_engine/stimulation_period'
+    return '/v1/burst_engine/stimulation_period'
 
 
 def feagi_api_burst_counter():
-    return '/v1/feagi/feagi/burst_engine/burst_counter'
+    return '/v1/burst_engine/burst_counter'
 
 
 def feagi_inbound(feagi_inbound_port):

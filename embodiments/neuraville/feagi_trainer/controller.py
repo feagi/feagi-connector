@@ -56,7 +56,7 @@ if __name__ == "__main__":
     rgb = dict()
     rgb['camera'] = dict()
     previous_frame_data = {}
-    response = requests.get(api_address + '/v1/feagi/genome/cortical_area/geometry')
+    response = requests.get(api_address + '/v1/cortical_area/cortical_area/geometry')
     size_list = retina.obtain_cortical_vision_size("00", response)  # Temporarily
     start_timer = 0
     raw_frame = []

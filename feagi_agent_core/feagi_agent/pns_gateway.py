@@ -264,7 +264,7 @@ def check_genome_status(message_from_feagi, capabilities):
         if genome_changed != previous_genome_timestamp:
             full_list_dimension = fetch_full_dimensions()
             response = requests.get(
-                router.global_api_address + '/v1/feagi/genome/cortical_area/geometry')
+                router.global_api_address + '/v1/cortical_area/cortical_area/geometry')
             resize_list = retina.obtain_cortical_vision_size(capabilities['camera']["index"],
                                                              response)
             previous_genome_timestamp = message_from_feagi["genome_changed"]

@@ -265,7 +265,7 @@ if __name__ == '__main__':
     tello.connect()
     print("Connected with Tello drone.")
     start_camera(tello)
-    response = requests.get(api_address + '/v1/feagi/genome/cortical_area/geometry')
+    response = requests.get(api_address + '/v1/cortical_area/cortical_area/geometry')
     size_list = retina.obtain_cortical_vision_size(capabilities['camera']["index"], response)
     default_capabilities = {}  # It will be generated in update_region_split_downsize. See the
     # overwrite manual

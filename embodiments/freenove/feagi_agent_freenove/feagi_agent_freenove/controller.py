@@ -548,7 +548,7 @@ def main(feagi_auth_url, feagi_settings, agent_settings, capabilities):
     motor.stop()
     cam = cv2.VideoCapture(0)  # you need to do sudo rpi-update to be able to use this
     servo.set_default_position(runtime_data)
-    response = requests.get(api_address + '/v1/feagi/genome/cortical_area/geometry')
+    response = requests.get(api_address + '/v1/cortical_area/cortical_area/geometry')
     size_list = retina.obtain_cortical_vision_size(capabilities['camera']["index"], response)
     raw_frame = []
     default_capabilities = {}  # It will be generated in update_region_split_downsize. See the
