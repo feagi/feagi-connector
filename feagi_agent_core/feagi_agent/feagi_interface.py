@@ -154,7 +154,7 @@ def opu_processor(data):
         processed_opu_data = {'motor': {}, 'servo': {}, 'battery': {},
                               'discharged_battery': {}, 'reset': {}, 'camera': {}, 'misc': {},
                               "motion_control": {}, 'navigation': {}, 'speed': {}, "led": {},
-                              "vision_resolution": {}, "vision_acuity": {}}
+                              "vision_resolution": {}, "vision_acuity": {}, 'servo_position': {}}
         opu_data = data["opu_data"]
         if opu_data is not None:
             if 'o__mot' in opu_data:  # motor percentage
@@ -247,6 +247,13 @@ def opu_processor(data):
                         device_id = data_point[0]
                         device_power = data_point[2]
                         processed_opu_data['vision_resolution'][device_id] = device_power
+            if 'o_spos' in opu_data: # Currently used in mycobot only. Different
+                if opu_data['o_spos']:
+                    for data_point in opu_data['o_spos']:
+                        processed_data_point = block_to_array(data_point)
+                        device_id = processed_data_point[0]
+                        device_power = processed_data_point[2]
+                        processed_opu_data['servo_position'][device_id] = device_power
             if 'o_vact' in opu_data:
                 if opu_data['o_vact']:
                     for data_point in opu_data['o_vact']:
