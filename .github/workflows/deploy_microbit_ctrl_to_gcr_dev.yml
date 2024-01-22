@@ -6,6 +6,9 @@ on:
     paths:
       - 'embodiments/elecfreaks/cutebot/web_html_microbit/**'
       - 'generate_version.sh'
+  pull_request:
+    branches:
+      - staging
   workflow_dispatch:
 
 jobs:
