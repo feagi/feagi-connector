@@ -8,6 +8,7 @@ from datetime import datetime
 from version import __version__
 from feagi_agent import retina
 from feagi_agent import sensors
+from feagi_agent import actuators
 from feagi_agent import pns_gateway as pns
 from feagi_agent import feagi_interface as FEAGI
 import cv2
@@ -15,7 +16,7 @@ import cv2
 previous_frame_data = dict()
 flag = False
 camera_data = {"vision": {}}
-
+speed = {'0': 50}
 
 
 def get_battery(full_data):
@@ -210,11 +211,34 @@ def offset_z(value, resolution, range_number):
         return 0
 
 
-def action(obtained_signals, flying_flag):
+def action(obtained_signals):
+    global speed
+    recieve_emergency_stop = actuators.check_emergency_stop(obtained_signals)
+    if recieve_emergency_stop:
+        tello.send_command_without_return("emergency")  # STOP EVERYTHING IMMEDIATELY
+    recieve_motion_control_data = actuators.get_motion_control_data(obtained_signals)
+    recieve_speed_data = actuators.check_new_speed(obtained_signals)
+    if recieve_speed_data:
+        for i in recieve_speed_data:
+            speed['0'] = recieve_speed_data[i]
+    if recieve_motion_control_data:
+        for i in recieve_motion_control_data:
+            if 'yaw_left' == i:
+                tello.send_command_without_return("cw {}".format(recieve_motion_control_data[i]))
+            if 'yaw_right' == i:
+                tello.send_command_without_return("ccw {}".format(recieve_motion_control_data[i]))
+            if "move_left" == i:
+                navigate_to_xyz(tello, 0, 100 * int(recieve_motion_control_data[i]), 0, speed['0'])
+            if "move_right" == i:
+                navigate_to_xyz(tello, 0, -100 * int(recieve_motion_control_data[i]), 0, speed['0'])
+            if "move_up" == i:
+                navigate_to_xyz(tello, 0, 0, 100 * int(recieve_motion_control_data[i]), speed['0'])
+            if "move_down" == i:
+                navigate_to_xyz(tello, 0, 0, -100 * int(recieve_motion_control_data[i]), speed['0'])
+                
     if 'misc' in obtained_signals:
         for i in obtained_signals['misc']:
             misc_control(tello, i, battery)
-    # if flying_flag:
     if 'navigation' in obtained_signals:
         if obtained_signals['navigation']:
             try:
@@ -270,13 +294,17 @@ if __name__ == '__main__':
     # overwrite manual
     default_capabilities = pns.create_runtime_default_list(default_capabilities, capabilities)
     threading.Thread(target=pns.feagi_listener, args=(feagi_opu_channel,), daemon=True).start()
-    threading.Thread(target=retina.vision_progress, args=(default_capabilities, feagi_opu_channel, api_address, feagi_settings, camera_data['vision'],), daemon=True).start()
+    threading.Thread(target=retina.vision_progress, args=(
+        default_capabilities, feagi_opu_channel, api_address, feagi_settings,
+        camera_data['vision'],),
+                     daemon=True).start()
+
     while True:
         try:
             message_from_feagi = pns.message_from_feagi
             if message_from_feagi:
                 obtained_signals = pns.obtain_opu_data(message_from_feagi)
-                action(obtained_signals, flying_flag)
+                action(obtained_signals)
 
             # Gather all data from the robot to prepare for FEAGI
             data = tello.get_current_state()
