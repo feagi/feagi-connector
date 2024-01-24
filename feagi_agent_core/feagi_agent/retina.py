@@ -407,7 +407,7 @@ def update_astype(data):
 
 def RGB_list_to_ndarray(data, size):
     new_rgb = np.array(data)
-    new_rgb = new_rgb.reshape(size[0], size[1], 3)
+    new_rgb = new_rgb.reshape(size[1], size[0], 3)
     return new_rgb
 
 
