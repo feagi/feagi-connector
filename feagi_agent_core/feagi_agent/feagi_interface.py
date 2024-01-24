@@ -154,7 +154,8 @@ def opu_processor(data):
         processed_opu_data = {'motor': {}, 'servo': {}, 'battery': {},
                               'discharged_battery': {}, 'reset': {}, 'camera': {}, 'misc': {},
                               "motion_control": {}, 'navigation': {}, 'speed': {}, "led": {},
-                              "vision_resolution": {}, "vision_acuity": {}, 'servo_position': {}}
+                              "vision_resolution": {}, "vision_acuity": {}, 'servo_position': {},
+                              "emergency": {}}
         opu_data = data["opu_data"]
         if opu_data is not None:
             if 'o__mot' in opu_data:  # motor percentage
@@ -181,7 +182,13 @@ def opu_processor(data):
                     for data_point in opu_data['o_cbat']:
                         intensity = data_point[2]
                         processed_opu_data['battery'] = intensity
-
+            if 'o_stop' in opu_data:
+                if opu_data['o_stop']:
+                    for data_point in opu_data['o_stop']:
+                        processed_data_point = block_to_array(data_point)
+                        device_id = processed_data_point[0]
+                        device_power = opu_data['o_stop'][data_point]
+                        processed_opu_data['emergency'][device_id] = device_power
             if 'o_dbat' in opu_data:
                 if opu_data['o__bat']:
                     for data_point in opu_data['o_dbat']:
