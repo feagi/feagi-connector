@@ -147,7 +147,7 @@ def fetch_aptr(get_size_for_aptr_cortical):
 def fetch_cortical_dimensions():
     try:
         list_dimesions = requests.\
-            get(global_api_address + '/v1/feagi/connectome/properties/dimensions').json()
+            get(global_api_address + '/v1/connectome/properties/dimensions').json()
         return list_dimesions
     except Exception as e:
         print("e: ", e)
@@ -155,7 +155,7 @@ def fetch_cortical_dimensions():
 
 
 def fetch_geometry():
-    return requests.get(global_api_address + '/v1/feagi/genome/cortical_area/geometry')
+    return requests.get(global_api_address + '/v1/cortical_area/cortical_area/geometry')
 
 
 # def register_with_feagi(feagi_ip, feagi_api_port, agent_type: str, agent_id: str, agent_ip: str, agent_data_port: int,
@@ -167,9 +167,9 @@ def fetch_geometry():
 #     Controller (Capabilities)       -->     FEAGI
 #     """
 #     api_address = 'http://' + feagi_ip + ':' + feagi_api_port
-#     network_endpoint = '/v1/feagi/feagi/network'
-#     stimulation_period_endpoint = '/v1/feagi/feagi/burst_engine/stimulation_period'
-#     burst_counter_endpoint = '/v1/feagi/feagi/burst_engine/burst_counter'
+#     network_endpoint = '/v1/network'
+#     stimulation_period_endpoint = '/v1/burst_engine/stimulation_period'
+#     burst_counter_endpoint = '/v1/burst_engine/burst_counter'
 #     registration_endpoint = '/v1/agent/register'
 
 #     registration_complete = False
@@ -247,9 +247,9 @@ def register_with_feagi(feagi_auth_url, feagi_settings, agent_settings, agent_ca
     Controller                      <--     FEAGI(IPU/OPU socket info)
     Controller (Capabilities)       -->     FEAGI
     """
-    network_endpoint = '/v1/feagi/feagi/network'
-    stimulation_period_endpoint = '/v1/feagi/feagi/burst_engine/stimulation_period'
-    burst_counter_endpoint = '/v1/feagi/feagi/burst_engine/burst_counter'
+    network_endpoint = '/v1/network/network'
+    stimulation_period_endpoint = '/v1/burst_engine/stimulation_period'
+    burst_counter_endpoint = '/v1/burst_engine/burst_counter'
     registration_endpoint = '/v1/agent/register'
 
     registration_complete = False
