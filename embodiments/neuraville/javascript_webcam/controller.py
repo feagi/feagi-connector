@@ -130,8 +130,6 @@ if __name__ == "__main__":
                                    __version__)
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         msg_counter = runtime_data["feagi_state"]['burst_counter']
-        response = requests.get(api_address + '/v1/feagi/genome/cortical_area/geometry')
-        size_list = retina.obtain_cortical_vision_size(capabilities['camera']["index"], response)
         previous_frame_data = {}
         raw_frame = []
         default_capabilities = {}  # It will be generated in update_region_split_downsize. See the
@@ -154,11 +152,10 @@ if __name__ == "__main__":
                     if 'camera' in default_capabilities:
                         if default_capabilities['camera']['blink'] != []:
                             raw_frame = default_capabilities['camera']['blink']
-                    previous_frame_data, rgb, default_capabilities, \
-                    size_list = retina.update_region_split_downsize(
+                    previous_frame_data, rgb, default_capabilities = \
+                        retina.update_region_split_downsize(
                         raw_frame,
                         default_capabilities,
-                        size_list,
                         previous_frame_data,
                         rgb, capabilities)
                     default_capabilities['camera']['blink'] = []
