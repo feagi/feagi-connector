@@ -69,11 +69,11 @@ def feagi_setting_for_registration(feagi_settings, agent_settings):
 
 
 def feagi_api_burst_engine():
-    return '/v1/feagi/feagi/burst_engine/stimulation_period'
+    return '/v1/burst_engine/stimulation_period'
 
 
 def feagi_api_burst_counter():
-    return '/v1/feagi/feagi/burst_engine/burst_counter'
+    return '/v1/burst_engine/burst_counter'
 
 
 def feagi_inbound(feagi_inbound_port):
@@ -154,7 +154,8 @@ def opu_processor(data):
         processed_opu_data = {'motor': {}, 'servo': {}, 'battery': {},
                               'discharged_battery': {}, 'reset': {}, 'camera': {}, 'misc': {},
                               "motion_control": {}, 'navigation': {}, 'speed': {}, "led": {},
-                              "vision_resolution": {}, "vision_acuity": {}}
+                              "vision_resolution": {}, "vision_acuity": {}, 'servo_position': {},
+                              "emergency": {}}
         opu_data = data["opu_data"]
         if opu_data is not None:
             if 'o__mot' in opu_data:  # motor percentage
@@ -181,7 +182,13 @@ def opu_processor(data):
                     for data_point in opu_data['o_cbat']:
                         intensity = data_point[2]
                         processed_opu_data['battery'] = intensity
-
+            if 'o_stop' in opu_data:
+                if opu_data['o_stop']:
+                    for data_point in opu_data['o_stop']:
+                        processed_data_point = block_to_array(data_point)
+                        device_id = processed_data_point[0]
+                        device_power = opu_data['o_stop'][data_point]
+                        processed_opu_data['emergency'][device_id] = device_power
             if 'o_dbat' in opu_data:
                 if opu_data['o__bat']:
                     for data_point in opu_data['o_dbat']:
@@ -247,6 +254,13 @@ def opu_processor(data):
                         device_id = data_point[0]
                         device_power = data_point[2]
                         processed_opu_data['vision_resolution'][device_id] = device_power
+            if 'o_spos' in opu_data: # Currently used in mycobot only. Different
+                if opu_data['o_spos']:
+                    for data_point in opu_data['o_spos']:
+                        processed_data_point = block_to_array(data_point)
+                        device_id = processed_data_point[0]
+                        device_power = processed_data_point[2]
+                        processed_opu_data['servo_position'][device_id] = device_power
             if 'o_vact' in opu_data:
                 if opu_data['o_vact']:
                     for data_point in opu_data['o_vact']:

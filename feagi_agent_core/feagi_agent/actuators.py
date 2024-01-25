@@ -100,6 +100,36 @@ def get_servo_data(obtained_data):
     return servo_data
 
 
+def check_emergency_stop(obtained_data):
+    emergency_data = dict()  # I don't think there's any required input on emergency stop at all
+    if 'emergency' in obtained_data:
+        for data_point in obtained_data['emergency']:
+            device_id = data_point
+            device_power = obtained_data['emergency'][data_point]
+            emergency_data[device_id] = device_power
+    return emergency_data
+
+
+def check_new_speed(obtained_data):
+    speed_data = dict()  # I don't think there's any required input on emergency stop at all
+    if 'speed' in obtained_data:
+        for data_point in obtained_data['speed']:
+            device_id = data_point
+            device_power = obtained_data['speed'][data_point]
+            speed_data[device_id] = device_power
+    return speed_data
+
+
+def get_motion_control_data(obtained_data):
+    motion_data = dict()
+    if 'motion_control' in obtained_data:
+        for data_point in obtained_data['motion_control']:
+            device_id = data_point
+            device_power = obtained_data['motion_control'][data_point]
+            motion_data[device_id] = device_power
+    return motion_data
+
+
 def get_led_data(obtained_data):
     led_data = dict()
     if 'led' in obtained_data:
