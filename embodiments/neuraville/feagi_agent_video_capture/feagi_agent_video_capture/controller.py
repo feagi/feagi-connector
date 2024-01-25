@@ -119,8 +119,6 @@ def main(feagi_auth_url, feagi_settings, agent_settings, capabilities, message_t
     msg_counter = runtime_data["feagi_state"]['burst_counter']
     rgb = dict()
     rgb['camera'] = dict()
-    response = requests.get(api_address + '/v1/feagi/genome/cortical_area/geometry')
-    size_list = retina.obtain_cortical_vision_size(capabilities['camera']["index"], response)
     previous_frame_data = {}
     raw_frame = []
     default_capabilities = {}  # It will be generated in update_region_split_downsize. See the
@@ -137,11 +135,9 @@ def main(feagi_auth_url, feagi_settings, agent_settings, capabilities, message_t
             if 'camera' in default_capabilities:
                 if default_capabilities['camera']['blink'] != []:
                     raw_frame = default_capabilities['camera']['blink']
-            previous_frame_data, rgb, default_capabilities, \
-            size_list = retina.update_region_split_downsize(
+            previous_frame_data, rgb, default_capabilities = retina.update_region_split_downsize(
                 raw_frame,
                 default_capabilities,
-                size_list,
                 previous_frame_data,
                 rgb, capabilities)
             if rgb:

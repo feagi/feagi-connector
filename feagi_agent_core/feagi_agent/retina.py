@@ -307,13 +307,11 @@ def change_detector(previous, current, capabilities):
     return dict(feagi_data)
 
 
-def update_region_split_downsize(raw_frame, capabilities, resize_list,
+def update_region_split_downsize(raw_frame, capabilities,
                                  previous_frame_data,
                                  rgb, actual_capabilities):
-    if pns.resize_list:
-        resize_list = pns.resize_list
     capabilities = pns.create_runtime_default_list(capabilities, actual_capabilities)
-    if resize_list:
+    if pns.resize_list:
         if capabilities["camera"]["mirror"]:
             raw_frame = cv2.flip(raw_frame, 1)
         region_coordinates = vision_region_coordinates(frame_width=raw_frame.shape[1],
@@ -323,13 +321,13 @@ def update_region_split_downsize(raw_frame, capabilities, resize_list,
                                                        y1=abs(capabilities['camera']['gaze_control'][1]),
                                                        y2=abs(capabilities['camera']['pupil_control'][1]),
                                                        camera_index=capabilities['camera']['index'],
-                                                       size_list=resize_list)
+                                                       size_list=pns.resize_list)
         segmented_frame_data = split_vision_regions(coordinates=region_coordinates,
                                                     raw_frame_data=raw_frame)
         compressed_data = dict()
         for cortical in segmented_frame_data:
             compressed_data[cortical] = downsize_regions(segmented_frame_data[cortical],
-                                                         resize_list[cortical])
+                                                         pns.resize_list[cortical])
         vision_dict = dict()
 
         # for segment in compressed_data:
@@ -337,7 +335,7 @@ def update_region_split_downsize(raw_frame, capabilities, resize_list,
         # if cv2.waitKey(30) & 0xFF == ord('q'):
         #     pass
         for get_region in compressed_data:
-            if resize_list[get_region][2] == 3:
+            if pns.resize_list[get_region][2] == 3:
                 if previous_frame_data != {}:
                     vision_dict[get_region] = change_detector(
                         previous_frame_data[get_region],
@@ -351,8 +349,8 @@ def update_region_split_downsize(raw_frame, capabilities, resize_list,
                         capabilities)
         previous_frame_data = compressed_data
         rgb['camera'] = vision_dict
-        return previous_frame_data, rgb, capabilities, resize_list
-    return resize_list, resize_list, capabilities, resize_list  # sending empty dict
+        return previous_frame_data, rgb, capabilities
+    return pns.resize_list, pns.resize_list, capabilities  # sending empty dict
 
 
 def obtain_cortical_vision_size(camera_index, response):
@@ -409,7 +407,7 @@ def update_astype(data):
 
 def RGB_list_to_ndarray(data, size):
     new_rgb = np.array(data)
-    new_rgb = new_rgb.reshape(size[0], size[1], 3)
+    new_rgb = new_rgb.reshape(size[1], size[0], 3)
     return new_rgb
 
 
