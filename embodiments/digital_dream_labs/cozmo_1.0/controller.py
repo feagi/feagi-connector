@@ -38,6 +38,7 @@ import numpy as np
 from time import sleep
 import traceback
 import motor_functions
+import cv2
 
 runtime_data = {
     "current_burst_id": 0,
@@ -50,6 +51,10 @@ runtime_data = {
 }
 
 previous_frame_data = {}
+rgb = {'camera': {}}
+default_capabilities = {}  # It will be generated in update_region_split_downsize. See the
+# overwrite manual
+default_capabilities = pns.create_runtime_default_list(default_capabilities, capabilities)
 robot = {'accelerator': [], "ultrasonic": [], "gyro": [], 'servo_head': [], "battery": [],
          'lift_height': []}
 camera_data = {"vision": {}}
@@ -165,15 +170,23 @@ def on_body_info(cli, pkt: pycozmo.protocol_encoder.BodyInfo):
 
 
 def on_camera_image(cli, image):
+    global default_capabilities, previous_frame_data, rgb
     # Obtain the size automatically which will be needed in next line after the next line
     size = pitina.obtain_size(image)
     # Convert into ndarray based on the size it gets
     new_rgb = retina.RGB_list_to_ndarray(image.getdata(), size)
     # update astype to work well with retina and cv2
-    new_rgb = retina.update_astype(new_rgb)
-    if capabilities['camera']['mirror']:
-        new_rgb = retina.flip_video(new_rgb)
-    camera_data['vision'] = new_rgb
+    raw_frame = retina.update_astype(new_rgb)
+    camera_data['vision'] = raw_frame
+    # default_capabilities['camera']['blink'] = []
+    # if 'camera' in default_capabilities:
+    #     if default_capabilities['camera']['blink'] != []:
+    #         raw_frame = default_capabilities['camera']['blink']
+    # previous_frame_data, rgb, default_capabilities = retina.update_region_split_downsize(
+    #     raw_frame,
+    #     default_capabilities,
+    #     previous_frame_data,
+    #     rgb, capabilities)
     time.sleep(0.01)
 
 
@@ -298,7 +311,6 @@ if __name__ == '__main__':
     threading.Thread(target=face_starter, daemon=True).start()
     threading.Thread(target=pns.feagi_listener, args=(feagi_opu_channel,), daemon=True).start()
     msg_counter = 0
-    rgb = {'camera': {}}
     genome_tracker = 0
     # Raise head.
     cli = pycozmo.Client()
@@ -311,9 +323,6 @@ if __name__ == '__main__':
     min = pycozmo.robot.MIN_HEAD_ANGLE.radians + 0.1
     max_lift = pycozmo.MAX_LIFT_HEIGHT.mm - 5
     min_lift = pycozmo.MIN_LIFT_HEIGHT.mm + 5
-    # threading.Thread(target=actuators.start_motor, args=(motor.move, feagi_settings, capabilities,
-    #                                            rolling_window, rolling_window_len, ),
-    #                  daemon=True).start()
     angle_of_head = \
         (pycozmo.robot.MAX_HEAD_ANGLE.radians - pycozmo.robot.MIN_HEAD_ANGLE.radians) / 2.0
     angle_of_arms = 50  # TODO: How to obtain the arms encoders in real time
@@ -326,9 +335,6 @@ if __name__ == '__main__':
 
     # vision capture
     cli.enable_camera(enable=True, color=True)
-    default_capabilities = {}  # It will be generated in update_region_split_downsize. See the
-    # overwrite manual
-    default_capabilities = pns.create_runtime_default_list(default_capabilities, capabilities)
     threading.Thread(target=robot_status, args=(cli,), daemon=True).start()
     threading.Thread(target=vision_initalization, args=(cli,), daemon=True).start()
     threading.Thread(target=retina.vision_progress,
@@ -345,9 +351,6 @@ if __name__ == '__main__':
             angle_of_arms, angle_of_head = action(obtained_signals, angle_of_arms,
                                                   angle_of_head)
             # OPU section ENDS
-            if "o_misc" in message_from_feagi["opu_data"]:
-                if message_from_feagi["opu_data"]["o_misc"]:
-                    print("misc: ", message_from_feagi["opu_data"]["o_misc"])
             if "o_eye1" in message_from_feagi["opu_data"]:
                 if message_from_feagi["opu_data"]["o_eye1"]:
                     for i in message_from_feagi["opu_data"]["o_eye1"]:
@@ -379,31 +382,24 @@ if __name__ == '__main__':
                         split_data = i.split("-")
                         if split_data[0] == '0':
                             motor_functions.display_lines(cli)
-            # raw_frame = camera_data['vision']
-            # # # cv2.imshow("test", new_rgb)
-            # # # cv2.waitKey(30)
-            # default_capabilities['camera']['blink'] = []
-            # if 'camera' in default_capabilities:
-            #     if default_capabilities['camera']['blink'] != []:
-            #         raw_frame = default_capabilities['camera']['blink']
-            # previous_frame_data, rgb, default_capabilities = retina.update_region_split_downsize(
-            #     raw_frame,
-            #     default_capabilities,
-            #     previous_frame_data,
-            #     rgb, capabilities)
-            # message_to_feagi = pns.generate_feagi_data(rgb, msg_counter, datetime.now(),
-            #                                            message_to_feagi)
-            # print(default_capabilities['camera']['gaze_control'][0])
-            sleep(feagi_settings['feagi_burst_speed'])  # bottleneck
-            pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
-            message_to_feagi.clear()
+
+
+            raw_frame = camera_data['vision']
+            cv2.imshow("test",   raw_frame)
+            cv2.waitKey(30)
+            message_to_feagi = pns.generate_feagi_data(rgb, msg_counter, datetime.now(),
+                                                       message_to_feagi)
             battery = robot['battery']
-            ultrasonic_data = robot['ultrasonic'][0]  # obtain ultrasonic data
-            message_to_feagi = sensors.add_ultrasonic_to_feagi_data(ultrasonic_data,
-                                                                    message_to_feagi)
+            if robot['ultrasonic']:
+                ultrasonic_data = robot['ultrasonic'][0]  # obtain ultrasonic data
+                message_to_feagi = sensors.add_ultrasonic_to_feagi_data(ultrasonic_data,
+                                                                        message_to_feagi)
             message_to_feagi = sensors.add_acc_to_feagi_data(robot['accelerator'],
                                                              message_to_feagi)
             message_to_feagi = sensors.add_battery_to_feagi_data(battery, message_to_feagi)
+            sleep(feagi_settings['feagi_burst_speed'])  # bottleneck
+            pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
+            message_to_feagi.clear()
 
             for i in rgb['camera']:
                 rgb['camera'][i].clear()
