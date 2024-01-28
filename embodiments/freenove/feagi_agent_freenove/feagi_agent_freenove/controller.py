@@ -12,8 +12,8 @@ from datetime import datetime
 from feagi_agent_freenove.Led import *
 from feagi_agent_freenove.ADC import *
 from feagi_agent import retina as retina
-from feagi_agent import sensors as sensors
 from feagi_agent import pns_gateway as pns
+from feagi_agent import sensors as sensors
 from feagi_agent import actuators as actuators
 from feagi_agent import feagi_interface as FEAGI
 from feagi_agent_freenove.PCA9685 import PCA9685
@@ -23,10 +23,6 @@ ir_data = deque()
 ultrasonic_data = deque()
 feagi_dict = deque()
 feagi_settings = dict()
-
-
-def window_average(sequence):
-    return sum(sequence) // len(sequence)
 
 
 class LED:
@@ -83,7 +79,8 @@ class Servo:
         self.PwmServo = PCA9685(0x40, debug=True)
         self.PwmServo.setPWMFreq(50)
         self.device_position = float()
-        self.servo_ranges = {i: [78, 160] for i in range(13)}
+        self.servo_ranges = {i: [10, 170] for i in range(13)}
+        self.servo_ranges[1] = [76, 140]
 
     def setServoPwm(self, channel, angle, error=10):
         angle = float(angle)
@@ -164,7 +161,7 @@ class Servo:
         """
         This will convert from godot to motor's id. Let's say, you have 4x10 (width x depth from static_genome).
         So, you click 2 (actually 4 but 2 for one servo on backward/forward) to go forward. It will be like this:
-        o__ser': {'1-0-9': 1, '3-0-9': 1}
+        o_sper': {'1-0-9': 1, '3-0-9': 1}
         which is 1,3. So this code will convert from 1,3 to 0,1 on motor id.
 
         Since 0-1 is servo 0, 2-3 is servo 1 and so on. In this case, 0 and 2 is for forward and 1 and 3 is for backward
@@ -187,7 +184,7 @@ class Servo:
     def motor_converter(motor_id):
         """
         This will convert from godot to motor's id. Let's say, you have 8x10 (width x depth from
-        static_genome). So, you click 4 to go forward. It will be like this: o__mot': {'1-0-9':
+        static_genome). So, you click 4 to go forward. It will be like this: o_mper': {'1-0-9':
         1, '5-0-9': 1, '3-0-9': 1, '7-0-9': 1} which is 1,3,5,7. So this code will convert from
         1,3,5,7 to 0,1,2,3 on motor id.
 
@@ -309,7 +306,7 @@ class Motor:
         """
         This will convert from godot to motor's id. Let's say, you have 8x10 (width x depth from static_genome).
         So, you click 4 to go forward. It will be like this:
-        o__mot': {'1-0-9': 1, '5-0-9': 1, '3-0-9': 1, '7-0-9': 1}
+        o_mper': {'1-0-9': 1, '5-0-9': 1, '3-0-9': 1, '7-0-9': 1}
         which is 1,3,5,7. So this code will convert from 1,3,5,7 to 0,1,2,3 on motor id.
 
         Since 0-1 is motor 1, 2-3 is motor 2 and so on. In this case, 0 is for forward and 1 is for backward.
@@ -317,13 +314,13 @@ class Motor:
         # motor_total = capabilities['motor']['count'] #be sure to update your motor total in
         # configuration.py increment = 0 for motor in range(motor_total): if motor_id <= motor +
         # 1: print("motor_id: ", motor_id) increment += 1 return increment
-        if motor_id <= 1:
+        if motor_id == 0:
             return 0
-        elif motor_id <= 3:
+        elif motor_id == 1:
             return 3
-        elif motor_id <= 5:
+        elif motor_id == 2:
             return 1
-        elif motor_id <= 7:
+        elif motor_id == 3:
             return 2
         else:
             print("Input has been refused. Please put motor ID.")
@@ -394,54 +391,58 @@ class Battery:
     def battery_total(self):
         adc = Adc()
         Power = adc.recvADC(2) * 3
-        print(Power)
         return Power
 
 
-def action(obtained_data, led_flag, feagi_settings, capabilities, motor_data,
-           rolling_window, motor, servo, led, runtime_data):
-    motor_count = capabilities['motor']['count']
-    if 'led' in obtained_data:
-        if obtained_data['led'] != {}:
-            for data_point in obtained_data['led']:
-                led_flag = True
-                if data_point not in data_point_status:
-                    data_point_status[data_point] = True
-                if data_point_status[data_point]:
-                    led.LED_on(
-                        data_point,
-                        int((obtained_data['led'][data_point] / 100) * 255),
-                        0, 0)
-                data_point_status[data_point] = not data_point_status[data_point]
-        else:
-            if led_flag:
-                for i in range(8):
-                    led.LED_on(i, 0, 0, 0)
-                led_flag = False
-    if 'motor' in obtained_data:
-        if obtained_data['motor'] is not {}:
-            for data_point in obtained_data['motor']:
-                device_power = obtained_data['motor'][data_point]
-                device_power = motor.power_convert(data_point, device_power)
-                device_id = motor.motor_converter(data_point)
-                if device_id not in motor_data:
-                    motor_data[device_id] = dict()
-                rolling_window[device_id].append(device_power)
-                rolling_window[device_id].popleft()
-    else:
-        for _ in range(motor_count):
-            rolling_window[_].append(0)
-            rolling_window[_].popleft()
-    if capabilities['servo']['disabled'] is not True:
-        if 'servo' in obtained_data:
-            for data_point in obtained_data['servo']:
-                device_id = data_point
-                device_power = obtained_data['servo'][data_point]
-                servo.move(feagi_device_id=device_id, power=device_power,
-                           capabilities=capabilities, feagi_settings=feagi_settings,
-                           runtime_data=runtime_data)
-    return led_flag
+def process_video(default_capabilities, capabilities, cam, previous_frame_data, rgb):
+    while True:
+        if default_capabilities['camera']['disabled'] is not True:
+            ret, raw_frame = cam.read()
+            if len(default_capabilities['camera']['blink']) > 0:
+                raw_frame = default_capabilities['camera']['blink']
+            # Post image into vision
+            previous_frame_data, rgb, default_capabilities = \
+                retina.update_region_split_downsize(raw_frame, default_capabilities,
+                                                    previous_frame_data,
+                                                    rgb,
+                                                    capabilities)
+            default_capabilities['camera']['blink'] = []
+            sleep(0.01)
 
+
+def action(obtained_data, led_tracking_list, feagi_settings, capabilities, rolling_window, motor,
+           servo, led, runtime_data):
+    motor_count = capabilities['motor']['count']
+    recieve_motor_data = actuators.get_motor_data(obtained_data,
+                                                  capabilities['motor']['power_amount'],
+                                                  motor_count, rolling_window,
+                                                  id_converter=True, power_inverse=True)
+    recieve_servo_data = actuators.get_servo_data(obtained_data)
+    # Do some custom work with motor data
+    for id in range(motor_count):
+        if id in recieve_motor_data:
+            converted_id = motor.motor_converter(id)
+            motor.move(converted_id, recieve_motor_data[id])
+        else:
+            motor.move(id, 0)
+    # print(rolling_window)
+    # Do some custom work with servo data as well
+    if capabilities['servo']['disabled'] is not True:
+        for id in recieve_servo_data:
+            servo_power = actuators.servo_generate_power(180, recieve_servo_data[id], id)
+            servo.move(feagi_device_id=id, power=servo_power,
+                       capabilities=capabilities, feagi_settings=feagi_settings,
+                       runtime_data=runtime_data)
+    recieved_led_data = actuators.get_led_data(obtained_data)
+    if recieved_led_data:
+        for data_point in recieved_led_data:
+            led.LED_on(data_point, int((recieved_led_data[data_point] / 100) * 255), 0, 0)
+            led_tracking_list[data_point] = True
+    else:
+        if led_tracking_list:
+            for x in led_tracking_list:
+                led.LED_on(x, 0, 0, 0)
+            led_tracking_list.clear()
 
 async def read_background(feagi_settings):
     ir = IR()
@@ -465,29 +466,15 @@ async def read_ultrasonic(feagi_settings):
         sleep(feagi_settings['feagi_burst_speed'])
 
 
-def start_ultrasonic(feagi_settings):
-    asyncio.run(read_ultrasonic(feagi_settings))
-
-
-async def move_control(motor, feagi_settings, capabilities, rolling_window):
-    motor_count = capabilities['motor']['count']
-    while True:
-        for id in range(motor_count):
-            motor_power = window_average(rolling_window[id])
-            motor_power = motor_power * capabilities["motor"]["power_amount"]
-            motor.move(id, motor_power)
-        sleep(feagi_settings['feagi_burst_speed'])
-
-
-def start_motor(motor, feagi_settings, capabilities, rolling_window):
-    asyncio.run(move_control(motor, feagi_settings, capabilities, rolling_window))
-
-
 async def listening_feagi(feagi_dict, feagi_opu_channel, feagi_settings):
     while True:
         if len(feagi_dict) > 2:
             feagi_dict.popleft()
         feagi_dict.append(pns.efferent_signaling(feagi_opu_channel))
+
+
+def start_ultrasonic(feagi_settings):
+    asyncio.run(read_ultrasonic(feagi_settings))
 
 
 def start_feagi_bridge(feagi_dict, feagi_opu_channel, feagi_settings):
@@ -497,7 +484,6 @@ def start_feagi_bridge(feagi_dict, feagi_opu_channel, feagi_settings):
 def main(feagi_auth_url, feagi_settings, agent_settings, capabilities):
     GPIO.cleanup()
     # # FEAGI REACHABLE CHECKER # #
-    feagi_flag = False
     print("retrying...")
     print("Waiting on FEAGI...")
     # while not feagi_flag:
@@ -542,65 +528,46 @@ def main(feagi_auth_url, feagi_settings, agent_settings, capabilities):
     rgb['camera'] = dict()
 
     # --- Data Containers ---
-    motor_data = dict()
     previous_genome_timestamp = dict()
     # Status for data points
-    data_point_status = {}
+    led_tracking_list = {}
     previous_frame_data = {}
     message_to_feagi = {}
     # Rolling windows for each motor
     rolling_window = {}
 
+    threading.Thread(target=start_IR, args=(feagi_settings,), daemon=True).start()
+    motor_count = capabilities['motor']['count']
+
     # Initialize rolling window for each motor
     for motor_id in range(motor_count):
         rolling_window[motor_id] = deque([0] * rolling_window_len)
-
-    threading.Thread(target=start_IR, args=(feagi_settings,), daemon=True).start()
-    # threading.Thread(target=start_feagi_bridge, args=(feagi_dict, feagi_opu_channel,
-    #                                                   feagi_settings,), daemon=True).start()
-    threading.Thread(target=start_motor, args=(motor, feagi_settings, capabilities,
-                                               rolling_window,), daemon=True).start()
     # threading.Thread(target=start_ultrasonic, args=(feagi_settings,), daemon=True).start()
     ultrasonic = Ultrasonic()
-    cam = cv2.VideoCapture(0)  # you need to do sudo rpi-update to be able to use this
     motor.stop()
+    cam = cv2.VideoCapture(0)  # you need to do sudo rpi-update to be able to use this
     servo.set_default_position(runtime_data)
-    device_list = pns.generate_OPU_list(capabilities)
-    response = requests.get(api_address + '/v1/feagi/genome/cortical_area/geometry')
-    capabilities['camera']['size_list'] = retina.obtain_cortical_vision_size(
-        capabilities['camera']["index"], response)
+
     raw_frame = []
+    default_capabilities = {}  # It will be generated in update_region_split_downsize. See the
+    # overwrite manual
+    camera_data = {"vision": {}}
+    default_capabilities = pns.create_runtime_default_list(default_capabilities, capabilities)
+    threading.Thread(target=pns.feagi_listener, args=(feagi_opu_channel,), daemon=True).start()
+    threading.Thread(target=retina.vision_progress,
+                     args=(default_capabilities, feagi_opu_channel, api_address, feagi_settings,
+                           camera_data['vision'],), daemon=True).start()
+    threading.Thread(target=process_video, args=(default_capabilities, capabilities, cam,
+                                                 previous_frame_data, rgb), daemon=True).start()
+
     while True:
         try:
-            if capabilities['camera']['disabled'] is not True:
-                ret, raw_frame = cam.read()
-                if len(capabilities['camera']['blink']) > 0:
-                    raw_frame = capabilities['camera']['blink']
-                # Post image into vision
-                previous_frame_data, rgb = retina.update_region_split_downsize(raw_frame,
-                                                                               capabilities,
-                                                                               capabilities[
-                                                                                   'camera'][
-                                                                                   'index'],
-                                                                               capabilities[
-                                                                                   'camera'][
-                                                                                   'size_list'],
-                                                                               previous_frame_data,
-                                                                               rgb)
-                capabilities['camera']['blink'] = []
-                capabilities, feagi_settings['feagi_burst_speed'] = retina.vision_progress(
-                    capabilities, feagi_opu_channel, api_address, feagi_settings, raw_frame)
-
-                message_to_feagi = pns.generate_feagi_data(rgb, msg_counter, datetime.now(),
-                                                           message_to_feagi)
-            message_from_feagi = pns.signals_from_feagi(feagi_opu_channel)
-
-            # Fetch data such as motor, servo, etc and pass to a function (you make ur own action. 
-            if message_from_feagi is not None:
-                obtained_signals = pns.obtain_opu_data(device_list, message_from_feagi)
-                led_flag = action(obtained_signals, led_flag, feagi_settings,
-                                  capabilities, motor_data, rolling_window, motor, servo, led,
-                                  runtime_data)
+            message_from_feagi = pns.message_from_feagi
+            if message_from_feagi:
+                # Fetch data such as motor, servo, etc and pass to a function (you make ur own action.
+                obtained_signals = pns.obtain_opu_data(message_from_feagi)
+                action(obtained_signals, led_tracking_list, feagi_settings, capabilities,
+                       rolling_window, motor, servo, led, runtime_data)
             # add IR data into feagi data
             ir_list = ir_data[0] if ir_data else []
             message_to_feagi = sensors.add_infrared_to_feagi_data(ir_list, message_to_feagi,
@@ -628,6 +595,5 @@ def main(feagi_auth_url, feagi_settings, agent_settings, capabilities):
             print("ERROR: ", e)
             traceback.print_exc()
             motor.stop()
-            cam.release()
             led.leds_off()
             break

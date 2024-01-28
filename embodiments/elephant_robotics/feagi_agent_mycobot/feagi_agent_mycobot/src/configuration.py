@@ -53,8 +53,6 @@ capabilities = {
     "servo": {
         "type": "opu",
         "disabled": False,
-        "refresh_rate": 1,
-        "cortical_mapping": "o__ser",
         'count': 7,
         'topic_identifier': '/S',
         'port': {
@@ -74,6 +72,9 @@ capabilities = {
                 'micro': 50,
                 'macro': 150
             }
+    },
+    "speed": {
+        "type": "opu"
     }
 }
 

@@ -19,7 +19,7 @@ limitations under the License.
 from feagi_agent import pns_gateway as pns
 
 
-def fetch_infrared_sensor(ir_list, message_to_feagi, capabilities):
+def add_infrared_to_feagi_data(ir_list, message_to_feagi, capabilities):
     formatted_ir_data = {sensor: True for sensor in ir_list}
     for ir_sensor in range(int(capabilities['infrared']['count'])):
         if ir_sensor not in formatted_ir_data:
@@ -27,7 +27,25 @@ def fetch_infrared_sensor(ir_list, message_to_feagi, capabilities):
     return pns.append_sensory_data_for_feagi('ir', formatted_ir_data, message_to_feagi)
 
 
-def fetch_ultrasonic_sensor(ultrasonic_list, message_to_feagi):
-    formatted_ultrasonic_data = {
-        'ultrasonic': {sensor: data for sensor, data in enumerate([ultrasonic_list])}}
-    return pns.append_sensory_data_for_feagi('ultrasonic', formatted_ultrasonic_data, message_to_feagi)
+def add_ultrasonic_to_feagi_data(ultrasonic_list, message_to_feagi):
+    formatted_ultrasonic_data = {sensor: data for sensor, data in enumerate([ultrasonic_list])}
+    return pns.append_sensory_data_for_feagi('ultrasonic', formatted_ultrasonic_data,
+                                             message_to_feagi)
+
+
+def add_battery_to_feagi_data(battery_list, message_to_feagi):
+    formatted_battery_data = {sensor: data for sensor, data in enumerate([battery_list])}
+    return pns.append_sensory_data_for_feagi('battery', formatted_battery_data,
+                                             message_to_feagi)
+
+
+def add_gyro_to_feagi_data(gyro_list, message_to_feagi):
+    return pns.append_sensory_data_for_feagi('gyro', gyro_list, message_to_feagi)
+
+
+def add_acc_to_feagi_data(accelerator_list, message_to_feagi):
+    return pns.append_sensory_data_for_feagi('accelerator', accelerator_list, message_to_feagi)
+
+
+def add_encoder_to_feagi_data(encoder_list, message_to_feagi):
+    return pns.append_sensory_data_for_feagi('encoder_data', encoder_list, message_to_feagi)

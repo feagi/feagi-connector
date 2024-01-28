@@ -19,9 +19,9 @@ limitations under the License.
 feagi_settings = {
     "feagi_url": None,  # gets updated
     "feagi_auth_url": None,  # composer for getting the Feagi URL link - First Priority
-    "feagi_dns": None,  # URL https://neurobotics.studio - Second priority
     "feagi_host": "127.0.0.1",  # feagi IP  - third priority
     "feagi_api_port": "8000",  # feagi Port - third priority
+    "magic_link": ""
 }
 
 agent_settings = {
@@ -37,8 +37,6 @@ capabilities = {
     "servo": {
         "type": "opu",
         "disabled": False,
-        "refresh_rate": 1,
-        "cortical_mapping": "o__ser",
         'count': 2,
         'topic_identifier': '/S',
         'power_amount': 0.5
@@ -48,18 +46,14 @@ capabilities = {
         "type": "opu",
         "disabled": False,
         "count": 4,
-        'topic_identifier': '/M',
-        "refresh_rate": 1,
-        "cortical_mapping": "o__mot",
-        "rolling_window_len": 5,
+        "rolling_window_len": 2,
         "diameter_of_wheel": 0.065,
-        "power_amount": 65
+        "power_amount": 4094
     },
     "infrared": {
         "type": "ipu",
         "disabled": False,
         "count": 3,
-        "refresh_rate": 1,
         "cortical_mapping": "i__inf",
         'topic_identifier': 'IR'
     },
@@ -67,7 +61,6 @@ capabilities = {
         "type": "ipu",
         "disabled": False,
         "count": 4,
-        "refresh_rate": 1,
         "cortical_mapping": "i__bat",
         "capacity": 100,
         "depletion_per_burst": 0.01,
@@ -77,28 +70,15 @@ capabilities = {
         "type": "ipu",
         "disabled": False,
         "index": "00",
-        "threshold_default": [10, 255, 130, 51],  # min #1, max #1, min #2, max #2,
-        "threshold_range": [1, 255],
-        "threshold_type": {},
-        "threshold_name": 0, # Binary_threshold
-        "central_vision_allocation_percentage": [80, 60],
-        "central_vision_resolution": [64, 64],
-        "peripheral_vision_resolution": [8, 8],
-        "resolution_presets": [[8, 8], [16, 16], [32, 32], [64, 64], [128, 128], [256, 256],
-                               [400, 400], [500, 500], [800, 800], [1024, 900]],
-        "previous_data": {},
-        "mirror": True,
-        "blink": [],
-        "gaze_control": {0: 25, 1: 50},
-        "pupil_control": {0: 25, 1: 50},
-        "vision_range": [1, 99],
-        "size_list": [],
-        "effect": {},
-        "enhancement": {},
-        "vision_tuner_range": [0, 255]
-    },
-    "led": {
-        "type": "opu"
+        "video_device_index": 0,
+        "image": "",
+        "video_loop": False,
+        "mirror": False,
+        # "enhancement": {1:80, 2:80, 4: 80}, # Example. Brightness, Constrast, Shadow
+        # "gaze_control": {0: 25, 1: 55}, # Gaze shifts right
+        # "pupil_control": {0: 25, 1: 55}, # Pupil shifts up
+        "threshold_default": [100, 255, 130, 51] # min value, max value, min value, max value in
+        # threshold setting. first and second is for regular webcam. Second is for vision blink OPU
     }
 }
 

@@ -15,15 +15,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================
 """
-import json
-
 import zmq
+import zmq.asyncio
+import json
 import socket
+import pickle
 import requests
 import lz4.frame
-import pickle
-from time import sleep
 import traceback
+from time import sleep
+from feagi_agent import pns_gateway as pns
 
 global_feagi_opu_channel = ''  # Updated by feagi.connect_to_feagi()
 global_api_address = ''  # Updated by feagi.connect_to_feagi
@@ -45,7 +46,7 @@ def app_host_info():
 
 class PubSub:
     def __init__(self, flags=None):
-        self.context = zmq.Context()
+        self.context = zmq.asyncio.Context()
         self.flags = flags
 
     def send(self, message):
@@ -53,7 +54,7 @@ class PubSub:
 
     def receive(self):
         try:
-            payload = self.socket.recv_pyobj(flags=self.flags)
+            payload = self.socket.recv_pyobj()
             return payload
         except zmq.ZMQError as e:
             if e.errno == zmq.EAGAIN:
@@ -96,28 +97,31 @@ class Sub(PubSub):
             self.socket.connect(address)
 
 
-def fetch_feagi(feagi_opu_channel):
+async def fetch_feagi(feagi_opu_channel):
     """
     Obtain the data from feagi's OPU
     """
-    received_data = feagi_opu_channel.receive()  # Obtain data from FEAGI
-    # Verify if the data is not None
-    if received_data is not None:
+    while True:
+        received_data = await feagi_opu_channel.receive()  # Obtain data from FEAGI
         # Verify if the data is compressed
         if isinstance(received_data, bytes):
             # Decompress
             decompressed_data = lz4.frame.decompress(received_data)
             # Another decompress of json
-            message_from_feagi = pickle.loads(decompressed_data)
-            return message_from_feagi
+            pns.message_from_feagi = pickle.loads(decompressed_data)
         else:
             # Directly obtain without any compressions
-            message_from_feagi = received_data
-            return message_from_feagi
-    else:
-        # It's None so no action will taken once it returns the None
-        message_from_feagi = None
-        return message_from_feagi
+            pns.message_from_feagi = received_data
+
+
+
+def feagi_listener(feagi_opu_channel):
+    while True:
+        data = fetch_feagi(feagi_opu_channel)
+        if data is not None:
+            pns.message_from_feagi = data
+        sleep(0.001) #hardcoded and max second that it can run up to
+        # print("inside router: ", pns.message_from_feagi['opu_data']['o__gaz'])
 
 
 def send_feagi(message_to_feagi, feagi_ipu_channel, agent_settings):
@@ -143,7 +147,7 @@ def fetch_aptr(get_size_for_aptr_cortical):
 def fetch_cortical_dimensions():
     try:
         list_dimesions = requests.\
-            get(global_api_address + '/v1/feagi/connectome/properties/dimensions').json()
+            get(global_api_address + '/v1/connectome/properties/dimensions').json()
         return list_dimesions
     except Exception as e:
         print("e: ", e)
@@ -151,7 +155,7 @@ def fetch_cortical_dimensions():
 
 
 def fetch_geometry():
-    return requests.get(global_api_address + '/v1/feagi/genome/cortical_area/geometry')
+    return requests.get(global_api_address + '/v1/cortical_area/cortical_area/geometry')
 
 
 # def register_with_feagi(feagi_ip, feagi_api_port, agent_type: str, agent_id: str, agent_ip: str, agent_data_port: int,
@@ -163,9 +167,9 @@ def fetch_geometry():
 #     Controller (Capabilities)       -->     FEAGI
 #     """
 #     api_address = 'http://' + feagi_ip + ':' + feagi_api_port
-#     network_endpoint = '/v1/feagi/feagi/network'
-#     stimulation_period_endpoint = '/v1/feagi/feagi/burst_engine/stimulation_period'
-#     burst_counter_endpoint = '/v1/feagi/feagi/burst_engine/burst_counter'
+#     network_endpoint = '/v1/network'
+#     stimulation_period_endpoint = '/v1/burst_engine/stimulation_period'
+#     burst_counter_endpoint = '/v1/burst_engine/burst_counter'
 #     registration_endpoint = '/v1/agent/register'
 
 #     registration_complete = False
@@ -243,9 +247,9 @@ def register_with_feagi(feagi_auth_url, feagi_settings, agent_settings, agent_ca
     Controller                      <--     FEAGI(IPU/OPU socket info)
     Controller (Capabilities)       -->     FEAGI
     """
-    network_endpoint = '/v1/feagi/feagi/network'
-    stimulation_period_endpoint = '/v1/feagi/feagi/burst_engine/stimulation_period'
-    burst_counter_endpoint = '/v1/feagi/feagi/burst_engine/burst_counter'
+    network_endpoint = '/v1/network/network'
+    stimulation_period_endpoint = '/v1/burst_engine/stimulation_period'
+    burst_counter_endpoint = '/v1/burst_engine/burst_counter'
     registration_endpoint = '/v1/agent/register'
 
     registration_complete = False

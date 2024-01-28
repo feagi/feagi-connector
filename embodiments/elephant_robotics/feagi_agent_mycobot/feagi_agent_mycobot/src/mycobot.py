@@ -8,6 +8,7 @@ from configuration import *
 from rclpy.node import Node
 from version import __version__
 from feagi_agent import pns_gateway as pns
+from feagi_agent import sensors
 import cv2
 import os
 from datetime import datetime
@@ -18,6 +19,7 @@ import traceback
 import std_msgs.msg
 from rclpy.qos import qos_profile_sensor_data
 import time
+import threading
 
 previous_data_frame = dict()
 
@@ -232,7 +234,7 @@ class Arm:
         """
         This will convert from godot to motor's id. Let's say, you have 8x10 (width x depth from static_genome).
         So, you click 4 to go forward. It will be like this:
-        o__mot': {'1-0-9': 1, '5-0-9': 1, '3-0-9': 1, '7-0-9': 1}
+        o_mper': {'1-0-9': 1, '5-0-9': 1, '3-0-9': 1, '7-0-9': 1}
         which is 1,3,5,7. So this code will convert from 1,3,5,7 to 0,1,2,3 on motor id.
         Since 0-1 is motor 1, 2-3 is motor 2 and so on. In this case, 0 is for forward and 1 is for backward.
         """
@@ -252,45 +254,43 @@ class Arm:
             print("Input has been refused. Please put encoder ID.")
 
 
-def action(obtained_data, device_list, runtime_data):
-    for device in device_list:
-        if 'servo_position' in obtained_data:
-            try:
-                if obtained_data['servo_position'] is not {}:
-                    for data_point in obtained_data['servo_position']:
-                        device_id = data_point + 1
-                        encoder_position = ((capabilities['servo']['servo_range'][str(device_id)][1] -
-                                             capabilities['servo']['servo_range'][str(device_id)][
-                                                 0]) / 20) * \
-                                           obtained_data['servo_position'][data_point]
-                        runtime_data['target_position'][device_id] = encoder_position
-                        # print(encoder_position, " is encoder id: ", device_id)
-                        # print(runtime_data['target_position'][device_id])
-                        print("CLICKED")
-                        speed[device_id] = (obtained_data['servo_position'][data_point] - 10) * 10
-            except Exception as e:
-                print("ERROR: ", e)
-                traceback.print_exc()
+def action(obtained_data, runtime_data):
+    if 'servo_position' in obtained_data:
+        try:
+            if obtained_data['servo_position'] is not {}:
+                for data_point in obtained_data['servo_position']:
+                    device_id = data_point + 1
+                    encoder_position = ((capabilities['servo']['servo_range'][str(device_id)][1] -
+                                         capabilities['servo']['servo_range'][str(device_id)][
+                                             0]) / 20) * \
+                                       obtained_data['servo_position'][data_point]
+                    runtime_data['target_position'][device_id] = encoder_position
+                    # print(encoder_position, " is encoder id: ", device_id)
+                    # print(runtime_data['target_position'][device_id])
+                    speed[device_id] = (obtained_data['servo_position'][data_point] - 10) * 10
+        except Exception as e:
+            print("ERROR: ", e)
+            traceback.print_exc()
 
-        if 'servo' in obtained_data:
-            try:
-                if obtained_data['servo'] is not {}:
-                    for data_point in obtained_data['servo']:
-                        encoder_position = obtained_data['servo'][data_point]
-                        if data_point % 2 != 0:
-                            encoder_position *= -1
-                        device_id = (data_point // 2) + 1
-                        test = runtime_data['target_position'][device_id] + encoder_position
-                        print("ENCODER: ", encoder_position, " datapoint: ", data_point )
-                        print("FIRST: ", capabilities['servo']['servo_range'][str(device_id)][1],
-                              " SECOND: ", test, " THIRD: ", capabilities['servo']['servo_range'][str(device_id)][0])
-                        if capabilities['servo']['servo_range'][str(device_id)][1] >= test >= \
-                                capabilities['servo']['servo_range'][str(device_id)][0]:
-                            runtime_data['target_position'][device_id] += encoder_position
-                            speed[device_id] = (obtained_data['servo'][data_point] - 10)
-            except Exception as e:
-                print("ERROR: ", e)
-                traceback.print_exc()
+    if 'servo' in obtained_data:
+        try:
+            if obtained_data['servo'] is not {}:
+                for data_point in obtained_data['servo']:
+                    encoder_position = obtained_data['servo'][data_point]
+                    if data_point % 2 != 0:
+                        encoder_position *= -1
+                    device_id = (data_point // 2) + 1
+                    test = runtime_data['target_position'][device_id] + encoder_position
+                    print("ENCODER: ", encoder_position, " datapoint: ", data_point )
+                    print("FIRST: ", capabilities['servo']['servo_range'][str(device_id)][1],
+                          " SECOND: ", test, " THIRD: ", capabilities['servo']['servo_range'][str(device_id)][0])
+                    if capabilities['servo']['servo_range'][str(device_id)][1] >= test >= \
+                            capabilities['servo']['servo_range'][str(device_id)][0]:
+                        runtime_data['target_position'][device_id] += encoder_position
+                        speed[device_id] = (obtained_data['servo'][data_point] - 10)
+        except Exception as e:
+            print("ERROR: ", e)
+            traceback.print_exc()
 
 
 runtime_data = {
@@ -329,7 +329,6 @@ mycobot.initialize(capabilities['servo']['count'])
 for i in range(1, capabilities['servo']['count'], 1):
     runtime_data['actual_encoder_position'][i] = deque([0, 0, 0, 0, 0])
 global_arm['0'].set_speed(100)
-device_list = pns.generate_OPU_list(capabilities)  # get the OPU sensors
 
 # # # FEAGI registration # # # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # - - - - - - - - - - - - - - - - - - #
@@ -367,14 +366,19 @@ executor.add_node(servo_position)
 executor.add_node(servo)
 executor_thread = Thread(target=executor.spin, daemon=True)
 executor_thread.start()
+default_capabilities = {}  # It will be generated in update_region_split_downsize. See the
+# overwrite manual
+default_capabilities = pns.create_runtime_default_list(default_capabilities, capabilities)
+threading.Thread(target=pns.feagi_listener, args=(feagi_opu_channel,), daemon=True).start()
 
 while keyboard_flag:
     try:
         # OPU section
-        message_from_feagi = pns.signals_from_feagi(feagi_opu_channel)
-        if message_from_feagi is not None:
-            obtained_signals = pns.obtain_opu_data(device_list, message_from_feagi)
-            action(obtained_signals, device_list, runtime_data)
+        message_from_feagi = pns.message_from_feagi
+        if message_from_feagi:
+            pns.check_genome_status_no_vision(message_from_feagi)
+            obtained_signals = pns.obtain_opu_data(message_from_feagi)
+            action(obtained_signals, runtime_data)
             # print(opu_data)
 
             # Encoder speed IPU
@@ -385,15 +389,13 @@ while keyboard_flag:
                                                                    data=message_to_feagi)
         # Encoder position
         encoder_for_feagi = dict()
-        encoder_for_feagi['encoder_data'] = dict()
         try:
             for encoder_data in runtime_data['actual_encoder_position']:
-                encoder_for_feagi['encoder_data'][encoder_data] = \
+                encoder_for_feagi[encoder_data] = \
                 runtime_data['actual_encoder_position'][encoder_data][
                     4]
-            message_to_feagi, bat = FEAGI.compose_message_to_feagi(
-                original_message=encoder_for_feagi,
-                data=message_to_feagi)
+            message_to_feagi = sensors.add_encoder_to_feagi_data(encoder_for_feagi,
+                                                                 message_to_feagi)
         except Exception as e:
             print("error: ", e)
 
@@ -419,6 +421,7 @@ while keyboard_flag:
         arm.release_all_servos()
         keyboard_flag = False
         servo.destroy_node()
-        print("ERROR: ", e)
+        print("!!ERROR!!: ", e)
+        traceback.print_exc()
 arm.release_all_servos()
 rclpy.shutdown()

@@ -18,13 +18,13 @@ import threading
 from collections import deque
 from datetime import datetime
 from time import sleep
-import requests
 import traceback
 import websockets
 from configuration import *
 from version import __version__
 from feagi_agent import pns_gateway as pns
 from feagi_agent import sensors as sensors
+from feagi_agent import actuators
 from feagi_agent import feagi_interface as feagi
 
 ws = deque()
@@ -110,51 +110,40 @@ def websocket_operation():
     asyncio.run(main())
 
 
-def action(obtained_data, device_list):
-    for device in device_list:
-        WS_STRING = ""
-        if 'motor' in obtained_data:
-            if obtained_data['motor']:
-                if len(obtained_data['motor']) >= 3:
-                    if 0 in obtained_data['motor']:
-                        if 1 in obtained_data['motor']:
-                            if obtained_data['motor'][0] >= obtained_data['motor'][1]:
-                                obtained_data['motor'].pop(1)
-                            else:
-                                obtained_data['motor'].pop(0)
-                    if 2 in obtained_data['motor']:
-                        if 3 in obtained_data['motor']:
-                            if obtained_data['motor'][2] >= obtained_data['motor'][3]:
-                                obtained_data['motor'].pop(3)
-                            else:
-                                obtained_data['motor'].pop(2)
-                new_dict = {'motor': {}}
-                for x in obtained_data['motor']:
-                    if x in [0, 1, 2, 3]:
-                        new_dict['motor'][x] = obtained_data['motor'][x]
-                for i in sorted(new_dict['motor']):  # Ensure that it's in order for microbit
-                    if i in [0, 1]:
-                        data_power = new_dict['motor'][i]
-                        if data_power <= 0:
-                            data_power = 1
-                        WS_STRING += str(i) + str(data_power-1).zfill(2)  # Append the motor data as a two-digit
-                        # string
-                    elif i in [2, 3]:
-                        data_power = new_dict['motor'][i]
-                        if data_power <= 0:
-                            data_power = 1
-                        WS_STRING += str(i) + str(data_power-1).zfill(2)  # Append the motor data as a two-digit
-                        # string
-                    else:
-                        WS_STRING += str(i) + "00"  # If the motor value is not present, append "00"
-                if WS_STRING != "":
-                    if len(WS_STRING) != 6:
-                        if int(WS_STRING[0]) < 2:
-                            WS_STRING = WS_STRING + "500"
-                        else:
-                            WS_STRING = "500" + WS_STRING
-                    WS_STRING = WS_STRING + "#"
-                    ws.append(WS_STRING)
+def action(obtained_data):
+    recieve_motor_data = actuators.get_motor_data(obtained_data,
+                                                  capabilities['motor']['power_amount'],
+                                                  capabilities['motor']['count'], rolling_window)
+
+    WS_STRING = ""
+    new_dict = {'motor': {}}
+    if 0 in recieve_motor_data:
+        if 1 in recieve_motor_data:
+            if recieve_motor_data[0] >= recieve_motor_data[1]:
+                new_dict['motor'][0] = recieve_motor_data[0]
+            else:
+                new_dict['motor'][1] = recieve_motor_data[1]
+    if 2 in recieve_motor_data:
+        if 3 in recieve_motor_data:
+            if recieve_motor_data[2] >= recieve_motor_data[3]:
+                new_dict['motor'][2] = recieve_motor_data[2]
+            else:
+                new_dict['motor'][3] = recieve_motor_data[3]
+    for i in new_dict['motor']:
+        if i in [0, 1]:
+            data_power = new_dict['motor'][i]
+            if data_power <= 0:
+                data_power = 1
+            WS_STRING += str(i) + str(data_power-1).zfill(2)  # Append the motor data as a two-digit
+            # string
+        elif i in [2, 3]:
+            data_power = new_dict['motor'][i]
+            if data_power <= 0:
+                data_power = 1
+            WS_STRING += str(i) + str(data_power-1).zfill(2)  # Append the motor data as a two-digit
+    if WS_STRING != "":
+        WS_STRING = WS_STRING + "#"
+        ws.append(WS_STRING)
 
 
 if __name__ == "__main__":
@@ -164,51 +153,60 @@ if __name__ == "__main__":
     threading.Thread(target=websocket_operation, daemon=True).start()
     # threading.Thread(target=bridge_to_godot, daemon=True).start()
     threading.Thread(target=bridge_operation, daemon=True).start()
-    device_list = pns.generate_OPU_list(capabilities)
+    feagi_flag = False
+    print("Waiting on FEAGI...")
+    while not feagi_flag:
+        feagi_flag = feagi.is_FEAGI_reachable(
+            os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1"),
+            int(os.environ.get('FEAGI_OPU_PORT', "3000"))
+        )
+        sleep(2)
+    previous_data_frame = {}
+    runtime_data = {"cortical_data": {}, "current_burst_id": None,
+                    "stimulation_period": 0.01, "feagi_state": None,
+                    "feagi_network": None}
+
+    feagi_auth_url = feagi_settings.pop('feagi_auth_url', None)
+    print("FEAGI AUTH URL ------- ", feagi_auth_url)
+
+    # # # FEAGI registration # # # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    # - - - - - - - - - - - - - - - - - - #
+    feagi_settings, runtime_data, api_address, feagi_ipu_channel, feagi_opu_channel = \
+        feagi.connect_to_feagi(feagi_settings, runtime_data, agent_settings, capabilities,
+                               __version__)
+    threading.Thread(target=pns.feagi_listener, args=(feagi_opu_channel,), daemon=True).start()
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    msg_counter = runtime_data["feagi_state"]['burst_counter']
+    runtime_data['accelerator'] = {}
+    rolling_window = {}
+    rolling_window_len = capabilities['motor']['rolling_window_len']
+    motor_count = capabilities['motor']['count']
+
+    # Initialize rolling window for each motor
+    for motor_id in range(motor_count):
+        rolling_window[motor_id] = deque([0] * rolling_window_len)
     while True:
-        feagi_flag = False
-        print("Waiting on FEAGI...")
-        while not feagi_flag:
-            feagi_flag = feagi.is_FEAGI_reachable(
-                os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1"),
-                int(os.environ.get('FEAGI_OPU_PORT', "3000"))
-            )
-            sleep(2)
-        previous_data_frame = {}
-        runtime_data = {"cortical_data": {}, "current_burst_id": None,
-                        "stimulation_period": 0.01, "feagi_state": None,
-                        "feagi_network": None}
-
-        feagi_auth_url = feagi_settings.pop('feagi_auth_url', None)
-        print("FEAGI AUTH URL ------- ", feagi_auth_url)
-
-        # # # FEAGI registration # # # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # - - - - - - - - - - - - - - - - - - #
-        feagi_settings, runtime_data, api_address, feagi_ipu_channel, feagi_opu_channel = \
-            feagi.connect_to_feagi(feagi_settings, runtime_data, agent_settings, capabilities,
-                                   __version__)
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        msg_counter = runtime_data["feagi_state"]['burst_counter']
-        runtime_data['accelerator'] = {}
-        while True:
-            try:
-                message_from_feagi = pns.signals_from_feagi(feagi_opu_channel)
-                if message_from_feagi is not None:
-                    # OPU section STARTS
-                    obtained_signals = pns.obtain_opu_data(device_list, message_from_feagi)
-                    action(obtained_signals, device_list)
-                    # OPU section ENDS
-                message_to_feagi = sensors.add_ultrasonic_to_feagi_data(microbit_data['ultrasonic'], message_to_feagi)
-                message_to_feagi = sensors.add_infrared_to_feagi_data(microbit_data['ir'],
-                                                                      message_to_feagi,
-                                                                      capabilities)
-                message_to_feagi = sensors.add_acc_to_feagi_data(microbit_data['accelerator'], message_to_feagi)
-                message_to_feagi['timestamp'] = datetime.now()
-                message_to_feagi['counter'] = msg_counter
-                sleep(feagi_settings['feagi_burst_speed'])
-                pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
-                message_to_feagi.clear()
-            except Exception as e:
-                print("ERROR: ", e)
-                traceback.print_exc()
-                break
+        try:
+            message_from_feagi = pns.message_from_feagi
+            # OPU section STARTS
+            if message_from_feagi:
+                pns.check_genome_status_no_vision(message_from_feagi)
+                feagi_settings['feagi_burst_speed'] = pns.check_refresh_rate(message_from_feagi,
+                                                                             feagi_settings['feagi_burst_speed'])
+                obtained_signals = pns.obtain_opu_data(message_from_feagi)
+                action(obtained_signals)
+            # OPU section ENDS
+            message_to_feagi = sensors.add_ultrasonic_to_feagi_data(microbit_data['ultrasonic'], message_to_feagi)
+            message_to_feagi = sensors.add_infrared_to_feagi_data(microbit_data['ir'],
+                                                                  message_to_feagi,
+                                                                  capabilities)
+            message_to_feagi = sensors.add_acc_to_feagi_data(microbit_data['accelerator'], message_to_feagi)
+            message_to_feagi['timestamp'] = datetime.now()
+            message_to_feagi['counter'] = msg_counter
+            sleep(feagi_settings['feagi_burst_speed'])
+            pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
+            message_to_feagi.clear()
+        except Exception as e:
+            print("ERROR: ", e)
+            traceback.print_exc()
+            break

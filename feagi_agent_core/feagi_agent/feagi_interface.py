@@ -1,5 +1,6 @@
 import traceback
 from feagi_agent import router
+from feagi_agent import pns_gateway as pns
 from feagi_agent.version import __version__
 from time import sleep
 import requests
@@ -68,11 +69,11 @@ def feagi_setting_for_registration(feagi_settings, agent_settings):
 
 
 def feagi_api_burst_engine():
-    return '/v1/feagi/feagi/burst_engine/stimulation_period'
+    return '/v1/burst_engine/stimulation_period'
 
 
 def feagi_api_burst_counter():
-    return '/v1/feagi/feagi/burst_engine/burst_counter'
+    return '/v1/burst_engine/burst_counter'
 
 
 def feagi_inbound(feagi_inbound_port):
@@ -150,37 +151,49 @@ def compose_message_to_feagi(original_message, data=None, battery=0):
 
 def opu_processor(data):
     try:
-        processed_opu_data = {'motor': {}, 'servo': {}, 'battery': {}, 'discharged_battery': {},
-                              'reset': {}, 'camera': {}, 'misc': {}, 'navigation': {}, 'speed': {},
-                              'servo_position': {}, "led": {}, "vision_resolution": {},
-                              "vision_acuity": {}}
+        processed_opu_data = {'motor': {}, 'servo': {}, 'battery': {},
+                              'discharged_battery': {}, 'reset': {}, 'camera': {}, 'misc': {},
+                              "motion_control": {}, 'navigation': {}, 'speed': {}, "led": {},
+                              "vision_resolution": {}, "vision_acuity": {}, 'servo_position': {},
+                              "emergency": {}}
         opu_data = data["opu_data"]
         if opu_data is not None:
-            if 'o__mot' in opu_data:
+            if 'o__mot' in opu_data:  # motor percentage
                 for data_point in opu_data['o__mot']:
                     processed_data_point = block_to_array(data_point)
                     device_id = processed_data_point[0]
-                    device_power = opu_data['o__mot'][data_point]
+                    if pns.full_list_dimension['motor_opu'][6] == 1:
+                        device_power = opu_data['o__mot'][data_point]
+                    else:
+                        device_power = processed_data_point[2]
                     processed_opu_data['motor'][device_id] = device_power
             if 'o__ser' in opu_data:
                 if opu_data['o__ser']:
                     for data_point in opu_data['o__ser']:
                         processed_data_point = block_to_array(data_point)
                         device_id = processed_data_point[0]
-                        device_power = opu_data['o__ser'][data_point]
+                        if processed_data_point[2] / pns.full_list_dimension['servo_opu'][6] == 0:
+                            device_power = opu_data['o__ser'][data_point]
+                        else:
+                            device_power = processed_data_point[2]
                         processed_opu_data['servo'][device_id] = device_power
             if 'o_cbat' in opu_data:
                 if opu_data['o__bat']:
                     for data_point in opu_data['o_cbat']:
                         intensity = data_point[2]
                         processed_opu_data['battery'] = intensity
-
+            if 'o_stop' in opu_data:
+                if opu_data['o_stop']:
+                    for data_point in opu_data['o_stop']:
+                        processed_data_point = block_to_array(data_point)
+                        device_id = processed_data_point[0]
+                        device_power = opu_data['o_stop'][data_point]
+                        processed_opu_data['emergency'][device_id] = device_power
             if 'o_dbat' in opu_data:
                 if opu_data['o__bat']:
                     for data_point in opu_data['o_dbat']:
                         intensity = data_point
                         processed_opu_data['battery'] = intensity
-
             if 'o_init' in opu_data:
                 if opu_data['o_init']:
                     for data_point in opu_data['o_init']:
@@ -193,6 +206,25 @@ def opu_processor(data):
                         device_id = processed_data_point[0]
                         device_power = opu_data['o_misc'][data_point]
                         processed_opu_data['misc'][device_id] = device_power
+            if len(pns.full_list_dimension) > 0:
+                if "motion_control_opu" in pns.full_list_dimension:
+                    if 'o_mctl' in opu_data:
+                        if opu_data['o_mctl']:
+                            for data_point in opu_data['o_mctl']:
+                                processed_data_point = block_to_array(data_point)
+                                device_id = processed_data_point[0]
+                                device_power = opu_data['o_mctl'][data_point]
+                                selected = processed_data_point[2]
+                                if processed_data_point[2] / \
+                                        pns.full_list_dimension['motion_control_opu'][6] == 0:
+                                    device_power = mctl_neuron_update(device_power, selected)
+                                else:
+                                    device_power = mctl_neuron_update(processed_data_point[2],
+                                                                      selected)
+                                device_id = build_up_from_mctl(processed_data_point)
+                                if device_id is not None:
+                                    processed_opu_data['motion_control'][device_id] = device_power
+
             if 'o__led' in opu_data:
                 if opu_data['o__led']:
                     for data_point in opu_data['o__led']:
@@ -215,13 +247,6 @@ def opu_processor(data):
                         device_id = data_point[0]
                         device_power = data_point[2]
                         processed_opu_data['speed'][device_id] = device_power
-            if 'o__pos' in opu_data:
-                if opu_data['o__pos']:
-                    for data_point in opu_data['o__pos']:
-                        processed_data_point = block_to_array(data_point)
-                        device_id = processed_data_point[0]
-                        device_power = processed_data_point[2]
-                        processed_opu_data['servo_position'][device_id] = device_power
             if 'o_vres' in opu_data:
                 if opu_data['o_vres']:
                     for data_point in opu_data['o_vres']:
@@ -229,6 +254,13 @@ def opu_processor(data):
                         device_id = data_point[0]
                         device_power = data_point[2]
                         processed_opu_data['vision_resolution'][device_id] = device_power
+            if 'o_spos' in opu_data: # Currently used in mycobot only. Different
+                if opu_data['o_spos']:
+                    for data_point in opu_data['o_spos']:
+                        processed_data_point = block_to_array(data_point)
+                        device_id = processed_data_point[0]
+                        device_power = processed_data_point[2]
+                        processed_opu_data['servo_position'][device_id] = device_power
             if 'o_vact' in opu_data:
                 if opu_data['o_vact']:
                     for data_point in opu_data['o_vact']:
@@ -284,3 +316,30 @@ def connect_to_feagi(feagi_settings, runtime_data, agent_settings, capabilities,
     feagi_opu_channel = sub_initializer(opu_address=opu_channel_address)
     router.global_feagi_opu_channel = feagi_opu_channel
     return feagi_settings, runtime_data, api_address, feagi_ipu_channel, feagi_opu_channel
+
+
+def build_up_from_mctl(id):
+    action_map = {
+        (0, 0): "move_left",
+        (0, 1): "roll_left",
+        (0, 2): "yaw_left",
+        (1, 0): "move_up",
+        (1, 1): "pitch_forward",
+        (2, 0): "move_down",
+        (2, 1): "pitch_back",
+        (3, 0): "move_right",
+        (3, 1): "roll_right",
+        (3, 2): "yaw_right"
+    }
+
+    # Get the action from the dictionary, return None if not found
+    return action_map.get((id[0], id[1]))
+
+
+def mctl_neuron_update(feagi_power, id):
+    z_depth = pns.full_list_dimension['motion_control_opu'][6]
+    if id / z_depth == 0:
+        return feagi_power / 100.0
+    else:
+        return feagi_power / z_depth
+

@@ -17,16 +17,22 @@ limitations under the License.
 """
 
 from feagi_agent import feagi_interface as feagi
+from feagi_agent import retina
 from feagi_agent import router
-import traceback
+from time import sleep
+import requests
+import threading
+import asyncio
 
 # Variable storage #
 raw_aptr = -1
-global_aptr_cortical_size = None
 global_ID_cortical_size = None
 full_list_dimension = []
+resize_list = {}
 previous_genome_timestamp = 0
 genome_tracker = 0
+message_from_feagi = {}
+refresh_rate = 0.01
 
 
 def generate_feagi_data(rgb, msg_counter, date, message_to_feagi):
@@ -42,7 +48,6 @@ def generate_feagi_data(rgb, msg_counter, date, message_to_feagi):
         message_to_feagi["data"]["sensory_data"]['camera'] = rgb['camera']
     except Exception as e:
         print("ERROR: ", e)
-        traceback.print_exc()
     message_to_feagi['timestamp'] = date
     message_to_feagi['counter'] = msg_counter
     return message_to_feagi
@@ -69,127 +74,31 @@ def signals_from_feagi(feagi_opu_channel):
 
 
 def signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings):
+    """
+    Sends data to FEAGI through the router.py
+    """
     router.send_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
 
 
-def fetch_aperture_data(message_from_feagi, capabilities, aptr_cortical_size):
-    """
-    This determines the WebSocket transmission capacity. A lower value allows more WebSocket data
-    to pass through, whereas a higher value restricts the amount of WebSocket data that can
-    be transmitted.
-    """
-    if "o_aptr" in message_from_feagi["opu_data"]:
-        if message_from_feagi["opu_data"]["o_aptr"]:
-            for i in message_from_feagi["opu_data"]["o_aptr"]:
-                feagi_aptr = (int(i.split('-')[-1]))
-                aptr_cortical_size = fetch_aptr_size(global_aptr_cortical_size, aptr_cortical_size,
-                                                     feagi_aptr)
-                max_range = capabilities['camera']['aperture_range'][1]
-                min_range = capabilities['camera']['aperture_range'][0]
-                capabilities['camera']["aperture_default"] = \
-                    ((feagi_aptr / global_aptr_cortical_size) *
-                     (max_range - min_range)) + min_range
-    return capabilities
-
-
-def fetch_iso_data(message_from_feagi, capabilities, aptr_cortical_size):
-    """
-       The higher the threshold, the lower its sensitivity. Conversely, the lower the threshold,
-       the higher the sensitivity. In essence, a lower threshold makes the camera more sensitive to
-       pick things up.
-    """
-    if "o__dev" in message_from_feagi["opu_data"]:
-        if message_from_feagi["opu_data"]["o__dev"]:
-            for i in message_from_feagi["opu_data"]["o__dev"]:
-                device_id = i.split('-')
-                feagi_aptr = (int(i.split('-')[-1]))
-                aptr_cortical_size = full_list_dimension['threshold']
-                max_range = capabilities['camera']['threshold_range'][1]
-                min_range = capabilities['camera']['threshold_range'][0]
-                capabilities['camera']["threshold_default"][int(device_id[0])] = \
-                    int(((feagi_aptr / aptr_cortical_size) * (max_range - min_range)) + min_range)
-            print(capabilities['camera']["threshold_default"])
-    return capabilities
-
-
-def fetch_resolution_selected(message_from_feagi, capabilities):
-    if "o_vres" in message_from_feagi["opu_data"]:
-        if message_from_feagi["opu_data"]["o_vres"]:
-            for i in message_from_feagi["opu_data"]["o_vres"]:
-                dev_data = feagi.block_to_array(i)  # TODO: remove use feagi interface
-                if dev_data[0] == 0:
-                    capabilities['camera']['current_select'][0] = \
-                        capabilities['camera']['resolution_presets'][dev_data[2]]
-                if dev_data[0] == 1:
-                    capabilities['camera']['current_select'][1] = \
-                        capabilities['camera']['resolution_presets'][dev_data[2]]
-    return capabilities
-
-
-def fetch_resolution_peripherals_selected(message_from_feagi, capabilities):
-    if "o_pres" in message_from_feagi["opu_data"]:
-        if message_from_feagi["opu_data"]["o_pres"]:
-            for i in message_from_feagi["opu_data"]["o_pres"]:
-                dev_data = feagi.block_to_array(i)  # TODO: remove use feagi interface
-                if dev_data[0] == 0:
-                    capabilities['camera']['current_select_peripheral'] = \
-                        capabilities['camera']['resolution_presets'][dev_data[2]]
-    return capabilities
-
-
-def fetch_vision_acuity(message_from_feagi, capabilities):
-    if "o_vact" in message_from_feagi["opu_data"]:
-        if message_from_feagi["opu_data"]["o_vact"]:
-            for i in message_from_feagi["opu_data"]["o_vact"]:
-                dev_data = feagi.block_to_array(i)
-                if dev_data[0] == 0:
-                    capabilities['camera']['central_vision_allocation_percentage'][0] \
-                        = \
-                        message_from_feagi["opu_data"]["o_vact"][i]
-                if dev_data[0] == 1:
-                    capabilities['camera']['central_vision_allocation_percentage'][1] \
-                        = \
-                        message_from_feagi["opu_data"]["o_vact"][i]
-    return capabilities
-
-
-def fetch_aptr_size(aptr_cortical_size, get_size_for_aptr_cortical, feagi_aptr=None):
-    if aptr_cortical_size is None:
-        if feagi_aptr is not None:
-            if feagi_aptr >= global_aptr_cortical_size:
-                return global_aptr_cortical_size
-        aptr_cortical_size = check_aptr(get_size_for_aptr_cortical)
-        return aptr_cortical_size
-    else:
-        return aptr_cortical_size
-
-
-def check_aptr(get_size_for_aptr_cortical):
-    return router.fetch_aptr(get_size_for_aptr_cortical)
-
-
-def check_id_size(get_size_for_ID):
-    return router.fetch_ID(get_size_for_ID)
-
-
 def grab_geometry():
+    """
+    To get the size of vision cortical areas (e.g., C, TL, TM...)
+    """
     return router.fetch_geometry()
 
 
-def generate_OPU_list(capabilities):
-    sensor_list = []
-    for i in capabilities:
-        if "type" in capabilities[i]:
-            if "opu" in capabilities[i]["type"]:
-                sensor_list.append(i)
-    return sensor_list
-
-
-def obtain_opu_data(device_list, message_from_feagi):
+def obtain_opu_data(message_from_feagi):
+    """
+    It retrieves raw data from FEAGI and then passes the data to the opu_processor, located in
+    feagi_interface.py, which translates the ID of the cortical area into a human-readable name,
+    such as "o__mot" to "motor." Once this translation is complete, it will streamline the
+    process for actuators, retinas, and sensors to access the data from here, making it simpler
+    for you.
+    """
     opu_signal_dict = {}
     opu_data = feagi.opu_processor(message_from_feagi)
-    for i in device_list:
-        if i in opu_data and opu_data[i]:
+    for i in opu_data:
+        if opu_data[i]:
             for x in opu_data[i]:
                 if i not in opu_signal_dict:
                     opu_signal_dict[i] = {}
@@ -198,6 +107,14 @@ def obtain_opu_data(device_list, message_from_feagi):
 
 
 def obtain_data_type(data):
+    """
+    It displays the data type of the image it receives, which is useful for troubleshooting and
+    verifying the image data type.
+
+    - If it returns "ImagingCore," it means it's using PILLOW.
+    - If it returns "ndarray," it's either using cv2 or a similar process.
+    - If it returns "list," it's likely custom code. Verify if it's RGB or RGBA as well.
+    """
     if type(data).__name__ == "ImagingCore":
         print("ImagingCore")
         return "ImagingCore"
@@ -213,6 +130,9 @@ def obtain_data_type(data):
 
 
 def obtain_blink_data(raw_frame, message_from_feagi, capabilities):
+    """
+    It will update based on the blink opu.
+    """
     if "o_blnk" in message_from_feagi["opu_data"]:
         if message_from_feagi["opu_data"]["o_blnk"]:
             capabilities['camera']['blink'] = raw_frame
@@ -220,6 +140,9 @@ def obtain_blink_data(raw_frame, message_from_feagi, capabilities):
 
 
 def obtain_genome_number(genome_tracker, message_from_feagi):
+    """
+    Update when the genome modified.
+    """
     if 'genome_num' in message_from_feagi:
         if message_from_feagi['genome_num'] != genome_tracker:
             return message_from_feagi['genome_num']
@@ -227,6 +150,10 @@ def obtain_genome_number(genome_tracker, message_from_feagi):
 
 
 def monitor_switch(message_from_feagi, capabilities):
+    """
+    Update when "o__mon" or the monitor_opu has changed.
+    It is currently used for local screen recording.
+    """
     if "o__mon" in message_from_feagi["opu_data"]:
         if message_from_feagi["opu_data"]["o__mon"]:
             for i in message_from_feagi["opu_data"]["o__mon"]:
@@ -236,6 +163,9 @@ def monitor_switch(message_from_feagi, capabilities):
 
 
 def gaze_control_update(message_from_feagi, capabilities):
+    """
+    Update the gaze from the gaze opu cortical area
+    """
     if 'o__gaz' in message_from_feagi["opu_data"]:
         for data_point in message_from_feagi["opu_data"]['o__gaz']:
             device_id = data_point.split('-')[0]
@@ -244,7 +174,8 @@ def gaze_control_update(message_from_feagi, capabilities):
                 aptr_cortical_size = full_list_dimension['Vision_Gaze'][6] - 1
                 max_range = capabilities['camera']['vision_range'][1]
                 min_range = capabilities['camera']['vision_range'][0]
-                capabilities['camera']["gaze_control"][int(device_id)] = int(((feagi_aptr / aptr_cortical_size) * (max_range - min_range)) + min_range)
+                capabilities['camera']["gaze_control"][int(device_id)] = int(
+                    ((feagi_aptr / aptr_cortical_size) * (max_range - min_range)) + min_range)
             # Comment new method out
             # processed_data_point = feagi.block_to_array(data_point)
             # device_id = processed_data_point[0]
@@ -256,6 +187,9 @@ def gaze_control_update(message_from_feagi, capabilities):
 
 
 def pupil_control_update(message_from_feagi, capabilities):
+    """
+    Update pupil size from the pupil opu cortical area
+    """
     if 'o__pup' in message_from_feagi["opu_data"]:
         for data_point in message_from_feagi["opu_data"]['o__pup']:
             device_id = data_point.split('-')[0]
@@ -265,8 +199,9 @@ def pupil_control_update(message_from_feagi, capabilities):
                 max_range = capabilities['camera']['vision_range'][1]
                 min_range = capabilities['camera']['vision_range'][0]
                 capabilities['camera']["pupil_control"][int(device_id)] = int(((feagi_aptr /
-                                                                    aptr_cortical_size) * (max_range - min_range)) + min_range)
-        #comment new method out
+                                                                                aptr_cortical_size) * (
+                                                                                       max_range - min_range)) + min_range)
+        # comment new method out
         # for data_point in message_from_feagi["opu_data"]['o__pup']:
         #     processed_data_point = feagi.block_to_array(data_point)
         #     device_id = processed_data_point[0]
@@ -289,51 +224,105 @@ def detect_ID_data(message_from_feagi):
 
 
 def detect_genome_change(message_from_feagi):
+    """
+    Update when the genome is loaded or using the different genome.
+    """
     if "genome_changed" in message_from_feagi:
         if message_from_feagi["genome_changed"]:
             return message_from_feagi["genome_changed"]
 
 
 def check_refresh_rate(message_from_feagi, current_second):
+    """
+    Update the current second when the feagi's refresh rate changed.
+    """
     if message_from_feagi is not None:
         return message_from_feagi['burst_frequency']
     return current_second
 
 
 def fetch_full_dimensions():
+    """
+    List of the full size and names of every cortical area. It does not include properties such as
+    neurons or details.
+    """
     return router.fetch_cortical_dimensions()
 
-def check_genome_status(message_from_feagi):
-    global previous_genome_timestamp, genome_tracker, full_list_dimension
-    if full_list_dimension is None:
-        full_list_dimension = []
-    if len(full_list_dimension) == 0:
-        full_list_dimension = fetch_full_dimensions()
-    genome_changed = detect_genome_change(message_from_feagi)
-    if genome_changed != previous_genome_timestamp:
-        full_list_dimension = fetch_full_dimensions()
-        previous_genome_timestamp = message_from_feagi["genome_changed"]
-    current_tracker = obtain_genome_number(genome_tracker, message_from_feagi)
-    if genome_tracker != current_tracker:
-        full_list_dimension = fetch_full_dimensions()
-        genome_tracker = current_tracker
 
-def fetch_vision_turner(message_from_feagi, capabilities, size):
-    if "ovtune" in message_from_feagi["opu_data"]:
-        if message_from_feagi["opu_data"]["ovtune"]:
-            for data_point in message_from_feagi["opu_data"]['ovtune']:
-                device_id = data_point.split('-')[0]
-                feagi_aptr = (int(data_point.split('-')[-1]))
-                aptr_cortical_size = full_list_dimension['threshold'][6] - 1
-                max_range = capabilities['camera']["threshold_range"][1]
-                min_range = capabilities['camera']["threshold_range"][0]
-                capabilities['camera']["threshold_default"][int(device_id)] = int(((feagi_aptr /aptr_cortical_size) * (max_range - min_range)) + min_range)
-            # for data_point in message_from_feagi["opu_data"]["ovtune"]:
-            #     processed_data_point = feagi.block_to_array(data_point)
-            #     device_id = processed_data_point[0]
-            #     device_power = message_from_feagi["opu_data"]['ovtune'][data_point]
-            #     capabilities['camera']['effect'][device_id] = device_power
+def check_genome_status(message_from_feagi, capabilities):
+    """
+    Verify if full_list_dimension is empty, size list for vision is empty, if genome has been
+    changed, or genome modified in real time.
+    """
+    global previous_genome_timestamp, genome_tracker, full_list_dimension, resize_list
+    if message_from_feagi['genome_changed'] is not None:
+        if full_list_dimension is None:
+            full_list_dimension = []
+        if len(full_list_dimension) == 0:
+            full_list_dimension = fetch_full_dimensions()
+        genome_changed = detect_genome_change(message_from_feagi)
+        if genome_changed != previous_genome_timestamp:
+            full_list_dimension = fetch_full_dimensions()
+            response = requests.get(
+                router.global_api_address + '/v1/cortical_area/cortical_area/geometry')
+            resize_list = retina.obtain_cortical_vision_size(capabilities['camera']["index"],
+                                                             response)
+            previous_genome_timestamp = message_from_feagi["genome_changed"]
+        current_tracker = obtain_genome_number(genome_tracker, message_from_feagi)
+        if len(resize_list) == 0:
+            resize_list = retina.obtain_cortical_vision_size(capabilities['camera']["index"],
+                                                             response)
+        if genome_tracker != current_tracker:
+            full_list_dimension = fetch_full_dimensions()
+            genome_tracker = current_tracker
+
+
+def check_genome_status_no_vision(message_from_feagi):
+    """
+    Verify if full_list_dimension is empty, size list for vision is empty, if genome has been
+    changed, or genome modified in real time.
+    """
+    global previous_genome_timestamp, genome_tracker, full_list_dimension, resize_list
+    if message_from_feagi['genome_changed'] is not None:
+        if full_list_dimension is None:
+            full_list_dimension = []
+        if len(full_list_dimension) == 0:
+            full_list_dimension = fetch_full_dimensions()
+        genome_changed = detect_genome_change(message_from_feagi)
+        if genome_changed != previous_genome_timestamp:
+            full_list_dimension = fetch_full_dimensions()
+            previous_genome_timestamp = message_from_feagi["genome_changed"]
+        current_tracker = obtain_genome_number(genome_tracker, message_from_feagi)
+        if len(resize_list) == 0:
+            resize_list = retina.obtain_cortical_vision_size(capabilities['camera']["index"],
+                                                             response)
+        if genome_tracker != current_tracker:
+            full_list_dimension = fetch_full_dimensions()
+            genome_tracker = current_tracker
+
+
+def fetch_vision_turner(message_from_feagi, capabilities):
+    """
+    Update the threshold from the threshold OPU in BV. The current default values are 50, 255.
+    """
+    if full_list_dimension:
+        if "ovtune" in message_from_feagi["opu_data"]:
+            if message_from_feagi["opu_data"]["ovtune"]:
+                for data_point in message_from_feagi["opu_data"]['ovtune']:
+                    device_id = data_point.split('-')[0]
+                    feagi_aptr = (int(data_point.split('-')[-1]))
+                    aptr_cortical_size = full_list_dimension['threshold'][6] - 1
+                    max_range = capabilities['camera']["threshold_range"][1]
+                    min_range = capabilities['camera']["threshold_range"][0]
+                    capabilities['camera']["threshold_default"][int(device_id)] = int(
+                        ((feagi_aptr / aptr_cortical_size) * (max_range - min_range)) + min_range)
+                # for data_point in message_from_feagi["opu_data"]["ovtune"]:
+                #     processed_data_point = feagi.block_to_array(data_point)
+                #     device_id = processed_data_point[0]
+                #     device_power = message_from_feagi["opu_data"]['ovtune'][data_point]
+                #     capabilities['camera']['effect'][device_id] = device_power
     return capabilities
+
 
 def fetch_threshold_type(message_from_feagi, capabilities):
     if "ov_thr" in message_from_feagi["opu_data"]:
@@ -344,32 +333,92 @@ def fetch_threshold_type(message_from_feagi, capabilities):
     return capabilities
 
 
+def fetch_mirror_opu(message_from_feagi, capabilities):
+    if "ovflph" in message_from_feagi["opu_data"]:
+        if message_from_feagi["opu_data"]["ovflph"]:
+            if capabilities['camera']["mirror"]:
+                capabilities['camera']["mirror"] = False
+            else:
+                capabilities['camera']["mirror"] = True
+    return capabilities
 
 
 def fetch_enhancement_data(message_from_feagi, capabilities):
-    if "ov_enh" in message_from_feagi["opu_data"]:
-        if message_from_feagi["opu_data"]["ov_enh"]:
-            for data_point in message_from_feagi["opu_data"]['ov_enh']:
-                device_id = int(data_point.split('-')[0])
-                if device_id == 1:
-                    feagi_aptr = (int(data_point.split('-')[-1]))
-                    aptr_cortical_size = full_list_dimension['enhancement'][6] - 1
-                    max_range = 1.4
-                    min_range = 0.5
-                    capabilities['camera']["enhancement"][int(device_id)] = float(((feagi_aptr
-                                                                        /aptr_cortical_size) * (max_range - min_range)) + min_range)
-                if device_id == 2:
-                    feagi_aptr = (int(data_point.split('-')[-1]))
-                    aptr_cortical_size = full_list_dimension['enhancement'][6] - 1
-                    max_range = 2.0
-                    min_range = 0.8
-                    capabilities['camera']["enhancement"][int(device_id)] = float(((feagi_aptr
-                                                                        /aptr_cortical_size) * (max_range - min_range)) + min_range)
-                if device_id == 0:
-                    feagi_aptr = (int(data_point.split('-')[-1]))
-                    aptr_cortical_size = full_list_dimension['enhancement'][6]
-                    max_range = 100
-                    min_range = -100
-                    capabilities['camera']["enhancement"][int(device_id)] = float(((feagi_aptr
-                                                                        /aptr_cortical_size) * (max_range - min_range)) + min_range)
+    if full_list_dimension:
+        if "ov_enh" in message_from_feagi["opu_data"]:
+            if message_from_feagi["opu_data"]["ov_enh"]:
+                for data_point in message_from_feagi["opu_data"]['ov_enh']:
+                    device_id = int(data_point.split('-')[0])
+                    if device_id == 1:
+                        feagi_aptr = (int(data_point.split('-')[-1]))
+                        aptr_cortical_size = full_list_dimension['enhancement'][6] - 1
+                        max_range = 1.4
+                        min_range = 0.5
+                        capabilities['camera']["enhancement"][int(device_id)] = float(((feagi_aptr
+                                                                                        / aptr_cortical_size) * (
+                                                                                               max_range - min_range)) + min_range)
+                    if device_id == 2:
+                        feagi_aptr = (int(data_point.split('-')[-1]))
+                        aptr_cortical_size = full_list_dimension['enhancement'][6] - 1
+                        max_range = 2.0
+                        min_range = 0.8
+                        capabilities['camera']["enhancement"][int(device_id)] = float(((feagi_aptr
+                                                                                        / aptr_cortical_size) * (
+                                                                                               max_range - min_range)) + min_range)
+                    if device_id == 0:
+                        feagi_aptr = (int(data_point.split('-')[-1]))
+                        aptr_cortical_size = full_list_dimension['enhancement'][6]
+                        max_range = 100
+                        min_range = -100
+                        capabilities['camera']["enhancement"][int(device_id)] = float(((feagi_aptr
+                                                                                        / aptr_cortical_size) * (
+                                                                                               max_range - min_range)) + min_range)
     return capabilities
+
+
+def create_runtime_default_list(list, capabilities):
+    """
+    Generate the default capabilities for vision. Add a key in your configuration to overwrite this
+    default list; otherwise, it will use the current default.
+    """
+    if not list:
+        list = {
+            "camera": {
+                "type": "ipu",
+                "disabled": False,
+                "index": "00",
+                "threshold_default": [50, 255, 130, 51],  # min #1, max #1, min #2, max #2,
+                "threshold_range": [1, 255],
+                "threshold_type": {},
+                # simple thresholding types. see the retina.threshold_detect function
+                "threshold_name": 0,  # Binary_threshold as a default
+                "mirror": True,  # flip the image
+                "blink": [],  # cv2 ndarray raw data of an image. Controlled by blink OPU in genome
+                "gaze_control": {0: 1, 1: 1},  # Controlled by gaze_control in genome
+                "pupil_control": {0: 99, 1: 99},  # Controlled by pupil_control in genome
+                "vision_range": [1, 99],  # min, max
+                "size_list": [],  # To get the size in real time based on genome's change/update
+                "enhancement": {}  # Enable ov_enh OPU on inside the genome
+            }
+        }
+        camera_config_update(list, capabilities)
+    return list
+
+
+def camera_config_update(list, capabilities):
+    """
+    Update the capabilities to overwrite the default generated capabilities.
+    """
+    if 'gaze_control' in capabilities['camera']:
+        list['camera']['gaze_control'] = capabilities['camera']['gaze_control']
+    if 'pupil_control' in capabilities['camera']:
+        list['camera']['pupil_control'] = capabilities['camera']['pupil_control']
+    if "enhancement" in capabilities['camera']:
+        list['camera']['enhancement'] = capabilities['camera']['enhancement']
+
+
+def feagi_listener(feagi_opu_channel):
+    """
+    thread for listening FEAGI.
+    """
+    asyncio.run(router.fetch_feagi(feagi_opu_channel))

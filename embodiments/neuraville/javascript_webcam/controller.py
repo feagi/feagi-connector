@@ -73,6 +73,7 @@ async def echo(websocket):
     The function echoes the data it receives from other connected websockets
     and sends the data from FEAGI to the connected websockets.
     """
+    ws.append({"newRefreshRate": 60})
     async for message in websocket:
         if not ws_operation:
             ws_operation.append(websocket)
@@ -81,6 +82,7 @@ async def echo(websocket):
         test = message
         rgb_array['current'] = list(lz4.frame.decompress(test))
         webcam_size['size'] = []
+
 
 
 async def main():
@@ -106,7 +108,7 @@ if __name__ == "__main__":
     CHECKPOINT_TOTAL = 5
     rgb['camera'] = {}
     rgb_array['current'] = {}
-    capabilities['camera']['current_select'] = [[], []]
+    camera_data = {"vision": {}}
     threading.Thread(target=websocket_operation, daemon=True).start()
     threading.Thread(target=bridge_operation, daemon=True).start()
     while True:
@@ -114,8 +116,7 @@ if __name__ == "__main__":
         print("Waiting on FEAGI...")
         while not feagi_flag:
             feagi_flag = feagi.is_FEAGI_reachable(os.environ.get('FEAGI_HOST_INTERNAL',
-                                                                 "127.0.0.1"), int(os.environ.get(
-                'FEAGI_OPU_PORT', "3000")))
+                                                                 "127.0.0.1"), int(os.environ.get('FEAGI_OPU_PORT', "3000")))
             sleep(2)
         print("DONE")
         previous_data_frame = {}
@@ -129,10 +130,16 @@ if __name__ == "__main__":
                                    __version__)
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         msg_counter = runtime_data["feagi_state"]['burst_counter']
-        previous_frame_data = dict()
-        response = requests.get(api_address + '/v1/feagi/genome/cortical_area/geometry')
-        capabilities['camera']['size_list'] = retina.obtain_cortical_vision_size(
-            capabilities['camera']["index"], response)
+        previous_frame_data = {}
+        raw_frame = []
+        default_capabilities = {}  # It will be generated in update_region_split_downsize. See the
+        # overwrite manual
+        previous_burst = 0
+        default_capabilities = pns.create_runtime_default_list(default_capabilities, capabilities)
+        threading.Thread(target=pns.feagi_listener, args=(feagi_opu_channel,), daemon=True).start()
+        threading.Thread(target=retina.vision_progress,
+                         args=(default_capabilities, feagi_opu_channel, api_address, feagi_settings,
+                               camera_data['vision'],), daemon=True).start()
         while True:
             try:
                 if np.any(rgb_array['current']):
@@ -142,33 +149,29 @@ if __name__ == "__main__":
                     raw_frame = retina.RGB_list_to_ndarray(rgb_array['current'],
                                                            webcam_size['size'])
                     raw_frame = retina.update_astype(raw_frame)
-                    if capabilities["camera"]["mirror"]:
-                        raw_frame = retina.flip_video(raw_frame)
-                    if capabilities['camera']['blink'] != []:
-                        raw_frame = capabilities['camera']['blink']
-                    if not capabilities['camera']['size_list']:
-                        capabilities = retina.update_size_list(capabilities)
-                    previous_frame_data, rgb = retina.update_region_split_downsize(raw_frame, capabilities,
-                                                                         capabilities['camera'][
-                                                                             "index"],
-                                                                         capabilities['camera'][
-                                                                             'size_list'],
-                                                                         previous_frame_data, rgb)
-                    capabilities['camera']['blink'] = []
-                    capabilities, feagi_settings['feagi_burst_speed'] = \
-                        retina.vision_progress(capabilities,
-                                               feagi_opu_channel,
-                                               api_address, feagi_settings, raw_frame)
-                    if rgb:
-                        message_to_feagi = pns.generate_feagi_data(rgb, msg_counter, datetime.now(),
-                                                                   message_to_feagi)
-                        pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
-                        message_to_feagi.clear()
-                        for cortical_area in rgb['camera']:
-                            rgb['camera'][cortical_area].clear()
-                    sleep(feagi_settings['feagi_burst_speed'])
+                    if 'camera' in default_capabilities:
+                        if default_capabilities['camera']['blink'] != []:
+                            raw_frame = default_capabilities['camera']['blink']
+                    previous_frame_data, rgb, default_capabilities = \
+                        retina.update_region_split_downsize(
+                        raw_frame,
+                        default_capabilities,
+                        previous_frame_data,
+                        rgb, capabilities)
+                    default_capabilities['camera']['blink'] = []
+                    message_to_feagi = pns.generate_feagi_data(rgb, msg_counter, datetime.now(),
+                                                               message_to_feagi)
+                    # if previous_burst != feagi_settings['feagi_burst_speed']:
+                    #     ws.append({"newRefreshRate": feagi_settings['feagi_burst_speed']})
+                    #     previous_burst = feagi_settings['feagi_burst_speed']
+                    sleep(feagi_settings['feagi_burst_speed'])  # bottleneck
+                    pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
+                    message_to_feagi.clear()
+                    if 'camera' in rgb:
+                        for i in rgb['camera']:
+                            rgb['camera'][i].clear()
             except Exception as e:
                 # pass
                 print("ERROR! : ", e)
                 traceback.print_exc()
-
+                break

@@ -101,14 +101,15 @@ def main(feagi_auth_url, feagi_settings, agent_settings, capabilities, message_t
     runtime_data = {"vision": {}, "current_burst_id": None, "stimulation_period": None,
                     "feagi_state": None,
                     "feagi_network": None}
-    print("retrying...")
     FEAGI_FLAG = False
     print("Waiting on FEAGI...")
     while not FEAGI_FLAG:
         FEAGI_FLAG = feagi.is_FEAGI_reachable(
             os.environ.get('FEAGI_HOST_INTERNAL', feagi_settings["feagi_host"]),
             int(os.environ.get('FEAGI_OPU_PORT', "3000")))
+        print("retrying...")
         sleep(2)
+    print("FEAGI is reachable!")
     # # # FEAGI registration # # # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     # - - - - - - - - - - - - - - - - - - #
     feagi_settings, runtime_data, api_address, feagi_ipu_channel, feagi_opu_channel = \
@@ -118,37 +119,37 @@ def main(feagi_auth_url, feagi_settings, agent_settings, capabilities, message_t
     msg_counter = runtime_data["feagi_state"]['burst_counter']
     rgb = dict()
     rgb['camera'] = dict()
-    response = requests.get(api_address + '/v1/feagi/genome/cortical_area/geometry')
-    size_list = retina.obtain_cortical_vision_size(capabilities['camera']["index"], response)
     previous_frame_data = {}
     raw_frame = []
     default_capabilities = {}  # It will be generated in update_region_split_downsize. See the
     # overwrite manual
+    default_capabilities = pns.create_runtime_default_list(default_capabilities, capabilities)
+    threading.Thread(target=pns.feagi_listener, args=(feagi_opu_channel,), daemon=True).start()
+    threading.Thread(target=retina.vision_progress, args=(default_capabilities, feagi_opu_channel, api_address, feagi_settings,
+                                       camera_data['vision'],), daemon=True).start()
     while True:
         try:
             if camera_data['vision'] is not None:
                 raw_frame = camera_data['vision']
+            default_capabilities['camera']['blink'] = []
             if 'camera' in default_capabilities:
                 if default_capabilities['camera']['blink'] != []:
                     raw_frame = default_capabilities['camera']['blink']
             previous_frame_data, rgb, default_capabilities = retina.update_region_split_downsize(
                 raw_frame,
                 default_capabilities,
-                size_list,
                 previous_frame_data,
                 rgb, capabilities)
-            default_capabilities['camera']['blink'] = []
-            default_capabilities, feagi_settings['feagi_burst_speed'] = \
-                retina.vision_progress(default_capabilities, feagi_opu_channel, api_address, feagi_settings,
-                                       raw_frame)
-
-            message_to_feagi = pns.generate_feagi_data(rgb, msg_counter, datetime.now(),
-                                                       message_to_feagi)
-            sleep(feagi_settings['feagi_burst_speed'])
+            if rgb:
+                message_to_feagi = pns.generate_feagi_data(rgb, msg_counter, datetime.now(),
+                                                           message_to_feagi)
+            # print(default_capabilities['camera']['gaze_control'][0])
+            sleep(feagi_settings['feagi_burst_speed']) #bottleneck
             pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
             message_to_feagi.clear()
-            for i in rgb['camera']:
-                rgb['camera'][i].clear()
+            if 'camera' in rgb:
+                for i in rgb['camera']:
+                    rgb['camera'][i].clear()
         except Exception as e:
             # pass
             print("ERROR! : ", e)
