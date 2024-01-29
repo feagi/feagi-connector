@@ -3,6 +3,14 @@ import sounddevice as sd
 from scipy.signal import stft
 import queue
 import sys
+from time import sleep
+from configuration import *
+from datetime import datetime
+from feagi_agent import pns_gateway as pns
+from feagi_agent import sensors as sensors
+from feagi_agent import feagi_interface as FEAGI
+from version import __version__
+
 
 # Parameters
 fs = 44100  # Sampling rate
@@ -19,6 +27,35 @@ def audio_callback(indata, frames, time, status):
     # Put the incoming audio data into the queue
     audio_q.put(indata.copy())
 
+
+# # FEAGI REACHABLE CHECKER # #
+print("Waiting on FEAGI...")
+# while not feagi_flag:
+#     print("ip: ", os.environ.get('FEAGI_HOST_INTERNAL', feagi_settings["feagi_host"]))
+#     print("here: ", int(os.environ.get('FEAGI_OPU_PORT', "30000")))
+#     feagi_flag = FEAGI.is_FEAGI_reachable(
+#         os.environ.get('FEAGI_HOST_INTERNAL', feagi_settings["feagi_host"]),
+#         int(os.environ.get('FEAGI_OPU_PORT', "30000")))
+#     sleep(2)
+
+runtime_data = {"cortical_data": {}, "current_burst_id": None,
+                "stimulation_period": 0.01, "feagi_state": None,
+                "feagi_network": None}
+
+feagi_auth_url = feagi_settings.pop('feagi_auth_url', None)
+print("FEAGI AUTH URL ------- ", feagi_auth_url)
+# # FEAGI REACHABLE CHECKER COMPLETED # #
+# # # FEAGI registration # # # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# - - - - - - - - - - - - - - - - - - #
+feagi_settings, runtime_data, api_address, feagi_ipu_channel, feagi_opu_channel = \
+    FEAGI.connect_to_feagi(feagi_settings, runtime_data, agent_settings, capabilities,
+                           __version__)
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+msg_counter = runtime_data["feagi_state"]['burst_counter']
+
+# default_capabilities = {}  # It will be generated in update_region_split_downsize. See the
+# # overwrite manual
+# default_capabilities = pns.create_runtime_default_list(default_capabilities, capabilities)
 
 # Start the audio stream
 stream = sd.InputStream(callback=audio_callback, channels=1, samplerate=fs)
@@ -55,12 +92,25 @@ with stream:
 
             # Print the frame data as a dictionary
             if frame_data:  # Only print if there's data in the frame
-                # print(f"Frame (time index): {times[0]:.2f} seconds")
+            #     # print(f"Frame (time index): {times[0]:.2f} seconds")
                 print(frame_data)
 
             # Optional: Break after a certain condition or time
             # if some_condition:
             #     break
+            message_from_feagi = pns.message_from_feagi
+            # OPU section STARTS
+            if message_from_feagi:
+                pns.check_genome_status_no_vision(message_from_feagi)
+                feagi_settings['feagi_burst_speed'] = pns.check_refresh_rate(message_from_feagi,
+                                                                             feagi_settings[
+                                                                                 'feagi_burst_speed'])
+            message_to_feagi = sensors.add_sound_to_feagi_data(frame_data, message_to_feagi)
+            message_to_feagi['timestamp'] = datetime.now()
+            message_to_feagi['counter'] = msg_counter
+            sleep(feagi_settings['feagi_burst_speed'])
+            pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
+            message_to_feagi.clear()
 
     except KeyboardInterrupt:
         print("\nStreaming stopped by user")
