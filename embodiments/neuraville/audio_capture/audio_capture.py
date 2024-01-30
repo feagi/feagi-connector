@@ -91,9 +91,9 @@ with stream:
                     frame_data[f"{freq}-{mag}-0"] = 0
 
             # Print the frame data as a dictionary
-            if frame_data:  # Only print if there's data in the frame
-            #     # print(f"Frame (time index): {times[0]:.2f} seconds")
-                print(frame_data)
+            # if frame_data:  # Only print if there's data in the frame
+            # #     # print(f"Frame (time index): {times[0]:.2f} seconds")
+            #     print(frame_data)
 
             # Optional: Break after a certain condition or time
             # if some_condition:
@@ -105,10 +105,24 @@ with stream:
                 feagi_settings['feagi_burst_speed'] = pns.check_refresh_rate(message_from_feagi,
                                                                              feagi_settings[
                                                                                  'feagi_burst_speed'])
-            message_to_feagi = sensors.add_sound_to_feagi_data(frame_data, message_to_feagi)
+            # message_to_feagi = sensors.add_sound_to_feagi_data(frame_data, message_to_feagi)
+            # # message_to_feagi['hearing'] = {"i__hear": frame_data}
+            # print(message_to_feagi)
+            # message_to_feagi['timestamp'] = datetime.now()
+            # message_to_feagi['counter'] = msg_counter
+            try:
+                if "data" not in message_to_feagi:
+                    message_to_feagi["data"] = dict()
+                if "sensory_data" not in message_to_feagi["data"]:
+                    message_to_feagi["data"]["sensory_data"] = dict()
+                # message_to_feagi["data"]["sensory_data"]['hearing'] = dict()
+                message_to_feagi['i_hear'] = frame_data
+            except Exception as e:
+                print("ERROR: ", e)
             message_to_feagi['timestamp'] = datetime.now()
             message_to_feagi['counter'] = msg_counter
             sleep(feagi_settings['feagi_burst_speed'])
+            print(message_to_feagi)
             pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
             message_to_feagi.clear()
 
