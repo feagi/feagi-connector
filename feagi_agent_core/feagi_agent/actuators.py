@@ -136,3 +136,11 @@ def get_led_data(obtained_data):
         for data_point in obtained_data['led']:
             led_data[data_point] = obtained_data['led'][data_point]
     return led_data
+
+
+def get_gpio_data(obtained_data):
+    gpio_data = dict()
+    if 'gpio' in obtained_data:
+        for data_point in obtained_data['gpio']:
+            gpio_data[data_point] = obtained_data['gpio'][data_point]
+    return gpio_data
