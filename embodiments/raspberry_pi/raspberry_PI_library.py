@@ -22,9 +22,7 @@ def depower_pin():
 def power_pin(pin):
     global gpio_modes
     if pin in gpio_modes:
-        print(gpio_modes[pin])
         if gpio_modes[pin] == 0:
-            print("pin: ", pin)
             GPIO.output(pin, GPIO.HIGH)
 
 
@@ -50,11 +48,20 @@ def check_gpio_mode(pin):
         return "Not configured"
 
 
+def configured_board_by_config(capabilities):
+    if 'GPIO' in capabilities:
+        if 'port' in capabilities['GPIO']:
+            for pin in capabilities['GPIO']['port']:
+                GPIO.setup(int(pin), capabilities['GPIO']['port'][pin])
+                gpio_modes[int(pin)] = capabilities['GPIO']['port'][pin]
+    print(gpio_modes)
+
+
 def clear_gpio():
     GPIO.cleanup()
 
 
 GPIO.setmode(GPIO.BCM)  # Using Broadcom pin numbering
-gpios = get_available_gpios()
-print(gpio_modes)
+# gpios = get_available_gpios()
+# print(gpio_modes)
 # GPIO.cleanup()
