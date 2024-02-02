@@ -10,11 +10,12 @@ from feagi_agent import feagi_interface as feagi
 from feagi_agent import pns_gateway as pns
 from feagi_agent.version import __version__
 from feagi_agent import actuators
-from pyfirmata import Arduino, SERVO
+from pyfirmata import Arduino, SERVO, util
 
 servo_status = dict()
 motor_status = dict()
 pin_board = dict()
+analog_pin_board = dict()
 pin_mode = dict()
 rolling_window = {}
 rolling_window_len = capabilities['motor']['rolling_window_len']
@@ -31,6 +32,15 @@ def list_all_pins(board):
         current = pin - 2  # Due to serial communcations port
         pin_board[current] = board.get_pin('d:{0}:s'.format(int(pin)))
         pin_mode[current] = 4
+
+
+def list_all_analog_pins(board):
+    all_pins = dict()
+    for pin in board.analog:
+        all_pins[pin.pin_number] = ""
+    for pin in all_pins:
+        analog_pin_board[pin] = board.get_pin('a:{0}:i'.format(int(pin)))
+    print(analog_pin_board)
 
 
 def set_pin_mode(pin, mode, id):
@@ -105,6 +115,9 @@ if __name__ == "__main__":
     threading.Thread(target=pns.feagi_listener, args=(feagi_opu_channel,), daemon=True).start()
     port = capabilities['arduino']['port']  # Don't change this
     board = Arduino(port)
+    it = util.Iterator(board)
+    it.start()
+    list_all_analog_pins(board)
     time.sleep(5)
     list_all_pins(board)
     # Initialize rolling window for each motor
@@ -112,6 +125,7 @@ if __name__ == "__main__":
         rolling_window[motor_id] = deque([0] * rolling_window_len)
 
     while True:
+        print(analog_pin_board[0].read())
         message_from_feagi = pns.message_from_feagi
         if message_from_feagi:
             # Fetch data such as motor, servo, etc and pass to a function (you make ur own action.
