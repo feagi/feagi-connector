@@ -39,15 +39,23 @@ def servo_generate_power(power, feagi_power, id):
     else:
         return (feagi_power / z_depth) * power
 
+def servo_negative_or_positive(id, power):
+    if id % 2 == 0:
+        power = -1 * power
+    else:
+        power = abs(power)
+    return power
 
-def motor_id_converter(motor_id):
+
+def feagi_id_converter(id):
     """
     This function converts motor IDs from 1,3,5,7 to 0,1,2,3.
+    so, if you select 0 and 1, it will end up 0. if you select 2 and 3, it will end up 1.
     """
-    if motor_id % 2 == 0:
-        return motor_id // 2
+    if id % 2 == 0:
+        return id // 2
     else:
-        return (motor_id - 1) // 2
+        return (id - 1) // 2
 
 
 def power_convert(motor_id, power):
@@ -65,7 +73,7 @@ def get_motor_data(obtained_data, power_maximum, motor_count, moving_average, id
             for data_point in obtained_data['motor']:
                 device_power = obtained_data['motor'][data_point]
                 if id_converter:
-                    device_id = motor_id_converter(data_point)
+                    device_id = feagi_id_converter(data_point)
                 else:
                     device_id = data_point
                 device_power = int(motor_generate_power(power_maximum, device_power, device_id))
@@ -90,12 +98,15 @@ def update_moving_average(moving_average, device_id, device_power):
     return moving_average
 
 
-def get_servo_data(obtained_data):
+def get_servo_data(obtained_data, converter_id=False):
     servo_data = dict()
     if 'servo' in obtained_data:
         for data_point in obtained_data['servo']:
-            device_id = data_point
-            device_power = obtained_data['servo'][data_point]
+            device_power = servo_negative_or_positive(data_point, obtained_data['servo'][data_point])
+            if converter_id:
+                device_id = feagi_id_converter(data_point)
+            else:
+                device_id = data_point
             servo_data[device_id] = device_power
     return servo_data
 
@@ -136,3 +147,15 @@ def get_led_data(obtained_data):
         for data_point in obtained_data['led']:
             led_data[data_point] = obtained_data['led'][data_point]
     return led_data
+
+def servo_keep_boundaries(current_position, max= 180, min=0):
+    """
+    Prevent Servo position to go beyond range
+    """
+    if current_position > max:
+        adjusted_position = float(max)
+    elif current_position < min:
+        adjusted_position = float(min)
+    else:
+        adjusted_position = float(current_position)
+    return adjusted_position
