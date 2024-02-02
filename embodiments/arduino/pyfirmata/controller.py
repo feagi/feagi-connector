@@ -1,6 +1,9 @@
 from time import sleep
 import time
 import threading
+
+import pyfirmata
+
 from configuration import *
 from collections import deque
 from feagi_agent import feagi_interface as feagi
@@ -12,29 +15,49 @@ from pyfirmata import Arduino, SERVO
 servo_status = dict()
 motor_status = dict()
 pin_board = dict()
+pin_mode = dict()
 rolling_window = {}
 rolling_window_len = capabilities['motor']['rolling_window_len']
 motor_count = capabilities['motor']['count']
-
+output_track = list()
 
 
 def list_all_pins(board):
     all_pins = dict()
     for pin in board._layout['digital']:
-        if pin not in [0, 1]: # 0 and 1 are not available for output.
-            all_pins[pin] = "" # initalize empty key
+        if pin not in [0, 1]:  # 0 and 1 are not available for output.
+            all_pins[pin] = ""  # initalize empty key
     for pin in all_pins:
-        current = pin-2 # Due to serial communcations port
+        current = pin - 2  # Due to serial communcations port
         pin_board[current] = board.get_pin('d:{0}:s'.format(int(pin)))
+        pin_mode[current] = 4
+
+
+def set_pin_mode(pin, mode, id):
+    pin.mode = mode
+    pin_mode[id] = mode
+
 
 def action(obtained_data):
     recieve_servo_data = actuators.get_servo_data(obtained_data, True)
-    recieve_motor_data = actuators.get_motor_data(obtained_data,
-                                                  capabilities['motor']['power_amount'],
-                                                  capabilities['motor']['count'], rolling_window)
+    recieve_gpio_data = actuators.get_gpio_data(obtained_data)
+    if recieve_gpio_data:
+        for i in recieve_gpio_data:
+            if pin_mode[int(i)] != 1:
+                set_pin_mode(pin_board[int(i)], 1, i)
+            pin_board[int(i)].write(1)
+            output_track.append(int(i))  # Tracking whatever used digital
+    else:
+        if output_track:
+            pin_board[output_track[0]].write(0)
+            output_track.pop()
+
     if recieve_servo_data:
         # Do some custom work with servo data as well
         for id in recieve_servo_data:
+            if pin_mode[int(id)] != 4:
+                print("reset your board to use the servo again after you updated pin: ", id)
+                set_pin_mode(pin_board[int(id)], pyfirmata.OUTPUT, id)
             servo_power = actuators.servo_generate_power(180, recieve_servo_data[id], id)
             if id in motor_status:
                 del motor_status[id]
@@ -46,10 +69,6 @@ def action(obtained_data):
                 servo_status[id] = actuators.servo_keep_boundaries(servo_status[id])
                 pin_board[id].write(servo_status[id])
         print("servo status: ", servo_status, " and motor status: ", motor_status)
-    if recieve_motor_data:
-        for i in recieve_motor_data:
-            pin_board[i].write(1)
-
 
 
 if __name__ == "__main__":
@@ -87,10 +106,6 @@ if __name__ == "__main__":
     port = capabilities['arduino']['port']  # Don't change this
     board = Arduino(port)
     time.sleep(5)
-    # servo_pin = 13
-    # servo = board.get_pin('d:{0}:s'.format(servo_pin))
-    # print(servo)
-    # servo.write(90)
     list_all_pins(board)
     # Initialize rolling window for each motor
     for motor_id in range(motor_count):
