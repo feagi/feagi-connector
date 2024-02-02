@@ -42,10 +42,11 @@ capabilities = {
         "port": "COM5"
     },
     "motor": {
-        "type": "opu"
-    },
-    "servo": {
-        "type": "opu"
+        "type": "opu",
+        "disabled": False,
+        "count": 22,  # 11 wheels but 11 for (forward/backward wheel) * 2 so 22
+        "rolling_window_len": 1,
+        "power_amount": 100
     }
 }
 
