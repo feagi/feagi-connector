@@ -23,7 +23,7 @@ feagi_settings = {
     # "feagi_auth_url": "http://127.0.0.1:9000/v1/k8/feagi_settings/auth_token",
     "feagi_url": None,
     "feagi_dns": None,
-    "feagi_host": os.environ.get('FEAGI_HOST_INTERNAL', "192.168.10.111"),
+    "feagi_host": os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1"),
     "feagi_api_port": os.environ.get('FEAGI_API_PORT', "8000")
 }
 agent_settings = {
@@ -39,12 +39,12 @@ agent_settings = {
 
 capabilities = {
     "arduino": {
-        "port": "COM5"
+        "port": "/dev/ttyUSB0"
     },
     "motor": {
         "type": "opu",
         "disabled": False,
-        "count": 22,  # 11 wheels but 11 for (forward/backward wheel) * 2 so 22
+        "count": 24,  # 11 wheels but 11 for (forward/backward wheel) * 2 so 22
         "rolling_window_len": 1,
         "power_amount": 100
     }
