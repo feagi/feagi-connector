@@ -155,7 +155,7 @@ def opu_processor(data):
                               'discharged_battery': {}, 'reset': {}, 'camera': {}, 'misc': {},
                               "motion_control": {}, 'navigation': {}, 'speed': {}, "led": {},
                               "vision_resolution": {}, "vision_acuity": {}, 'servo_position': {},
-                              "emergency": {}}
+                              "emergency": {}, "gpio": {}}
         opu_data = data["opu_data"]
         if opu_data is not None:
             if 'o__mot' in opu_data:  # motor percentage
@@ -254,7 +254,7 @@ def opu_processor(data):
                         device_id = data_point[0]
                         device_power = data_point[2]
                         processed_opu_data['vision_resolution'][device_id] = device_power
-            if 'o_spos' in opu_data: # Currently used in mycobot only. Different
+            if 'o_spos' in opu_data: # Currently used in mycobot only. Different kind of position
                 if opu_data['o_spos']:
                     for data_point in opu_data['o_spos']:
                         processed_data_point = block_to_array(data_point)
@@ -268,6 +268,14 @@ def opu_processor(data):
                         device_id = data_point[0]
                         device_power = data_point[2]
                         processed_opu_data['vision_acuity'][device_id] = device_power
+            if 'o_gpio' in opu_data:
+                if opu_data['o_gpio']:
+                    for data_point in opu_data['o_gpio']:
+                        processed_data_point = block_to_array(data_point)
+                        device_id = processed_data_point[0]
+                        device_power = opu_data['o_gpio'][data_point]
+                        processed_opu_data['gpio'][device_id] = device_power
+
             return processed_opu_data
     except Exception as error:
         print("error: ", error)
