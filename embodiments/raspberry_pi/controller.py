@@ -1,6 +1,7 @@
 from time import sleep
 import threading
 from configuration import *
+from feagi_agent import sensors
 from feagi_agent import feagi_interface as feagi
 from feagi_agent import pns_gateway as pns
 from feagi_agent.version import __version__
@@ -11,7 +12,6 @@ import raspberry_PI_library as rpi
 def action(obtained_data):
     recieve_gpio_data = actuators.get_gpio_data(obtained_data)
     if recieve_gpio_data:
-        print("here: ", recieve_gpio_data)
         for i in recieve_gpio_data:
             rpi.power_pin(i)
     else:
@@ -51,6 +51,10 @@ if __name__ == "__main__":
                     pns.check_refresh_rate(message_from_feagi, feagi_settings['feagi_burst_speed'])
                 obtained_signals = pns.obtain_opu_data(message_from_feagi)
                 action(obtained_signals)
+            generic_input_dict = dict()
+            generic_input_dict['i_gpio'] = rpi.gather_all_input_data()
+            message_to_feagi = sensors.add_generic_input_to_feagi_data(generic_input_dict, message_to_feagi)
+            pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
             sleep(feagi_settings['feagi_burst_speed'])
         except KeyboardInterrupt:
             rpi.clear_gpio()
