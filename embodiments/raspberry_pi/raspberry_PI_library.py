@@ -1,5 +1,4 @@
 import RPi.GPIO as GPIO
-import time
 
 # Dictionary to keep track of GPIO modes
 gpio_modes = {}
@@ -24,6 +23,25 @@ def power_pin(pin):
     if pin in gpio_modes:
         if gpio_modes[pin] == 0:
             GPIO.output(pin, GPIO.HIGH)
+
+
+def read_pin(pin):
+    global gpio_modes
+    if pin in gpio_modes:
+        if gpio_modes[pin] == 1:
+            return GPIO.input(pin)
+
+
+def gather_all_input_data():
+    global gpio_modes
+    input_list = dict()
+    for pin in gpio_modes:
+        if gpio_modes[pin] == 1:
+            data = read_pin(pin)
+            if data:
+                location_string = str(pin) + "-0-0"
+                input_list[location_string] = 100
+    return input_list
 
 
 def get_available_gpios():
