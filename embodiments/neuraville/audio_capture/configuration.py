@@ -27,46 +27,18 @@ feagi_settings = {
 }
 
 agent_settings = {
-    "agent_data_port": "100013",
-    "agent_id": "raspberrypi-generic",
+    "agent_data_port": "10011",
+    "agent_id": "microphone",
     "agent_type": "embodiment",
     'TTL': 2,
     'last_message': 0,
+    'godot_websocket_ip': "0.0.0.0",
+    'godot_websocket_port': os.environ.get('WS_MICROBIT_PORT', "9052"),
     'compression': True
 
 }
 
 capabilities = {
-    "GPIO": {
-        "port": {
-            "2": 0,  # 0 is an output. 1 is an input
-            "3": 0,
-            "4": 0,
-            "17": 0,
-            "27": 0,
-            "22": 0,
-            "10": 0,
-            "9": 0,
-            "11": 0,
-            "5": 0,
-            "6": 0,
-            "13": 0,
-            "19": 0,
-            "26": 0,
-            "14": 1,
-            "15": 1,
-            "18": 1,
-            "23": 1,
-            "24": 1,
-            "25": 1,
-            "8": 1,
-            "7": 1,
-            "12": 1,
-            "16": 1,
-            "20": 1,
-            "21": 1
-        }
-    }
 }
 
 message_to_feagi = {"data": {}}
