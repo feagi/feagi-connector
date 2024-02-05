@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 Copyright 2016-2022 The FEAGI Authors. All Rights Reserved.
 
@@ -15,57 +16,37 @@ limitations under the License.
 ==============================================================================
 """
 
-# !/usr/bin/env python3
 import os
 
+
 feagi_settings = {
-    # "feagi_auth_url": os.environ.get('URL_MICROBIT', None),
+    # "feagi_auth_url": "http://127.0.0.1:9000/v1/k8/feagi_settings/auth_token",
     "feagi_url": None,
     "feagi_dns": None,
     "feagi_host": os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1"),
-    "feagi_api_port": "8000",
+    "feagi_api_port": os.environ.get('FEAGI_API_PORT', "8000")
 }
-
 agent_settings = {
-    "agent_data_port": "100013",
-    "agent_id": "raspberrypi-generic",
+    "agent_data_port": "10006",
+    "agent_id": "javascript_webcam",
     "agent_type": "embodiment",
     'TTL': 2,
     'last_message': 0,
+    'godot_websocket_ip': "0.0.0.0",
+    'godot_websocket_port': os.environ.get('WS_WEBCAM_PORT', "9051"),
     'compression': True
-
 }
 
 capabilities = {
-    "GPIO": {
-        "port": {
-            "2": 0,  # 0 is an output. 1 is an input
-            "3": 0,
-            "4": 0,
-            "17": 0,
-            "27": 0,
-            "22": 0,
-            "10": 0,
-            "9": 0,
-            "11": 0,
-            "5": 0,
-            "6": 0,
-            "13": 0,
-            "19": 0,
-            "26": 0,
-            "14": 1,
-            "15": 1,
-            "18": 1,
-            "23": 1,
-            "24": 1,
-            "25": 1,
-            "8": 1,
-            "7": 1,
-            "12": 1,
-            "16": 1,
-            "20": 1,
-            "21": 1
-        }
+    "arduino": {
+        "port": "/dev/ttyUSB0"
+    },
+    "motor": {
+        "type": "opu",
+        "disabled": False,
+        "count": 24,  # 11 wheels but 11 for (forward/backward wheel) * 2 so 22
+        "rolling_window_len": 1,
+        "power_amount": 100
     }
 }
 

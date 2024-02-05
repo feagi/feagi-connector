@@ -76,6 +76,8 @@ if __name__ == "__main__":
         for image in image_obj:
             raw_frame = image[0]
             camera_data['vision'] = raw_frame
+            print(capabilities['camera']['gaze_control'], " and ", capabilities['camera'][
+                'enhancement'])
             name_id = image[1]
             message_to_feagi = feagi_trainer.id_training_with_image(message_to_feagi, name_id)
             # Post image into vision
@@ -105,19 +107,22 @@ if __name__ == "__main__":
                 for get_region in compressed_data:
                     if size_list[get_region][2] == 3:
                         if previous_frame_data != {}:
-                            thresholded = cv2.threshold(compressed_data[get_region],
+                            thresholded = retina.effect(compressed_data[get_region], capabilities)
+                            thresholded = cv2.threshold(thresholded,
                                                         capabilities['camera']['threshold_default'][
                                                             0],
                                                         capabilities['camera']['threshold_default'][
                                                             1],
                                                         cv2.THRESH_TOZERO)[1]
+                            thresholded = retina.effect(thresholded, capabilities)
                             vision_dict[get_region] = \
                                 retina.create_feagi_data(thresholded,
                                                          compressed_data[get_region],
                                                          previous_frame_data[get_region].shape)
                     else:
                         if previous_frame_data != {}:
-                            thresholded = cv2.threshold(compressed_data[get_region],
+                            thresholded = retina.effect(compressed_data[get_region], capabilities)
+                            thresholded = cv2.threshold(thresholded,
                                                         capabilities['camera']['threshold_default'][
                                                             0],
                                                         capabilities['camera']['threshold_default'][
@@ -127,7 +132,6 @@ if __name__ == "__main__":
                                 retina.create_feagi_data_grayscale(thresholded,
                                                                    compressed_data[get_region],
                                                                    previous_frame_data[get_region].shape)
-                print(capabilities['camera']['gaze_control'])
                 previous_frame_data = compressed_data
                 rgb['camera'] = vision_dict
             # capabilities, feagi_settings['feagi_burst_speed'] = retina.vision_progress(
