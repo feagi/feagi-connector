@@ -293,9 +293,6 @@ def check_genome_status_no_vision(message_from_feagi):
             full_list_dimension = fetch_full_dimensions()
             previous_genome_timestamp = message_from_feagi["genome_changed"]
         current_tracker = obtain_genome_number(genome_tracker, message_from_feagi)
-        if len(resize_list) == 0:
-            resize_list = retina.obtain_cortical_vision_size(capabilities['camera']["index"],
-                                                             response)
         if genome_tracker != current_tracker:
             full_list_dimension = fetch_full_dimensions()
             genome_tracker = current_tracker
@@ -409,12 +406,13 @@ def camera_config_update(list, capabilities):
     """
     Update the capabilities to overwrite the default generated capabilities.
     """
-    if 'gaze_control' in capabilities['camera']:
-        list['camera']['gaze_control'] = capabilities['camera']['gaze_control']
-    if 'pupil_control' in capabilities['camera']:
-        list['camera']['pupil_control'] = capabilities['camera']['pupil_control']
-    if "enhancement" in capabilities['camera']:
-        list['camera']['enhancement'] = capabilities['camera']['enhancement']
+    if 'camera' in capabilities:
+        if 'gaze_control' in capabilities['camera']:
+            list['camera']['gaze_control'] = capabilities['camera']['gaze_control']
+        if 'pupil_control' in capabilities['camera']:
+            list['camera']['pupil_control'] = capabilities['camera']['pupil_control']
+        if "enhancement" in capabilities['camera']:
+            list['camera']['enhancement'] = capabilities['camera']['enhancement']
 
 
 def feagi_listener(feagi_opu_channel):

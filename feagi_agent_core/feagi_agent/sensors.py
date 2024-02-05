@@ -49,3 +49,11 @@ def add_acc_to_feagi_data(accelerator_list, message_to_feagi):
 
 def add_encoder_to_feagi_data(encoder_list, message_to_feagi):
     return pns.append_sensory_data_for_feagi('encoder_data', encoder_list, message_to_feagi)
+
+
+def add_sound_to_feagi_data(hear_list, message_to_feagi):
+    return pns.append_sensory_data_for_feagi('hearing', hear_list, message_to_feagi)
+
+
+def add_generic_input_to_feagi_data(generic_list, message_to_feaggi):
+    return pns.append_sensory_data_for_feagi('generic_ipu', generic_list, message_to_feaggi)
