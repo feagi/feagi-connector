@@ -144,18 +144,14 @@ def fetch_aptr(get_size_for_aptr_cortical):
         return 10
 
 
-def fetch_cortical_dimensions():
+def fetch_geometry():
     try:
         list_dimesions = requests.\
-            get(global_api_address + '/v1/connectome/properties/dimensions').json()
+            get(global_api_address + '/v1/cortical_area/cortical_area/geometry').json()
         return list_dimesions
     except Exception as e:
         print("e: ", e)
         return []
-
-
-def fetch_geometry():
-    return requests.get(global_api_address + '/v1/cortical_area/cortical_area/geometry')
 
 
 # def register_with_feagi(feagi_ip, feagi_api_port, agent_type: str, agent_id: str, agent_ip: str, agent_data_port: int,
