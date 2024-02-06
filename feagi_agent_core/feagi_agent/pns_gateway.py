@@ -171,7 +171,7 @@ def gaze_control_update(message_from_feagi, capabilities):
             device_id = data_point.split('-')[0]
             if int(device_id) in [0, 1]:
                 feagi_aptr = (int(data_point.split('-')[-1]))
-                aptr_cortical_size = full_list_dimension['Vision_Gaze'][6] - 1
+                aptr_cortical_size = full_list_dimension['o__gaz']['cortical_dimensions'][2] - 1
                 max_range = capabilities['camera']['vision_range'][1]
                 min_range = capabilities['camera']['vision_range'][0]
                 capabilities['camera']["gaze_control"][int(device_id)] = int(
@@ -195,7 +195,7 @@ def pupil_control_update(message_from_feagi, capabilities):
             device_id = data_point.split('-')[0]
             if int(device_id) in [0, 1]:
                 feagi_aptr = (int(data_point.split('-')[-1]))
-                aptr_cortical_size = full_list_dimension['Vision_Pupil'][6] - 1
+                aptr_cortical_size = full_list_dimension['o__pup']['cortical_dimensions'][2] - 1
                 max_range = capabilities['camera']['vision_range'][1]
                 min_range = capabilities['camera']['vision_range'][0]
                 capabilities['camera']["pupil_control"][int(device_id)] = int(((feagi_aptr /
@@ -246,7 +246,7 @@ def fetch_full_dimensions():
     List of the full size and names of every cortical area. It does not include properties such as
     neurons or details.
     """
-    return router.fetch_cortical_dimensions()
+    return router.fetch_geometry()
 
 
 def check_genome_status(message_from_feagi, capabilities):
@@ -263,8 +263,7 @@ def check_genome_status(message_from_feagi, capabilities):
         genome_changed = detect_genome_change(message_from_feagi)
         if genome_changed != previous_genome_timestamp:
             full_list_dimension = fetch_full_dimensions()
-            response = requests.get(
-                router.global_api_address + '/v1/cortical_area/cortical_area/geometry')
+            response = full_list_dimension
             resize_list = retina.obtain_cortical_vision_size(capabilities['camera']["index"],
                                                              response)
             previous_genome_timestamp = message_from_feagi["genome_changed"]
@@ -308,7 +307,7 @@ def fetch_vision_turner(message_from_feagi, capabilities):
                 for data_point in message_from_feagi["opu_data"]['ovtune']:
                     device_id = data_point.split('-')[0]
                     feagi_aptr = (int(data_point.split('-')[-1]))
-                    aptr_cortical_size = full_list_dimension['threshold'][6] - 1
+                    aptr_cortical_size = full_list_dimension['ovtune']['cortical_dimesion'][2] - 1
                     max_range = capabilities['camera']["threshold_range"][1]
                     min_range = capabilities['camera']["threshold_range"][0]
                     capabilities['camera']["threshold_default"][int(device_id)] = int(
@@ -348,7 +347,7 @@ def fetch_enhancement_data(message_from_feagi, capabilities):
                     device_id = int(data_point.split('-')[0])
                     if device_id == 1:
                         feagi_aptr = (int(data_point.split('-')[-1]))
-                        aptr_cortical_size = full_list_dimension['enhancement'][6] - 1
+                        aptr_cortical_size = full_list_dimension['ov_enh']['cortical_dimensions'][2] - 1
                         max_range = 1.4
                         min_range = 0.5
                         capabilities['camera']["enhancement"][int(device_id)] = float(((feagi_aptr
@@ -356,7 +355,7 @@ def fetch_enhancement_data(message_from_feagi, capabilities):
                                                                                                max_range - min_range)) + min_range)
                     if device_id == 2:
                         feagi_aptr = (int(data_point.split('-')[-1]))
-                        aptr_cortical_size = full_list_dimension['enhancement'][6] - 1
+                        aptr_cortical_size = full_list_dimension['ov_enh']['cortical_dimensions'][2]  - 1
                         max_range = 2.0
                         min_range = 0.8
                         capabilities['camera']["enhancement"][int(device_id)] = float(((feagi_aptr
@@ -364,7 +363,7 @@ def fetch_enhancement_data(message_from_feagi, capabilities):
                                                                                                max_range - min_range)) + min_range)
                     if device_id == 0:
                         feagi_aptr = (int(data_point.split('-')[-1]))
-                        aptr_cortical_size = full_list_dimension['enhancement'][6]
+                        aptr_cortical_size = full_list_dimension['ov_enh']['cortical_dimensions'][2]
                         max_range = 100
                         min_range = -100
                         capabilities['camera']["enhancement"][int(device_id)] = float(((feagi_aptr
