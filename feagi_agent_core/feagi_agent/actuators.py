@@ -29,7 +29,7 @@ def motor_generate_power(power_maximum, feagi_power, id):
     if z_depth == 1:
         return power_maximum * (feagi_power / 100)
     else:
-        return (feagi_power / z_depth - 1) * power_maximum
+        return (feagi_power / (z_depth-1)) * power_maximum
 
 
 def servo_generate_power(power, feagi_power, id):
@@ -37,7 +37,7 @@ def servo_generate_power(power, feagi_power, id):
     if z_depth == 1:
         return power * (feagi_power / 100)
     else:
-        return (feagi_power / z_depth - 1) * power
+        return (feagi_power / (z_depth-1)) * power
 
 def servo_negative_or_positive(id, power):
     if id % 2 == 0:
