@@ -25,7 +25,7 @@ def obtain_opu_data(device_list, message_from_feagi):
 
 
 def motor_generate_power(power_maximum, feagi_power, id):
-    z_depth = pns.full_list_dimension['motor_opu'][6]
+    z_depth = pns.full_list_dimension['o__mot']['cortical_dimensions'][2]
     if z_depth == 1:
         return power_maximum * (feagi_power / 100)
     else:
@@ -33,7 +33,7 @@ def motor_generate_power(power_maximum, feagi_power, id):
 
 
 def servo_generate_power(power, feagi_power, id):
-    z_depth = pns.full_list_dimension['servo_opu'][6]
+    z_depth = pns.full_list_dimension['o__ser']['cortical_dimensions'][2]
     if z_depth == 1:
         return power * (feagi_power / 100)
     else:
