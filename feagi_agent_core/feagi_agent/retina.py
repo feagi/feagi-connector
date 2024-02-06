@@ -355,7 +355,7 @@ def update_region_split_downsize(raw_frame, capabilities,
 
 def obtain_cortical_vision_size(camera_index, response):
     size_list = {}
-    data = response.json()
+    data = response
     items = [camera_index + "_C", camera_index + "LL", camera_index + "LM", camera_index + "LR",
              camera_index + "MR", camera_index + "ML", camera_index + "TR", camera_index + "TL",
              camera_index + "TM"]
@@ -372,7 +372,7 @@ def obtain_cortical_vision_size(camera_index, response):
 
 
 def update_size_list(capabilities):
-    response = pns.grab_geometry()
+    response = pns.full_list_dimension
     capabilities['camera']['size_list'] = \
         obtain_cortical_vision_size(capabilities['camera']["index"], response)
     return capabilities
