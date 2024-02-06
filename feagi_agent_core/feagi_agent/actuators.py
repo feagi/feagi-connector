@@ -29,7 +29,7 @@ def motor_generate_power(power_maximum, feagi_power, id):
     if z_depth == 1:
         return power_maximum * (feagi_power / 100)
     else:
-        return (feagi_power / (z_depth-1)) * power_maximum
+        return (feagi_power / (z_depth - 1)) * power_maximum
 
 
 def servo_generate_power(power, feagi_power, id):
@@ -37,7 +37,8 @@ def servo_generate_power(power, feagi_power, id):
     if z_depth == 1:
         return power * (feagi_power / 100)
     else:
-        return (feagi_power / (z_depth-1)) * power
+        return (feagi_power / (z_depth - 1)) * power
+
 
 def servo_negative_or_positive(id, power):
     if id % 2 == 0:
@@ -102,7 +103,8 @@ def get_servo_data(obtained_data, converter_id=False):
     servo_data = dict()
     if 'servo' in obtained_data:
         for data_point in obtained_data['servo']:
-            device_power = servo_negative_or_positive(data_point, obtained_data['servo'][data_point])
+            device_power = servo_negative_or_positive(data_point,
+                                                      obtained_data['servo'][data_point])
             if converter_id:
                 device_id = feagi_id_converter(data_point)
             else:
@@ -148,7 +150,8 @@ def get_led_data(obtained_data):
             led_data[data_point] = obtained_data['led'][data_point]
     return led_data
 
-def servo_keep_boundaries(current_position, max= 180, min=0):
+
+def servo_keep_boundaries(current_position, max=180, min=0):
     """
     Prevent Servo position to go beyond range
     """
@@ -175,4 +178,3 @@ def check_convert_gpio_to_input(obtained_data):
         for data_point in obtained_data['gpio_input']:
             input_gpio_data[data_point] = obtained_data['gpio_input'][data_point]
     return input_gpio_data
-
