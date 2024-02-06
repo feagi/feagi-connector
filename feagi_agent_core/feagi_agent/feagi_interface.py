@@ -158,15 +158,22 @@ def opu_processor(data):
                               "emergency": {}, "gpio": {}, "gpio_input": {}}
         opu_data = data["opu_data"]
         if opu_data is not None:
-            if 'o__mot' in opu_data:  # motor percentage
-                for data_point in opu_data['o__mot']:
-                    processed_data_point = block_to_array(data_point)
-                    device_id = processed_data_point[0]
-                    if pns.full_list_dimension['motor_opu'][6] == 1:
-                        device_power = opu_data['o__mot'][data_point]
-                    else:
-                        device_power = processed_data_point[2]
-                    processed_opu_data['motor'][device_id] = device_power
+            if "motor_opu" in pns.full_list_dimension:
+                if pns.full_list_dimension['motor_opu'][6] == 1:
+                    if 'o__mot' in opu_data:  # motor percentage
+                        for data_point in opu_data['o__mot']:
+                            processed_data_point = block_to_array(data_point)
+                            device_id = processed_data_point[0]
+                            device_power = opu_data['o__mot'][data_point]
+                            processed_opu_data['motor'][device_id] = device_power
+                else:
+                    if 'o__mot' in opu_data:  # motor position
+                        if opu_data['o__mot']:
+                            for data_point in opu_data['o__mot']:
+                                processed_data_point = block_to_array(data_point)
+                                device_id = processed_data_point[0]
+                                device_power = processed_data_point[2]
+                                processed_opu_data['motor'][device_id] = device_power 
             if 'o__ser' in opu_data:
                 if opu_data['o__ser']:
                     for data_point in opu_data['o__ser']:
