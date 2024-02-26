@@ -249,8 +249,11 @@ if __name__ == '__main__':
     capabilities['camera']['current_select'] = [[32, 32], []]
     acc['accelerator'] = {}
     gyro['gyro'] = {}
-    threading.Thread(target=websocket_operation, daemon=True).start()
-    threading.Thread(target=bridge_operation, daemon=True).start()
+    pns.start_websocket_in_threads(echo,
+                                   agent_settings["godot_websocket_ip"],
+                                   agent_settings['godot_websocket_port'],
+                                   ws_operation, ws,
+                                   feagi_settings)
     threading.Thread(target=godot_to_feagi, daemon=True).start()
     while True:
         feagi_auth_url = feagi_settings.pop('feagi_auth_url', None)
