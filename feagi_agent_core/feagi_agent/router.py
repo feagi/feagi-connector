@@ -27,9 +27,12 @@ import traceback
 import websockets
 from time import sleep
 from feagi_agent import pns_gateway as pns
+from websockets.sync.client import connect
 
 global_feagi_opu_channel = ''  # Updated by feagi.connect_to_feagi()
 global_api_address = ''  # Updated by feagi.connect_to_feagi
+global_websocket_address = ''  # Just a full address stored
+websocket = ''  # It will be an object to store
 
 
 def app_host_info():
@@ -306,6 +309,7 @@ def register_with_feagi(feagi_auth_url, feagi_settings, agent_settings, agent_ca
     return feagi_settings
 
 
+# # Websocket section # #
 async def main(function, ip, port):
     """
     The main function handles the websocket and spins the asyncio to run the echo function
@@ -340,8 +344,8 @@ async def bridge_to_godot(ws_operation, ws, feagi_settings):
                 else:
                     sleep(0.001)
             except Exception as error:
-                print("error in websocket sender: ", error)
-                traceback.print_exc()
+                # print("error in websocket sender: ", error)
+                # traceback.print_exc()
                 ws_operation.pop()
                 sleep(0.001)
         else:
@@ -350,3 +354,21 @@ async def bridge_to_godot(ws_operation, ws, feagi_settings):
 
 def bridge_operation(ws_operation, ws, feagi_settings):
     asyncio.run(bridge_to_godot(ws_operation, ws, feagi_settings))
+
+
+def websocket_client_initalize(ip, port, dns=''):
+    global websocket, global_websocket_address
+    if dns != '':
+        websocket = connect(dns)
+        global_websocket_address = dns
+    else:
+        global_websocket_address = str('ws://' + ip + ':' + port)
+        websocket = connect(global_websocket_address)
+
+
+def websocket_send(data):
+    global global_websocket_address, websocket
+    try:
+        websocket.send(pickle.dumps(data))
+    except:
+        websocket = connect(global_websocket_address)
