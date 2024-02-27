@@ -81,10 +81,10 @@ if __name__ == "__main__":
             try:
                 message_from_feagi = pns.message_from_feagi
                 if message_from_feagi:
-                    ws.append(message_from_feagi)
+                    ws.append(pickle.dumps(message_from_feagi))
                     feagi_settings['feagi_burst_speed'] = message_from_feagi['burst_frequency']
                 sleep(feagi_settings['feagi_burst_speed'])  # bottleneck
-                # pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
+                pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
                 message_to_feagi.clear()
             except Exception as e:
                 # pass
