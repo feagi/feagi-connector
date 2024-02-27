@@ -10,13 +10,15 @@ services:
     ports:
       - "9051:9051"
       - "9052:9052"
+      - "9053:9053"
       - "9055:9055"
       - "3000"
       - "8000"
     environment:
-      Microbit_flag: "true"
-      Webcam_flag: "true"
-      godot_games_flag: "true"
+      Microbit_flag: "false"
+      Webcam_flag: "false"
+      godot_games_flag: "false"
+      websocket_bridge: "true"
       FEAGI_HOST_INTERNAL: "192.168.50.218"
     privileged: true
     networks:

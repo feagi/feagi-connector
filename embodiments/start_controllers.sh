@@ -15,6 +15,9 @@ cleanup() {
         kill $PID3
         echo "Godot games script terminated"
     fi
+        if [[ ! -z "$PID4" ]]; then
+        wait $PID4
+    fi
     echo "All scripts terminated"
     exit 0
 }
@@ -42,6 +45,13 @@ if [[ "$godot_games_flag" == "true" ]]; then
     echo "PID of the godot games: $PID3"
 fi
 
+# Load microbit if Microbit_flag is true
+if [[ "$websocket_bridge" == "true" ]]; then
+    python3 controller-bridge/controller.py &
+    PID4=$!
+    echo "PID of the controller-bridge: $PID4"
+fi
+
 # Optionally, wait for the scripts to finish if they were started
 if [[ ! -z "$PID1" ]]; then
     wait $PID1
@@ -53,6 +63,10 @@ fi
 
 if [[ ! -z "$PID3" ]]; then
     wait $PID3
+fi
+
+if [[ ! -z "$PID4" ]]; then
+    wait $PID4
 fi
 
 cleanup
