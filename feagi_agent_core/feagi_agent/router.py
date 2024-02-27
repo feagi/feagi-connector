@@ -337,7 +337,7 @@ async def bridge_to_godot(ws_operation, ws, feagi_settings):
                             stored_value = ws.pop()
                             ws.clear()
                             ws.append(stored_value)
-                    await ws_operation[0].send(str(ws[0]))
+                    await ws_operation[0].send(ws[0])
                     ws.pop()
                 if "stimulation_period" in feagi_settings:
                     sleep(feagi_settings["stimulation_period"])
@@ -372,3 +372,13 @@ def websocket_send(data):
         websocket.send(pickle.dumps(data))
     except:
         websocket = connect(global_websocket_address)
+
+
+def websocket_recieve():
+    global websocket, global_websocket_address
+    while True:
+        try:
+            pns.message_from_feagi = pickle.loads(websocket.recv())
+        except Exception as e:
+            print("error: ", e)
+            websocket = connect(global_websocket_address)
