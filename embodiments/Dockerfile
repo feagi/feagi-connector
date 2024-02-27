@@ -21,7 +21,9 @@ WORKDIR /root/
 COPY neuraville/javascript_webcam/ ./neuraville/javascript_webcam/
 COPY elecfreaks/cutebot/web_html_microbit/ ./elecfreaks/cutebot/web_html_microbit/
 COPY godot-games-controller/ ./godot-games-controller/
+COPY controller-bridge/ ./controller-bridge
 COPY start_controllers.sh .
+
 
 # Install any needed packages specified in requirements.txt
 # Uncomment and adjust if you have requirements.txt in your directories
