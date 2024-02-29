@@ -146,7 +146,6 @@ if __name__ == "__main__":
                                camera_data['vision'],), daemon=True).start()
         print("done!")
         while True:
-            print(pns.message_from_feagi)
             try:
                 if np.any(rgb_array['current']):
                     if not webcam_size['size']:
