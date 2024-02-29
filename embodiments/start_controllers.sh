@@ -24,29 +24,29 @@ cleanup() {
 
 trap cleanup SIGTERM SIGINT
 
-# Load javascript webcam if Webcam_flag is true
-if [[ "$Webcam_flag" == "true" ]]; then
+# Load javascript webcam if WEBCAM_FLAG is true
+if [[ "$WEBCAM_FLAG" == "true" ]]; then
     python3 neuraville/javascript_webcam/controller.py &
     PID1=$!
     echo "PID of the webcam: $PID1"
 fi
 
-# Load microbit if Microbit_flag is true
-if [[ "$Microbit_flag" == "true" ]]; then
+# Load microbit if MICROBIT_FLAG is true
+if [[ "$MICROBIT_FLAG" == "true" ]]; then
     python3 elecfreaks/cutebot/web_html_microbit/controller.py &
     PID2=$!
     echo "PID of the microbit: $PID2"
 fi
 
-# Load microbit if Microbit_flag is true
-if [[ "$godot_games_flag" == "true" ]]; then
+# Load microbit if MICROBIT_FLAG is true
+if [[ "$GODOT_GAMES_FLAG" == "true" ]]; then
     python3 godot-games-controller/controller.py &
     PID3=$!
     echo "PID of the godot games: $PID3"
 fi
 
-# Load microbit if Microbit_flag is true
-if [[ "$websocket_bridge" == "true" ]]; then
+# Load microbit if MICROBIT_FLAG is true
+if [[ "$WEBSOCKET_BRIDGE" == "true" ]]; then
     python3 controller-bridge/controller.py &
     PID4=$!
     echo "PID of the controller-bridge: $PID4"
