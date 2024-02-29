@@ -19,6 +19,7 @@ from time import sleep
 import time
 from datetime import datetime
 import traceback
+import json
 
 import numpy as np
 import websockets
@@ -113,11 +114,11 @@ if __name__ == "__main__":
     threading.Thread(target=bridge_operation, daemon=True).start()
     while True:
         feagi_flag = False
-        print("Waiting on FEAGI...")
-        while not feagi_flag:
-            feagi_flag = feagi.is_FEAGI_reachable(os.environ.get('FEAGI_HOST_INTERNAL',
-                                                                 "127.0.0.1"), int(os.environ.get('FEAGI_OPU_PORT', "3000")))
-            sleep(2)
+        # print("Waiting on FEAGI...")
+        # while not feagi_flag:
+        #     feagi_flag = feagi.is_FEAGI_reachable(os.environ.get('FEAGI_HOST_INTERNAL',
+        #                                                          "127.0.0.1"), int(os.environ.get('FEAGI_OPU_PORT', "3000")))
+        #     sleep(2)
         print("DONE")
         previous_data_frame = {}
         runtime_data = {"cortical_data": {}, "current_burst_id": None,
@@ -136,11 +137,16 @@ if __name__ == "__main__":
         # overwrite manual
         previous_burst = 0
         default_capabilities = pns.create_runtime_default_list(default_capabilities, capabilities)
+        print("OPU HERE: ", feagi_opu_channel)
+        # print("TEST API: ", requests.get("http://172.22.0.2:8000/v1/genome/file_name").json(),
+        #       " and ip:port ", "172.22.0.2:8000")
         threading.Thread(target=pns.feagi_listener, args=(feagi_opu_channel,), daemon=True).start()
         threading.Thread(target=retina.vision_progress,
                          args=(default_capabilities, feagi_opu_channel, api_address, feagi_settings,
                                camera_data['vision'],), daemon=True).start()
+        print("done!")
         while True:
+            print(pns.message_from_feagi)
             try:
                 if np.any(rgb_array['current']):
                     if not webcam_size['size']:
