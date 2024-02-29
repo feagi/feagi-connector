@@ -27,7 +27,4 @@ services:
     privileged: true
     networks:
       - net
-    volumes:
-      - "/home/bwuk/feagi-agent/feagi_agent_core/feagi_agent:/usr/local/lib/python3.8/site-packages/feagi_agent"
-      - "/home/bwuk/feagi/src:/opt/source-code/feagi/src"
 
