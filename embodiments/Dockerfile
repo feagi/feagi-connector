@@ -11,7 +11,8 @@ RUN pip3 install --upgrade pip && \
     pip3 install opencv-python==4.7.0.68 && \
     pip3 install websockets && \
     pip3 install fastapi && \
-    pip3 install lz4
+    pip3 install lz4 && \
+    pip3 install -U pyzmq
 
 
 ENV Running_In_CONTAINER Yes
