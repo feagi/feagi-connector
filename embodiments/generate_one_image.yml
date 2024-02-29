@@ -10,21 +10,23 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1'
+          cpus: '2'
           memory: '2g'
     ports:
       - "8000:8000"
+      - "9050:9050"
       - "9051:9051"
+      - "9053:9053"
       - "30002:30002"
+      - "40000-40050:40000-40050"
     environment:
-      Microbit_flag: "false"
-      Webcam_flag: "false"
-      godot_games_flag: "false"
-      websocket_bridge: "false"
+      MICROBIT_FLAG: "false"
+      WEBCAM_FLAG: "false"
+      GODOT_GAMES_FLAG: "false"
+      WEBSOCKET_BRIDGE: "true"
 #      FEAGI_HOST_INTERNAL: one_image
     env_file:
       - ./.env
     privileged: true
     networks:
       - net
-

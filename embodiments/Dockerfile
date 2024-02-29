@@ -1,4 +1,7 @@
+FROM neuraville/bridge:latest
 FROM gcr.io/feagi-poc/feagi-dev/feagi:51
+COPY --from=0 /root/src/ /root/src/
+
 
 ENV PATH="${PATH}:/sbin;/bin"
 RUN apt-get update
