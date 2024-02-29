@@ -24,6 +24,10 @@ cleanup() {
 
 trap cleanup SIGTERM SIGINT
 
+cd /root/src/
+python3 bridge_godot_python.py &
+cd /root/
+
 # Load javascript webcam if WEBCAM_FLAG is true
 if [[ "$WEBCAM_FLAG" == "true" ]]; then
     python3 neuraville/javascript_webcam/controller.py &
