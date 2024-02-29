@@ -20,14 +20,19 @@ import zmq.asyncio
 import json
 import socket
 import pickle
+import asyncio
 import requests
 import lz4.frame
 import traceback
+import websockets
 from time import sleep
 from feagi_agent import pns_gateway as pns
+from websockets.sync.client import connect
 
 global_feagi_opu_channel = ''  # Updated by feagi.connect_to_feagi()
 global_api_address = ''  # Updated by feagi.connect_to_feagi
+global_websocket_address = ''  # Just a full address stored
+websocket = ''  # It will be an object to store
 
 
 def app_host_info():
@@ -114,13 +119,12 @@ async def fetch_feagi(feagi_opu_channel):
             pns.message_from_feagi = received_data
 
 
-
 def feagi_listener(feagi_opu_channel):
     while True:
         data = fetch_feagi(feagi_opu_channel)
         if data is not None:
             pns.message_from_feagi = data
-        sleep(0.001) #hardcoded and max second that it can run up to
+        sleep(0.001)  # hardcoded and max second that it can run up to
         # print("inside router: ", pns.message_from_feagi['opu_data']['o__gaz'])
 
 
@@ -146,7 +150,7 @@ def fetch_aptr(get_size_for_aptr_cortical):
 
 def fetch_geometry():
     try:
-        list_dimesions = requests.\
+        list_dimesions = requests. \
             get(global_api_address + '/v1/cortical_area/cortical_area/geometry').json()
         return list_dimesions
     except Exception as e:
@@ -303,3 +307,83 @@ def register_with_feagi(feagi_auth_url, feagi_settings, agent_settings, agent_ca
     publisher.send(agent_capabilities)
 
     return feagi_settings
+
+
+# # Websocket section # #
+async def main(function, ip, port):
+    """
+    The main function handles the websocket and spins the asyncio to run the echo function
+    infinitely until it exits. Once it exits, the function will resume to the next new websocket.
+    """
+    async with websockets.serve(function, ip, port, max_size=None, max_queue=None, write_limit=None,
+                                compression=None):
+        await asyncio.Future()  # run forever
+
+
+def websocket_operation(function, ip, port):
+    """
+    WebSocket initialized to call the echo function using asyncio.
+    """
+    asyncio.run(main(function, ip, port))
+
+
+async def bridge_to_godot(ws_operation, ws, feagi_settings):
+    while True:
+        if ws:
+            try:
+                if ws_operation:
+                    if len(ws) > 0:
+                        if len(ws) > 2:
+                            stored_value = ws.pop()
+                            ws.clear()
+                            ws.append(stored_value)
+                    await ws_operation[0].send(ws[0])
+                    ws.pop()
+                if "stimulation_period" in feagi_settings:
+                    sleep(feagi_settings["stimulation_period"])
+                else:
+                    sleep(0.001)
+            except Exception as error:
+                # print("error in websocket sender: ", error)
+                # traceback.print_exc()
+                ws_operation.pop()
+                sleep(0.001)
+        else:
+            sleep(0.001)
+
+
+def bridge_operation(ws_operation, ws, feagi_settings):
+    asyncio.run(bridge_to_godot(ws_operation, ws, feagi_settings))
+
+
+def websocket_client_initalize(ip, port, dns=''):
+    global websocket, global_websocket_address
+    if dns != '':
+        websocket = connect(dns)
+        global_websocket_address = dns
+    else:
+        global_websocket_address = str('ws://' + ip + ':' + port)
+        websocket = connect(global_websocket_address)
+
+
+def websocket_send(data):
+    global global_websocket_address, websocket
+    try:
+        websocket.send(pickle.dumps(data))
+    except:
+        websocket = connect(global_websocket_address)
+
+
+def websocket_recieve():
+    global websocket, global_websocket_address
+    while True:
+        try:
+            pns.message_from_feagi = pickle.loads(websocket.recv())
+        except Exception as e:
+            print("error: ", e)
+            websocket = connect(global_websocket_address)
+
+
+
+
+
