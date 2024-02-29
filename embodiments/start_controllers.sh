@@ -52,6 +52,9 @@ if [[ "$websocket_bridge" == "true" ]]; then
     echo "PID of the controller-bridge: $PID4"
 fi
 
+cd /opt/source-code/feagi/src/
+python3 main.py
+
 # Optionally, wait for the scripts to finish if they were started
 if [[ ! -z "$PID1" ]]; then
     wait $PID1
