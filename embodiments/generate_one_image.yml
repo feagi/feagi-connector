@@ -16,12 +16,13 @@ services:
       - "8000:8000"
       - "9050:9050"
       - "9051:9051"
+      - "9052:9052"
       - "9053:9053"
       - "30002:30002"
       - "40000-40050:40000-40050"
     environment:
-      MICROBIT_FLAG: "false"
-      WEBCAM_FLAG: "false"
+      MICROBIT_FLAG: "true"
+      WEBCAM_FLAG: "true"
       GODOT_GAMES_FLAG: "false"
       WEBSOCKET_BRIDGE: "true"
 #      FEAGI_HOST_INTERNAL: one_image
