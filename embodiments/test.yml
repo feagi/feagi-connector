@@ -7,20 +7,27 @@ networks:
 services:
   one_image:
     build: .
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: '2g'
     ports:
+      - "8000:8000"
       - "9051:9051"
-      - "9052:9052"
-      - "9053:9053"
-      - "9055:9055"
-      - "3000"
-      - "8000"
+      - "3000:3000"
     environment:
       Microbit_flag: "false"
       Webcam_flag: "false"
       godot_games_flag: "false"
-      websocket_bridge: "true"
-      FEAGI_HOST_INTERNAL: "192.168.50.218"
+      websocket_bridge: "false"
+#      FEAGI_HOST_INTERNAL: one_image
+    env_file:
+      - ./.env
     privileged: true
     networks:
       - net
+    volumes:
+      - "/home/bwuk/feagi-agent/feagi_agent_core/feagi_agent:/usr/local/lib/python3.8/site-packages/feagi_agent"
+      - "/home/bwuk/feagi/src:/opt/source-code/feagi/src"
 
