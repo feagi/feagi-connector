@@ -347,7 +347,8 @@ def fetch_enhancement_data(message_from_feagi, capabilities):
                     device_id = int(data_point.split('-')[0])
                     if device_id == 1:
                         feagi_aptr = (int(data_point.split('-')[-1]))
-                        aptr_cortical_size = full_list_dimension['ov_enh']['cortical_dimensions'][2] - 1
+                        aptr_cortical_size = full_list_dimension['ov_enh']['cortical_dimensions'][
+                                                 2] - 1
                         max_range = 1.4
                         min_range = 0.5
                         capabilities['camera']["enhancement"][int(device_id)] = float(((feagi_aptr
@@ -355,7 +356,8 @@ def fetch_enhancement_data(message_from_feagi, capabilities):
                                                                                                max_range - min_range)) + min_range)
                     if device_id == 2:
                         feagi_aptr = (int(data_point.split('-')[-1]))
-                        aptr_cortical_size = full_list_dimension['ov_enh']['cortical_dimensions'][2]  - 1
+                        aptr_cortical_size = full_list_dimension['ov_enh']['cortical_dimensions'][
+                                                 2] - 1
                         max_range = 2.0
                         min_range = 0.8
                         capabilities['camera']["enhancement"][int(device_id)] = float(((feagi_aptr
@@ -419,3 +421,10 @@ def feagi_listener(feagi_opu_channel):
     thread for listening FEAGI.
     """
     asyncio.run(router.fetch_feagi(feagi_opu_channel))
+
+
+def start_websocket_in_threads(function, ip, port, ws_operation, ws, feagi_setting):
+    threading.Thread(target=router.websocket_operation, args=(function, ip, port),
+                     daemon=True).start()
+    threading.Thread(target=router.bridge_operation, args=(ws_operation, ws, feagi_setting),
+                     daemon=True).start()
