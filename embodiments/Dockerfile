@@ -1,4 +1,4 @@
-FROM python:3.8-buster
+FROM gcr.io/feagi-poc/feagi-dev/feagi:51
 
 ENV PATH="${PATH}:/sbin;/bin"
 RUN apt-get update
