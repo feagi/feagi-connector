@@ -64,12 +64,23 @@ async def echo(websocket):
     and sends the data from FEAGI to the connected websockets.
     """
     # ws.append("V")
+    full_data = ''
     async for message in websocket:
         if not ws_operation:
             ws_operation.append(websocket)
         else:
             ws_operation[0] = websocket
-        print("raw: ", message)
+        if '#' in message:
+            full_data += message
+            new_full_data = full_data.replace('#', '')
+            for item in new_full_data:
+                new_full_data = item.split(',')
+                print(new_full_data)
+
+        else:
+            full_data = message
+        # output_array = message.strip('#').split(',')
+        # print(output_array)
         # try:
         #     pass
         # except Exception as Error_case:
@@ -123,8 +134,7 @@ def action(obtained_data):
                 servo_status[device_id] += servo_power / 10
                 servo_status[device_id] = actuators.servo_keep_boundaries(servo_status[device_id])
             actual_id = feagi_to_petoi_id(device_id)
-            print("device id: ", actual_id, ' and power: ', servo_data[device_id], " servo power: ",
-                  servo_power)
+            print("device id: ", actual_id, ' and power: ', servo_data[device_id], " servo power: ", servo_power)
             WS_STRING += " " + str(actual_id) + " " + str(
                 int(actuators.servo_keep_boundaries(servo_status[device_id])) - 90)
     if WS_STRING != "":
