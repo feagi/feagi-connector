@@ -25,6 +25,15 @@ jobs:
       uses: actions/setup-python@v3
       with:
         python-version: '3.x'
+    - name: Merge in New Changes
+      run: |
+        git config --global --add safe.directory /__w/feagi/feagi-agent
+    - name: Update Dockerfile and version
+      run: |
+        ls
+        export FEAGI_PATH=$(pwd)
+        cd feagi_agent_core/feagi_agent
+        bash $FEAGI_PATH/generate_version.sh
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
