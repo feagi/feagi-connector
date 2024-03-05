@@ -32,7 +32,7 @@ jobs:
       run: |
         ls
         export FEAGI_PATH=$(pwd)
-        cd feagi-agent/feagi_agent_core/feagi_agent
+        cd feagi_agent_core/feagi_agent
         bash $FEAGI_PATH/generate_version.sh
     - name: Install dependencies
       run: |
