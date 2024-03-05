@@ -30,6 +30,7 @@ jobs:
         git config --global --add safe.directory /__w/feagi/feagi-agent
     - name: Update Dockerfile and version
       run: |
+        ls
         export FEAGI_PATH=$(pwd)
         cd feagi-agent/feagi_agent_core/feagi_agent
         bash $FEAGI_PATH/generate_version.sh
