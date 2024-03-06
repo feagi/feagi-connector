@@ -66,7 +66,13 @@ async def echo(websocket):
     """
     # ws.append("G")
     full_data = ''
+    start_time = datetime.now()
+    counter = 0
     async for message in websocket:
+        if (datetime.now() - start_time).total_seconds() > 1:
+            start_time = datetime.now()
+            print("data recieved: ", counter, " after 1 second")
+            counter = 0
         if not ws_operation:
             ws_operation.append(websocket)
         else:
@@ -99,6 +105,8 @@ async def echo(websocket):
             # print("error: ", Error_case)
             # traceback.print_exc()
             # print("raw: ", message)
+        counter += 1
+        # print((datetime.now() - start_time).total_seconds())
 
 
 async def main():
@@ -136,8 +144,16 @@ def feagi_to_petoi_id(device_id):
 def action(obtained_data):
     servo_data = actuators.get_servo_data(obtained_data, True)
     WS_STRING = ""
+    if 'servo_position' in obtained_data:
+        servo_for_feagi = 'i '
+        if obtained_data['servo_position'] is not {}:
+            for data_point in obtained_data['servo_position']:
+                device_id = feagi_to_petoi_id(data_point)
+                encoder_position = (((180) / 20) * obtained_data['servo_position'][data_point]) - 90
+                servo_for_feagi += str(device_id) + " " + str(encoder_position) + " "
+            WS_STRING += servo_for_feagi
     if servo_data:
-        WS_STRING = "i "
+        WS_STRING = "i"
         for device_id in servo_data:
             servo_power = actuators.servo_generate_power(180, servo_data[device_id], device_id)
             if device_id not in servo_status:
@@ -146,13 +162,11 @@ def action(obtained_data):
                 servo_status[device_id] += servo_power / 10
                 servo_status[device_id] = actuators.servo_keep_boundaries(servo_status[device_id])
             actual_id = feagi_to_petoi_id(device_id)
-            print("device id: ", actual_id, ' and power: ', servo_data[device_id], " servo power: ",
-                  servo_power)
-            WS_STRING += " " + str(actual_id) + " " + str(
-                int(actuators.servo_keep_boundaries(servo_status[device_id])) - 90)
+            # print("device id: ", actual_id, ' and power: ', servo_data[device_id], " servo power: ", servo_power)
+            WS_STRING += " " + str(actual_id) + " " + str(int(actuators.servo_keep_boundaries(servo_status[device_id])) - 90)
     if WS_STRING != "":
         # WS_STRING = WS_STRING + "#"
-        print("HERE: ", WS_STRING)
+        print("sending to main: ", WS_STRING)
         ws.append(WS_STRING)
 
 
