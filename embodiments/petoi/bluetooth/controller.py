@@ -31,6 +31,7 @@ ws = deque()
 ws_operation = deque()
 previous_data = ""
 servo_status = {}
+gyro = {}
 
 
 async def bridge_to_godot():
@@ -63,30 +64,41 @@ async def echo(websocket):
     The function echoes the data it receives from other connected websockets
     and sends the data from FEAGI to the connected websockets.
     """
-    # ws.append("V")
+    # ws.append("G")
     full_data = ''
     async for message in websocket:
         if not ws_operation:
             ws_operation.append(websocket)
         else:
             ws_operation[0] = websocket
-        if '#' in message:
-            full_data += message
-            new_full_data = full_data.replace('#', '')
-            for item in new_full_data:
-                new_full_data = item.split(',')
-                print(new_full_data)
-
-        else:
-            full_data = message
         # output_array = message.strip('#').split(',')
         # print(output_array)
-        # try:
-        #     pass
-        # except Exception as Error_case:
-        #     pass
-        #     # print("error: ", Error_case)
-        #     print("raw: ", message)
+        try:
+            if '#' in message:
+                cleaned_data = message.replace('\r', '')
+                cleaned_data = cleaned_data.replace('\n', '')
+                test = cleaned_data.split('#')
+                new_data = full_data + test[0]
+                new_data = new_data.split(",")
+                processed_data = []
+                for i in new_data:
+                    full_number = str()
+                    for x in i:
+                        if x in [".", "-"] or x.isdigit():
+                            full_number += x
+                    if full_number:
+                        processed_data.append(float(full_number))
+                # Add gyro data into feagi data
+                gyro['gyro'] = {'0': processed_data[0], '1': processed_data[1],
+                                '2': processed_data[2]}
+                full_data = test[1]
+            else:
+                full_data = message
+        except Exception as Error_case:
+            pass
+            # print("error: ", Error_case)
+            # traceback.print_exc()
+            # print("raw: ", message)
 
 
 async def main():
@@ -134,7 +146,8 @@ def action(obtained_data):
                 servo_status[device_id] += servo_power / 10
                 servo_status[device_id] = actuators.servo_keep_boundaries(servo_status[device_id])
             actual_id = feagi_to_petoi_id(device_id)
-            print("device id: ", actual_id, ' and power: ', servo_data[device_id], " servo power: ", servo_power)
+            print("device id: ", actual_id, ' and power: ', servo_data[device_id], " servo power: ",
+                  servo_power)
             WS_STRING += " " + str(actual_id) + " " + str(
                 int(actuators.servo_keep_boundaries(servo_status[device_id])) - 90)
     if WS_STRING != "":
@@ -175,6 +188,7 @@ if __name__ == "__main__":
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     msg_counter = runtime_data["feagi_state"]['burst_counter']
     runtime_data['accelerator'] = {}
+    flag = True
 
     while True:
         try:
@@ -188,6 +202,12 @@ if __name__ == "__main__":
                 obtained_signals = pns.obtain_opu_data(message_from_feagi)
                 action(obtained_signals)
             # OPU section ENDS
+
+            if gyro:
+                message_to_feagi = sensors.add_gyro_to_feagi_data(gyro['gyro'], message_to_feagi)
+                if flag:
+                    ws.append('g')
+                    flag = False
 
             message_to_feagi['timestamp'] = datetime.now()
             message_to_feagi['counter'] = msg_counter
