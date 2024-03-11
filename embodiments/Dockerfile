@@ -22,10 +22,10 @@ ENV Running_In_CONTAINER Yes
 WORKDIR /root/
 
 # Copy the required directories into the container at /usr/src/app
-mkdir -p neuraville/javascript_webcam/
-mkdir -p elecfreaks/cutebot/web_html_microbit/
-mkdir -p godot-games-controller/
-mkdir -p controller-bridge
+RUN mkdir -p neuraville/javascript_webcam/
+RUN mkdir -p elecfreaks/cutebot/web_html_microbit/
+RUN mkdir -p godot-games-controller/
+RUN mkdir -p controller-bridge
 COPY neuraville/javascript_webcam/ ./neuraville/javascript_webcam/
 COPY elecfreaks/cutebot/web_html_microbit/ ./elecfreaks/cutebot/web_html_microbit/
 COPY godot-games-controller/ ./godot-games-controller/
