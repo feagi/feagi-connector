@@ -22,11 +22,12 @@ ENV Running_In_CONTAINER Yes
 WORKDIR /root/
 
 # Copy the required directories into the container at their respective locations
-COPY embodiments/neuraville/javascript_webcam/ /neuraville/javascript_webcam/
+COPY neuraville/javascript_webcam/ /neuraville/javascript_webcam/
 COPY elecfreaks/cutebot/web_html_microbit/ /elecfreaks/cutebot/web_html_microbit/
 COPY godot-games-controller/ /godot-games-controller/
-COPY embodiments/controller-bridge/ /controller-bridge/
+COPY controller-bridge/ /controller-bridge/
 COPY start_controllers.sh /
+
 
 # Make sure your script is executable
 RUN chmod +x ./start_controllers.sh
