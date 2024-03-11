@@ -100,8 +100,8 @@ def godot_to_feagi():
                 if len(new_cam) == 1228800:
                     image = new_cam.reshape(640, 640, 3)
                 camera_data['vision'] = image
-            if "stimulation_period" in runtime_data:
-                sleep(runtime_data["stimulation_period"])
+        if "stimulation_period" in runtime_data:
+            sleep(runtime_data["stimulation_period"])
 
 
 async def bridge_to_godot():
