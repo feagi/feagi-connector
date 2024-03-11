@@ -29,9 +29,8 @@ COPY controller-bridge/ /controller-bridge/
 COPY start_controllers.sh /
 
 RUN ls /root/
-RUN tree /root/
 # Make sure your script is executable
-RUN chmod +x ./start_controllers.sh
+RUN chmod +x /root/start_controllers.sh
 
 # Run start_controllers.sh when the container launches
-CMD ["./start_controllers.sh"]
+CMD ["/root/start_controllers.sh"]
