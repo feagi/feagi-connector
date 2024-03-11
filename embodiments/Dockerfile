@@ -22,7 +22,7 @@ ENV Running_In_CONTAINER Yes
 WORKDIR /root/
 
 # Copy the required directories into the container at their respective locations
-COPY neuraville/javascript_webcam/ /neuraville/javascript_webcam/
+COPY embodiments/neuraville/javascript_webcam/ /neuraville/javascript_webcam/
 COPY elecfreaks/cutebot/web_html_microbit/ /elecfreaks/cutebot/web_html_microbit/
 COPY godot-games-controller/ /godot-games-controller/
 COPY controller-bridge/ /controller-bridge/
