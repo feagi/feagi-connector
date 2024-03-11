@@ -22,11 +22,11 @@ ENV Running_In_CONTAINER Yes
 WORKDIR /root/
 
 # Copy the required directories into the container at their respective locations
-COPY neuraville/javascript_webcam/ /neuraville/javascript_webcam/
-COPY elecfreaks/cutebot/web_html_microbit/ /elecfreaks/cutebot/web_html_microbit/
-COPY godot-games-controller/ /godot-games-controller/
-COPY controller-bridge/ /controller-bridge/
-COPY start_controllers.sh /
+COPY neuraville/javascript_webcam/ /root/neuraville/javascript_webcam/
+COPY elecfreaks/cutebot/web_html_microbit/ /root/elecfreaks/cutebot/web_html_microbit/
+COPY godot-games-controller/ /root/godot-games-controller/
+COPY controller-bridge/ /root/controller-bridge/
+COPY start_controllers.sh /root/
 
 RUN ls /root/
 # Make sure your script is executable
