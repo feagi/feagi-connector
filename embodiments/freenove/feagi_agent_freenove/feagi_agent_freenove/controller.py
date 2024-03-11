@@ -9,6 +9,7 @@ import RPi.GPIO as GPIO
 from time import sleep
 from collections import deque
 from datetime import datetime
+from feagi_agent import router
 from feagi_agent_freenove.Led import *
 from feagi_agent_freenove.ADC import *
 from feagi_agent import retina as retina
@@ -444,6 +445,7 @@ def action(obtained_data, led_tracking_list, feagi_settings, capabilities, rolli
                 led.LED_on(x, 0, 0, 0)
             led_tracking_list.clear()
 
+
 async def read_background(feagi_settings):
     ir = IR()
     while True:
@@ -553,17 +555,19 @@ def main(feagi_auth_url, feagi_settings, agent_settings, capabilities):
     # overwrite manual
     camera_data = {"vision": {}}
     default_capabilities = pns.create_runtime_default_list(default_capabilities, capabilities)
-    threading.Thread(target=pns.feagi_listener, args=(feagi_opu_channel,), daemon=True).start()
+    # threading.Thread(target=pns.feagi_listener, args=(feagi_opu_channel,), daemon=True).start()
+
+    router.websocket_client_initalize('192.168.50.218', '9053')
     threading.Thread(target=retina.vision_progress,
                      args=(default_capabilities, feagi_opu_channel, api_address, feagi_settings,
                            camera_data['vision'],), daemon=True).start()
     threading.Thread(target=process_video, args=(default_capabilities, capabilities, cam,
                                                  previous_frame_data, rgb), daemon=True).start()
-
+    threading.Thread(target=router.websocket_recieve, daemon=True).start()
     while True:
         try:
             message_from_feagi = pns.message_from_feagi
-            if message_from_feagi:
+            if message_from_feagi and message_from_feagi != None:
                 # Fetch data such as motor, servo, etc and pass to a function (you make ur own action.
                 obtained_signals = pns.obtain_opu_data(message_from_feagi)
                 action(obtained_signals, led_tracking_list, feagi_settings, capabilities,
@@ -584,7 +588,9 @@ def main(feagi_auth_url, feagi_settings, agent_settings, capabilities):
                                                        message_to_feagi)
             sleep(feagi_settings['feagi_burst_speed'])
             # Send the data contains IR, Ultrasonic, and camera
-            pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
+            # pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
+            router.websocket_send(message_to_feagi)
+            message_to_feagi.clear()
         except KeyboardInterrupt as ke:  # Keyboard error
             motor.stop()
             cam.release()
