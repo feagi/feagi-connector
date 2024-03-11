@@ -29,7 +29,7 @@ RUN mkdir -p controller-bridge
 COPY neuraville/javascript_webcam/ ./neuraville/javascript_webcam/
 COPY elecfreaks/cutebot/web_html_microbit/ ./elecfreaks/cutebot/web_html_microbit/
 COPY godot-games-controller/ ./godot-games-controller/
-COPY controller-bridge/ ./controller-bridge
+COPY controller-bridge/ ./controller-bridge/
 COPY start_controllers.sh .
 
 
