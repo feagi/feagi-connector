@@ -28,7 +28,7 @@ COPY godot-games-controller/ /godot-games-controller/
 COPY controller-bridge/ /controller-bridge/
 COPY start_controllers.sh /
 
-
+RUN ls
 # Make sure your script is executable
 RUN chmod +x ./start_controllers.sh
 
