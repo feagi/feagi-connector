@@ -25,16 +25,8 @@ WORKDIR /root/
 COPY embodiments/neuraville/javascript_webcam/ /neuraville/javascript_webcam/
 COPY elecfreaks/cutebot/web_html_microbit/ /elecfreaks/cutebot/web_html_microbit/
 COPY godot-games-controller/ /godot-games-controller/
-COPY controller-bridge/ /controller-bridge/
+COPY embodiments/controller-bridge/ /controller-bridge/
 COPY start_controllers.sh /
-
-
-
-# Install any needed packages specified in requirements.txt
-# Uncomment and adjust if you have requirements.txt in your directories
-# RUN pip install --no-cache-dir -r ./neuraville/javascript_webcam/requirements.txt
-# RUN pip install --no-cache-dir -r ./elecfreaks/cutebot/web_html_microbit/requirements.txt
-# RUN pip install --no-cache-dir -r ./godot-games-controller/requirements.txt
 
 # Make sure your script is executable
 RUN chmod +x ./start_controllers.sh
