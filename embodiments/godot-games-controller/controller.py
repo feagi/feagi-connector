@@ -78,17 +78,17 @@ def godot_to_feagi():
             else:
                 message = zlib.decompress(message)
                 string_array = array.array('B', message)
-                try:
-                    total = len(string_array) - (capabilities['camera']['current_select'][0][0] *
-                                                 capabilities['camera']['current_select'][0][1] * 3)
-                    last_eight_elements = list(string_array[len(string_array) - total:])
-                    ascii_string = ''.join(chr(value) for value in last_eight_elements)
-                    values = [float(val) for val in ascii_string.split("/")]
-                    if acc:  # This is defined in main. It's a dict
-                        acc['accelerator'] = values
-                    string_array = string_array[:-total]
-                except Exception as error:
-                    acc['accelerator'].clear()
+                # try:
+                #     total = len(string_array) - (capabilities['camera']['current_select'][0][0] *
+                #                                  capabilities['camera']['current_select'][0][1] * 3)
+                #     last_eight_elements = list(string_array[len(string_array) - total:])
+                #     ascii_string = ''.join(chr(value) for value in last_eight_elements)
+                #     values = [float(val) for val in ascii_string.split("/")]
+                #     if acc:  # This is defined in main. It's a dict
+                #         acc['accelerator'] = values
+                #     string_array = string_array[:-total]
+                # except Exception as error:
+                #     acc['accelerator'].clear()
                 # Debug ends
                 # if len(string_array) == (capabilities['camera']['current_select'][0][0] * capabilities[
                 #     'camera']['current_select'][0][1] * 3):
@@ -98,6 +98,8 @@ def godot_to_feagi():
                     image = new_cam.reshape(128, 128, 3)
                 if len(new_cam) == 3072:
                     image = new_cam.reshape(32, 32, 3)
+                if len(new_cam) == 1228800:
+                    image = new_cam.reshape(640, 640, 3)
                 camera_data['vision'] = image
         if "stimulation_period" in runtime_data:
             sleep(runtime_data["stimulation_period"])
@@ -249,11 +251,8 @@ if __name__ == '__main__':
     capabilities['camera']['current_select'] = [[32, 32], []]
     acc['accelerator'] = {}
     gyro['gyro'] = {}
-    pns.start_websocket_in_threads(echo,
-                                   agent_settings["godot_websocket_ip"],
-                                   agent_settings['godot_websocket_port'],
-                                   ws_operation, ws,
-                                   feagi_settings)
+    threading.Thread(target=websocket_operation, daemon=True).start()
+    threading.Thread(target=bridge_operation, daemon=True).start()
     threading.Thread(target=godot_to_feagi, daemon=True).start()
     while True:
         feagi_auth_url = feagi_settings.pop('feagi_auth_url', None)
