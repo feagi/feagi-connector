@@ -137,14 +137,10 @@ if __name__ == "__main__":
         # overwrite manual
         previous_burst = 0
         default_capabilities = pns.create_runtime_default_list(default_capabilities, capabilities)
-        print("OPU HERE: ", feagi_opu_channel)
-        # print("TEST API: ", requests.get("http://172.22.0.2:8000/v1/genome/file_name").json(),
-        #       " and ip:port ", "172.22.0.2:8000")
         threading.Thread(target=pns.feagi_listener, args=(feagi_opu_channel,), daemon=True).start()
         threading.Thread(target=retina.vision_progress,
                          args=(default_capabilities, feagi_opu_channel, api_address, feagi_settings,
                                camera_data['vision'],), daemon=True).start()
-        print("done!")
         while True:
             try:
                 if np.any(rgb_array['current']):

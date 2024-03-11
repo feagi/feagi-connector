@@ -567,7 +567,6 @@ def main(feagi_auth_url, feagi_settings, agent_settings, capabilities):
     while True:
         try:
             message_from_feagi = pns.message_from_feagi
-            # print("bwuk: ", pns.message_from_feagi)
             if message_from_feagi and message_from_feagi != None:
                 # Fetch data such as motor, servo, etc and pass to a function (you make ur own action.
                 obtained_signals = pns.obtain_opu_data(message_from_feagi)
