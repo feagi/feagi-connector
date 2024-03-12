@@ -5,7 +5,7 @@ file_path="version.py"
 line_number="1"
 
 # Get current UNIX timestamp
-timestamp=$(123)
+timestamp=123
 full_line="__version__ = '$timestamp'"
 
 sed -i "${line_number}s/.*/$full_line/" "$file_path"
