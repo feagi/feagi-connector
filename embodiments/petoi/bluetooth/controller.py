@@ -20,7 +20,6 @@ from datetime import datetime
 from time import sleep
 import traceback
 import websockets
-from urllib.parse import urlparse, parse_qs
 from configuration import *
 from version import __version__
 from feagi_agent import pns_gateway as pns
@@ -33,7 +32,6 @@ ws_operation = deque()
 previous_data = ""
 servo_status = {}
 gyro = {}
-current_device = {}
 
 
 async def bridge_to_godot():
@@ -57,108 +55,58 @@ async def bridge_to_godot():
             sleep(0.001)
 
 
-def feagi_to_petoi_id(device_id):
-    mapping = {
-        0: 0,
-        1: 8,
-        2: 12,
-        3: 9,
-        4: 13,
-        5: 11,
-        6: 15,
-        7: 10,
-        8: 14
-    }
-    return mapping.get(device_id, None)
-
-
-def petoi_listen(message, full_data):
-    global gyro
-    try:
-        if '#' in message:
-            cleaned_data = message.replace('\r', '')
-            cleaned_data = cleaned_data.replace('\n', '')
-            test = cleaned_data.split('#')
-            new_data = full_data + test[0]
-            new_data = new_data.split(",")
-            processed_data = []
-            for i in new_data:
-                full_number = str()
-                for x in i:
-                    if x in [".", "-"] or x.isdigit():
-                        full_number += x
-                if full_number:
-                    processed_data.append(float(full_number))
-            # Add gyro data into feagi data
-            gyro['gyro'] = {'0': processed_data[0], '1': processed_data[1],
-                            '2': processed_data[2]}
-            full_data = test[1]
-        else:
-            full_data = message
-    except Exception as Error_case:
-        pass
-    return full_data
-    # print("error: ", Error_case)
-    # traceback.print_exc()
-    # print("raw: ", message)
-
-
-def microbit_listen(message):
-    global microbit_data
-    ir_list = []
-    if message[0] == 'f':
-        pass
-    else:
-        ir_list.append(0)
-    if message[1] == 'f':
-        pass
-    else:
-        ir_list.append(1)
-    try:
-        x_acc = int(message[2:6]) - 1000
-        y_acc = int(message[6:10]) - 1000
-        z_acc = int(message[10:14]) - 1000
-        ultrasonic = float(message[14:16])
-        sound_level = int(message[16:18])
-        # Store values in dictionary
-        microbit_data['ir'] = ir_list
-        microbit_data['ultrasonic'] = ultrasonic / 25
-        microbit_data['accelerator'] = {"0": x_acc, "1": y_acc, "2": z_acc}
-        microbit_data['sound_level'] = {sound_level}
-        return
-    except Exception as Error_case:
-        pass
-        # print("error: ", Error_case)
-        # print("raw: ", message)
-
-
 def bridge_operation():
     asyncio.run(bridge_to_godot())
 
 
-async def echo(websocket, path):
+async def echo(websocket):
     """
     The function echoes the data it receives from other connected websockets
     and sends the data from FEAGI to the connected websockets.
     """
     # ws.append("G")
-    query_params = parse_qs(urlparse(path).query)
-    device = query_params.get('device', [None])[0]  # Default to None if 'device' is not provided
-    current_device['name'] = device
     full_data = ''
+    start_time = datetime.now()
+    counter = 0
     async for message in websocket:
+        if (datetime.now() - start_time).total_seconds() > 1:
+            start_time = datetime.now()
+            print("data recieved: ", counter, " after 1 second")
+            counter = 0
         if not ws_operation:
             ws_operation.append(websocket)
         else:
             ws_operation[0] = websocket
-
-        if device == "microbit":
-            microbit_listen(message)
-        elif device == "petoi":
-            full_data = petoi_listen(message, full_data)  # Needs to add
-        elif device == "generic":
-            print("generic")
-            pass  # Needs to figure how to address this
+        # output_array = message.strip('#').split(',')
+        # print(output_array)
+        try:
+            if '#' in message:
+                cleaned_data = message.replace('\r', '')
+                cleaned_data = cleaned_data.replace('\n', '')
+                test = cleaned_data.split('#')
+                new_data = full_data + test[0]
+                new_data = new_data.split(",")
+                processed_data = []
+                for i in new_data:
+                    full_number = str()
+                    for x in i:
+                        if x in [".", "-"] or x.isdigit():
+                            full_number += x
+                    if full_number:
+                        processed_data.append(float(full_number))
+                # Add gyro data into feagi data
+                gyro['gyro'] = {'0': processed_data[0], '1': processed_data[1],
+                                '2': processed_data[2]}
+                full_data = test[1]
+            else:
+                full_data = message
+        except Exception as Error_case:
+            pass
+            # print("error: ", Error_case)
+            # traceback.print_exc()
+            # print("raw: ", message)
+        counter += 1
+        # print((datetime.now() - start_time).total_seconds())
 
 
 async def main():
@@ -178,7 +126,22 @@ def websocket_operation():
     asyncio.run(main())
 
 
-def petoi_action(obtained_data):
+def feagi_to_petoi_id(device_id):
+    mapping = {
+        0: 0,
+        1: 8,
+        2: 12,
+        3: 9,
+        4: 13,
+        5: 11,
+        6: 15,
+        7: 10,
+        8: 14
+    }
+    return mapping.get(device_id, None)
+
+
+def action(obtained_data):
     servo_data = actuators.get_servo_data(obtained_data, True)
     WS_STRING = ""
     if 'servo_position' in obtained_data:
@@ -200,49 +163,10 @@ def petoi_action(obtained_data):
                 servo_status[device_id] = actuators.servo_keep_boundaries(servo_status[device_id])
             actual_id = feagi_to_petoi_id(device_id)
             # print("device id: ", actual_id, ' and power: ', servo_data[device_id], " servo power: ", servo_power)
-            WS_STRING += " " + str(actual_id) + " " + str(
-                int(actuators.servo_keep_boundaries(servo_status[device_id])) - 90)
+            WS_STRING += " " + str(actual_id) + " " + str(int(actuators.servo_keep_boundaries(servo_status[device_id])) - 90)
     if WS_STRING != "":
         # WS_STRING = WS_STRING + "#"
         print("sending to main: ", WS_STRING)
-        ws.append(WS_STRING)
-
-
-def microbit_action(obtained_data):
-    recieve_motor_data = actuators.get_motor_data(obtained_data,
-                                                  capabilities['motor']['power_amount'],
-                                                  capabilities['motor']['count'], rolling_window)
-
-    WS_STRING = ""
-    new_dict = {'motor': {}}
-    if 0 in recieve_motor_data:
-        if 1 in recieve_motor_data:
-            if recieve_motor_data[0] >= recieve_motor_data[1]:
-                new_dict['motor'][0] = recieve_motor_data[0]
-            else:
-                new_dict['motor'][1] = recieve_motor_data[1]
-    if 2 in recieve_motor_data:
-        if 3 in recieve_motor_data:
-            if recieve_motor_data[2] >= recieve_motor_data[3]:
-                new_dict['motor'][2] = recieve_motor_data[2]
-            else:
-                new_dict['motor'][3] = recieve_motor_data[3]
-    for i in new_dict['motor']:
-        if i in [0, 1]:
-            data_power = new_dict['motor'][i]
-            if data_power <= 0:
-                data_power = 1
-            WS_STRING += str(i) + str(data_power - 1).zfill(
-                2)  # Append the motor data as a two-digit
-            # string
-        elif i in [2, 3]:
-            data_power = new_dict['motor'][i]
-            if data_power <= 0:
-                data_power = 1
-            WS_STRING += str(i) + str(data_power - 1).zfill(
-                2)  # Append the motor data as a two-digit
-    if WS_STRING != "":
-        WS_STRING = WS_STRING + "#"
         ws.append(WS_STRING)
 
 
@@ -278,13 +202,8 @@ if __name__ == "__main__":
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     msg_counter = runtime_data["feagi_state"]['burst_counter']
     runtime_data['accelerator'] = {}
-    rolling_window = {}
-    rolling_window_len = capabilities['motor']['rolling_window_len']
-    motor_count = capabilities['motor']['count']
+    flag = True
 
-    # Initialize rolling window for each motor
-    for motor_id in range(motor_count):
-        rolling_window[motor_id] = deque([0] * rolling_window_len)
     while True:
         try:
             message_from_feagi = pns.message_from_feagi
@@ -295,24 +214,14 @@ if __name__ == "__main__":
                                                                              feagi_settings[
                                                                                  'feagi_burst_speed'])
                 obtained_signals = pns.obtain_opu_data(message_from_feagi)
-                if 'name' in current_device:
-                    if current_device['name'] == "microbit":
-                        microbit_action(obtained_signals)
-                    elif current_device['name'] == "petoi":
-                        petoi_action(obtained_signals)
+                action(obtained_signals)
             # OPU section ENDS
-            if microbit_data['ultrasonic']:
-                message_to_feagi = sensors.add_ultrasonic_to_feagi_data(microbit_data['ultrasonic'],
-                                                                        message_to_feagi)
-            if microbit_data['ir']:
-                message_to_feagi = sensors.add_infrared_to_feagi_data(microbit_data['ir'],
-                                                                      message_to_feagi,
-                                                                      capabilities)
-            if microbit_data['accelerator']:
-                message_to_feagi = sensors.add_acc_to_feagi_data(microbit_data['accelerator'],
-                                                                 message_to_feagi)
+
             if gyro:
                 message_to_feagi = sensors.add_gyro_to_feagi_data(gyro['gyro'], message_to_feagi)
+                if flag:
+                    ws.append('g')
+                    flag = False
 
             message_to_feagi['timestamp'] = datetime.now()
             message_to_feagi['counter'] = msg_counter

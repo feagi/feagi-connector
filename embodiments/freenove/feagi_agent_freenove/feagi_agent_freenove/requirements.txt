@@ -4,3 +4,4 @@ rpi_ws281x
 RPi.GPIO
 smbus
 lz4
+websockets

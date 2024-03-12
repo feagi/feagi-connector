@@ -228,7 +228,9 @@ def opu_processor(data):
                             device_id = processed_data_point[0]
                             device_power = opu_data['o_mctl'][data_point]
                             selected = processed_data_point[2]
-                            if processed_data_point[2] / pns.full_list_dimension['o_mctl']['cortical_dimensions'][2] == 0:
+                            if processed_data_point[2] / \
+                                    pns.full_list_dimension['o_mctl']['cortical_dimensions'][
+                                        2] == 0:
                                 device_power = mctl_neuron_update(device_power, selected)
                             else:
                                 device_power = mctl_neuron_update(processed_data_point[2], selected)
@@ -336,6 +338,9 @@ def connect_to_feagi(feagi_settings, runtime_data, agent_settings, capabilities,
     opu_channel_address = feagi_outbound(feagi_settings['feagi_host'],
                                          runtime_data["feagi_state"]['feagi_opu_port'])
 
+    # ip = '172.28.0.2'
+    # opu_channel_address = 'tcp://' + str(ip) + ':3000'
+    # ipu_channel_address = 'tcp://' + str(ip) + ':3000'
     feagi_ipu_channel = pub_initializer(ipu_channel_address, bind=False)
     feagi_opu_channel = sub_initializer(opu_address=opu_channel_address)
     router.global_feagi_opu_channel = feagi_opu_channel
@@ -366,4 +371,3 @@ def mctl_neuron_update(feagi_power, id):
         return feagi_power / 100.0
     else:
         return feagi_power / z_depth
-

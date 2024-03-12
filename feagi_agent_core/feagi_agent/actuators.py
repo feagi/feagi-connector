@@ -109,7 +109,10 @@ def get_servo_data(obtained_data, converter_id=False):
                 device_id = feagi_id_converter(data_point)
             else:
                 device_id = data_point
-            servo_data[device_id] = device_power
+            if device_id in servo_data:
+                servo_data[device_id] += device_power
+            else:
+                servo_data[device_id] = device_power
     return servo_data
 
 
