@@ -26,31 +26,16 @@ feagi_settings = {
     "feagi_api_port": os.environ.get('FEAGI_API_PORT', "8000")
 }
 agent_settings = {
-    "agent_data_port": "10006",
-    "agent_id": "media_capture_ctrl",
+    "agent_data_port": "10008",
+    "agent_id": "zmq_to_ws_ctrl",
     "agent_type": "embodiment",
     'TTL': 2,
     'last_message': 0,
     'godot_websocket_ip': "0.0.0.0",
-    'godot_websocket_port': os.environ.get('WS_WEBCAM_PORT', "9051"),
+    'godot_websocket_port': os.environ.get('WS_CONTROLLER_PORT', "9053"),
     'compression': True
 }
 
-capabilities = {
-    "camera": {
-        "type": "ipu",
-        "disabled": False,
-        "index": "00",
-        "video_device_index": 0,
-        "image": "",
-        "video_loop": False,
-        "mirror": False,
-        # "enhancement": {1:80, 2:80, 4: 80}, # Example. Brightness, Constrast, Shadow
-        # "gaze_control": {0: 25, 1: 55}, # Gaze shifts right
-        # "pupil_control": {0: 25, 1: 55}, # Pupil shifts up
-        # "threshold_default": [50, 255, 130, 51] # min value, max value, min value, max value in
-        # threshold setting. first and second is for regular webcam. Second is for vision blink OPU
-    }
-}
+capabilities = {}
 
 message_to_feagi = {"data": {}}

@@ -1,0 +1,36 @@
+FROM neuraville/bridge:latest
+FROM gcr.io/feagi-poc/feagi-dev/feagi:51
+COPY --from=0 /root/src/ /root/src/
+
+
+ENV PATH="${PATH}:/sbin;/bin"
+RUN apt-get update
+
+RUN apt-get update && \
+    apt install -y libgl1-mesa-glx
+
+RUN pip3 install --upgrade pip && \
+    pip3 install -U feagi_agent && \
+    pip3 install opencv-python==4.7.0.68 && \
+    pip3 install websockets && \
+    pip3 install fastapi && \
+    pip3 install lz4 && \
+    pip3 install -U pyzmq
+
+
+ENV Running_In_CONTAINER Yes
+WORKDIR /root/
+
+# Copy the required directories into the container at their respective locations
+COPY neuraville/javascript_webcam/ /root/neuraville/javascript_webcam/
+COPY elecfreaks/cutebot/web_html_microbit/ /root/elecfreaks/cutebot/web_html_microbit/
+COPY godot-games-controller/ /root/godot-games-controller/
+COPY controller-bridge/ /root/controller-bridge/
+COPY start_controllers.sh /root/
+
+RUN ls /root/
+# Make sure your script is executable
+RUN chmod +x /root/start_controllers.sh
+
+# Run start_controllers.sh when the container launches
+CMD ["/root/start_controllers.sh"]
