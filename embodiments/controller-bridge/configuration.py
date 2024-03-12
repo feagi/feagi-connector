@@ -27,7 +27,7 @@ feagi_settings = {
 }
 agent_settings = {
     "agent_data_port": "10008",
-    "agent_id": "controller-bridge",
+    "agent_id": "zmq_to_ws_ctrl",
     "agent_type": "embodiment",
     'TTL': 2,
     'last_message': 0,

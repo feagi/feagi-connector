@@ -28,7 +28,7 @@ feagi_settings = {
 
 agent_settings = {
     "agent_data_port": "10003",
-    "agent_id": "microbit",
+    "agent_id": "bluetooth_ctrl",
     "agent_type": "embodiment",
     'TTL': 2,
     'last_message': 0,
