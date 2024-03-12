@@ -21,22 +21,16 @@ RUN pip3 install --upgrade pip && \
 ENV Running_In_CONTAINER Yes
 WORKDIR /root/
 
-# Copy the required directories into the container at /usr/src/app
-COPY neuraville/javascript_webcam/ ./neuraville/javascript_webcam/
-COPY elecfreaks/cutebot/web_html_microbit/ ./elecfreaks/cutebot/web_html_microbit/
-COPY godot-games-controller/ ./godot-games-controller/
-COPY controller-bridge/ ./controller-bridge
-COPY start_controllers.sh .
+# Copy the required directories into the container at their respective locations
+COPY neuraville/javascript_webcam/ /root/neuraville/javascript_webcam/
+COPY elecfreaks/cutebot/web_html_microbit/ /root/elecfreaks/cutebot/web_html_microbit/
+COPY godot-games-controller/ /root/godot-games-controller/
+COPY controller-bridge/ /root/controller-bridge/
+COPY start_controllers.sh /root/
 
-
-# Install any needed packages specified in requirements.txt
-# Uncomment and adjust if you have requirements.txt in your directories
-# RUN pip install --no-cache-dir -r ./neuraville/javascript_webcam/requirements.txt
-# RUN pip install --no-cache-dir -r ./elecfreaks/cutebot/web_html_microbit/requirements.txt
-# RUN pip install --no-cache-dir -r ./godot-games-controller/requirements.txt
-
+RUN ls /root/
 # Make sure your script is executable
-RUN chmod +x ./start_controllers.sh
+RUN chmod +x /root/start_controllers.sh
 
 # Run start_controllers.sh when the container launches
-CMD ["./start_controllers.sh"]
+CMD ["/root/start_controllers.sh"]
