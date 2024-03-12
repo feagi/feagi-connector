@@ -270,7 +270,7 @@ def register_with_feagi(feagi_auth_url, feagi_settings, agent_settings, agent_ca
             agent_registration_data = dict()
             agent_registration_data["agent_type"] = str(agent_settings['agent_type'])
             agent_registration_data["agent_id"] = str(agent_settings['agent_id'])
-            agent_registration_data["agent_ip"] = str(agent_settings['agent_ip'])
+            agent_registration_data["agent_ip"] = str(agent_settings['agent_ip'])#str("127.0.0.1")
             agent_registration_data["agent_data_port"] = int(agent_settings['agent_data_port'])
             agent_registration_data["controller_version"] = str(controller_version)
             agent_registration_data["agent_version"] = str(agent_version)
@@ -295,6 +295,7 @@ def register_with_feagi(feagi_auth_url, feagi_settings, agent_settings, agent_ca
             # traceback.print_exc()
         sleep(2)
 
+    # feagi_settings['agent_state']['agent_ip'] = "127.0.0.1"
     print(f"Final Feagi Settings ---- {feagi_settings}")
     feagi_ip = feagi_settings['feagi_host']
     agent_data_port = feagi_settings['agent_state']['agent_data_port']
