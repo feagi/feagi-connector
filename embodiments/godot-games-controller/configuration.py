@@ -27,7 +27,7 @@ feagi_settings = {
 
 agent_settings = {
     "agent_data_port": "10005",
-    "agent_id": "brain_pong",
+    "agent_id": "godot_game_ctrl",
     "agent_type": "embodiment",
     'TTL': 2,
     'last_message': 0,
