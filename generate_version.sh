@@ -5,7 +5,10 @@ file_path="version.py"
 line_number="1"
 
 # Get current UNIX timestamp
-timestamp=$(git tag)
+timestamp=$(git tag | sort -V | tail -n 1)
+if [ -z "$timestamp" ]; then
+    timestamp="---"
+fi
 full_line="__version__ = '$timestamp'"
 
 sed -i "${line_number}s/.*/$full_line/" "$file_path"
