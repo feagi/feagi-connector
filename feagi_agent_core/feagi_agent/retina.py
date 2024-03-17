@@ -214,7 +214,7 @@ def create_feagi_data_grayscale(significant_changes, current, shape):
     return feagi_data
 
 
-def change_detector_grayscale(previous, current, capabilities):
+def change_detector_grayscale(previous, current, capabilities, compare_image):
     """
     Detects changes between previous and current frames and checks against a threshold.
 
@@ -229,40 +229,52 @@ def change_detector_grayscale(previous, current, capabilities):
     - Dictionary containing changes in the ndarray frames.
     """
     # Using cv2.absdiff for optimized difference calculation
-    if current.shape == previous.shape:
-        # start_time = datetime.now()
-        if len(capabilities['camera']['blink']) == 0:
-            current = effect(current, capabilities)
-            difference = cv2.absdiff(previous, current)  # there is more than 5 types
-            if capabilities['camera']['threshold_type']:
-                capabilities['camera']['threshold_name'] = threshold_detect(capabilities)
-            _, thresholded = cv2.threshold(difference,
-                                           capabilities['camera']['threshold_default'][0],
-                                           capabilities['camera']['threshold_default'][1],
-                                           capabilities['camera']['threshold_name'])
-            # thresholded = effect(thresholded, capabilities)
-        else:
-            difference = current
-            thresholded = cv2.threshold(difference, capabilities['camera']['threshold_default'][2],
-                                        capabilities['camera']['threshold_default'][3],
-                                        cv2.THRESH_TOZERO)[1]
-        thresholded = effect(thresholded, capabilities)
-        # print(check_brightness(current))
-        # cv2.imshow("difference", difference)
-        # cv2.imshow("center only", thresholded)
-        # cv2.imshow("current", current)
-        # cv2.imshow("previous", previous)
-        # Convert to boolean array for significant changes
-        significant_changes = thresholded > 0
+    if compare_image:
+      if current.shape == previous.shape:
+          # start_time = datetime.now()
+          if len(capabilities['camera']['blink']) == 0:
+              current = effect(current, capabilities)
+              difference = cv2.absdiff(previous, current)  # there is more than 5 types
+              if capabilities['camera']['threshold_type']:
+                  capabilities['camera']['threshold_name'] = threshold_detect(capabilities)
+              _, thresholded = cv2.threshold(difference,
+                                             capabilities['camera']['threshold_default'][0],
+                                             capabilities['camera']['threshold_default'][1],
+                                             capabilities['camera']['threshold_name'])
+              # thresholded = effect(thresholded, capabilities)
+          else:
+              difference = current
+              thresholded = cv2.threshold(difference, capabilities['camera']['threshold_default'][2],
+                                          capabilities['camera']['threshold_default'][3],
+                                          cv2.THRESH_TOZERO)[1]
+          thresholded = effect(thresholded, capabilities)
+          # print(check_brightness(current))
+          cv2.imshow("difference", difference)
+          # cv2.imshow("center only", thresholded)
+          # cv2.imshow("current", current)
+          # cv2.imshow("previous", previous)
+          # Convert to boolean array for significant changes
+          significant_changes = thresholded > 0
 
-        feagi_data = create_feagi_data_grayscale(significant_changes, current, previous.shape)
+          feagi_data = create_feagi_data_grayscale(significant_changes, current, previous.shape)
+      else:
+          return {}
+      # print("grayscale change detect: ", (datetime.now() - start_time).total_seconds())
     else:
+      if current.shape == previous.shape:
+        thresholded = effect(compressed_data[get_region], capabilities)
+        thresholded = cv2.threshold(thresholded,
+                                    capabilities['camera']['threshold_default'][0],
+                                    capabilities['camera']['threshold_default'][1], cv2.THRESH_TOZERO)[1]
+        feagi_data = create_feagi_data_grayscale(thresholded,
+                                                 current,
+                                                 previous.shape)
+      else:
         return {}
-    # print("grayscale change detect: ", (datetime.now() - start_time).total_seconds())
     return feagi_data
 
 
-def change_detector(previous, current, capabilities):
+def change_detector(previous, current, capabilities, compare_image):
     """
     Detects changes between previous and current frames and checks against a threshold.
 
@@ -279,37 +291,49 @@ def change_detector(previous, current, capabilities):
 
     # Using cv2.absdiff for optimized difference calculation
     start_time = datetime.now()
-    if current.shape == previous.shape:
-        if len(capabilities['camera']['blink']) == 0:
-          current = effect(current, capabilities)
-          difference = cv2.absdiff(previous, current)  # there is more than 5 types
-          if capabilities['camera']['threshold_type']:
-            capabilities['camera']['threshold_name'] = threshold_detect(capabilities)
-          _, thresholded = cv2.threshold(difference,
-                                         capabilities['camera']['threshold_default'][0],
-                                         capabilities['camera']['threshold_default'][1],
-                                         cv2.THRESH_TOZERO)
+    if compare_image:
+      if current.shape == previous.shape:
+          if len(capabilities['camera']['blink']) == 0:
+            current = effect(current, capabilities)
+            difference = cv2.absdiff(previous, current)  # there is more than 5 types
+            if capabilities['camera']['threshold_type']:
+              capabilities['camera']['threshold_name'] = threshold_detect(capabilities)
+            _, thresholded = cv2.threshold(difference,
+                                           capabilities['camera']['threshold_default'][0],
+                                           capabilities['camera']['threshold_default'][1],
+                                           cv2.THRESH_TOZERO)
+            thresholded = effect(thresholded, capabilities)
+          else:
+            difference = current
+            thresholded = cv2.threshold(difference, capabilities['camera']['threshold_default'][2],
+                                        capabilities['camera']['threshold_default'][3],
+                                        cv2.THRESH_TOZERO)[1]
           thresholded = effect(thresholded, capabilities)
-        else:
-          difference = current
-          thresholded = cv2.threshold(difference, capabilities['camera']['threshold_default'][2],
-                                      capabilities['camera']['threshold_default'][3],
-                                      cv2.THRESH_TOZERO)[1]
-        thresholded = effect(thresholded, capabilities)
 
-        # Convert to boolean array for significant changes
-        significant_changes = thresholded > 0
+          # Convert to boolean array for significant changes
+          significant_changes = thresholded > 0
 
-        feagi_data = create_feagi_data(significant_changes, current, previous.shape)
+          feagi_data = create_feagi_data(significant_changes, current, previous.shape)
+      else:
+          return {}
     else:
+      if current.shape == previous.shape:
+        thresholded = effect(current, capabilities)
+        thresholded = cv2.threshold(thresholded,
+                                    capabilities['camera']['threshold_default'][0],
+                                    capabilities['camera']['threshold_default'][1],
+                                    cv2.THRESH_TOZERO)[1]
+        thresholded = effect(thresholded, capabilities)
+        feagi_data = create_feagi_data(thresholded, current, previous.shape)
+      else:
         return {}
     # print("change detect: ", (datetime.now() - start_time).total_seconds())
     return dict(feagi_data)
 
 
-def update_region_split_downsize(raw_frame, capabilities,
+def full_process_of_raw_to_feagi_data(raw_frame, capabilities,
                                  previous_frame_data,
-                                 rgb, actual_capabilities):
+                                 rgb, actual_capabilities, compare_image=True):
     capabilities = pns.create_runtime_default_list(capabilities, actual_capabilities)
     if pns.resize_list:
         if capabilities["camera"]["mirror"]:
@@ -332,21 +356,21 @@ def update_region_split_downsize(raw_frame, capabilities,
 
         # for segment in compressed_data:
         #     cv2.imshow(segment, compressed_data[segment])
-        # if cv2.waitKey(30) & 0xFF == ord('q'):
-        #     pass
+        if cv2.waitKey(30) & 0xFF == ord('q'):
+            pass
         for get_region in compressed_data:
             if pns.resize_list[get_region][2] == 3:
                 if previous_frame_data != {}:
                     vision_dict[get_region] = change_detector(
                         previous_frame_data[get_region],
                         compressed_data[get_region],
-                        capabilities)
+                        capabilities, compare_image)
             else:
                 if previous_frame_data != {}:
                     vision_dict[get_region] = change_detector_grayscale(
                         previous_frame_data[get_region],
                         compressed_data[get_region],
-                        capabilities)
+                        capabilities, compare_image)
         previous_frame_data = compressed_data
         rgb['camera'] = vision_dict
         return previous_frame_data, rgb, capabilities
