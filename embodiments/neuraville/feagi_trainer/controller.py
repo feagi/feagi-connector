@@ -65,78 +65,30 @@ if __name__ == "__main__":
     # overwrite manual
     camera_data = dict()
     camera_data['vision'] = dict()
+    default_capabilities = {}  # It will be generated in full_process_of_raw_to_feagi_data. See the
+    default_capabilities = pns.create_runtime_default_list(default_capabilities, capabilities)
     threading.Thread(target=pns.feagi_listener, args=(feagi_opu_channel,), daemon=True).start()
-    threading.Thread(target=retina.vision_progress, args=(capabilities, feagi_opu_channel,
-                                                          api_address, feagi_settings,
-                                       camera_data['vision'],), daemon=True).start()
+    threading.Thread(target=retina.vision_progress,
+                     args=(default_capabilities, feagi_opu_channel, api_address, feagi_settings,
+                           camera_data['vision'],), daemon=True).start()
     while continue_loop:
         image_obj = feagi_trainer.scan_the_folder(capabilities['image_reader']['path'])
         for image in image_obj:
             raw_frame = image[0]
             camera_data['vision'] = raw_frame
-            print(capabilities['camera']['gaze_control'], " and ", capabilities['camera'][
-                'enhancement'])
             name_id = image[1]
             message_to_feagi = feagi_trainer.id_training_with_image(message_to_feagi, name_id)
             # Post image into vision
             # CUSTOM MADE ONLY #############################
             size_list = pns.resize_list
-            if size_list:
-                region_coordinates = retina.vision_region_coordinates(frame_width=raw_frame.shape[1],
-                                                                      frame_height=raw_frame.shape[0],
-                                                                      x1=abs(capabilities['camera']['gaze_control'][0]),
-                                                                      x2=abs(capabilities['camera']['pupil_control'][0]),
-                                                                      y1=abs(capabilities['camera']['gaze_control'][1]),
-                                                                      y2=abs(capabilities['camera']['pupil_control'][1]),
-                                                                      camera_index="00",
-                                                                      size_list=size_list)
-                segmented_frame_data = retina.split_vision_regions(
-                    coordinates=region_coordinates, raw_frame_data=raw_frame)
-                compressed_data = dict()
-                for cortical in segmented_frame_data:
-                    compressed_data[cortical] = retina.downsize_regions(segmented_frame_data[
-                                                                            cortical],
-                                                                        size_list[cortical])
-                # for segment in compressed_data:
-                #     cv2.imshow(segment, compressed_data[segment])
-                # if cv2.waitKey(30) & 0xFF == ord('q'):
-                #     pass
-                vision_dict = dict()
-                for get_region in compressed_data:
-                    if size_list[get_region][2] == 3:
-                        if previous_frame_data != {}:
-                            thresholded = retina.effect(compressed_data[get_region], capabilities)
-                            thresholded = cv2.threshold(thresholded,
-                                                        capabilities['camera']['threshold_default'][
-                                                            0],
-                                                        capabilities['camera']['threshold_default'][
-                                                            1],
-                                                        cv2.THRESH_TOZERO)[1]
-                            thresholded = retina.effect(thresholded, capabilities)
-                            vision_dict[get_region] = \
-                                retina.create_feagi_data(thresholded,
-                                                         compressed_data[get_region],
-                                                         previous_frame_data[get_region].shape)
-                    else:
-                        if previous_frame_data != {}:
-                            thresholded = retina.effect(compressed_data[get_region], capabilities)
-                            thresholded = cv2.threshold(thresholded,
-                                                        capabilities['camera']['threshold_default'][
-                                                            0],
-                                                        capabilities['camera']['threshold_default'][
-                                                            1],
-                                                        cv2.THRESH_TOZERO)[1]
-                            vision_dict[get_region] = \
-                                retina.create_feagi_data_grayscale(thresholded,
-                                                                   compressed_data[get_region],
-                                                                   previous_frame_data[get_region].shape)
-                previous_frame_data = compressed_data
-                rgb['camera'] = vision_dict
-            # capabilities, feagi_settings['feagi_burst_speed'] = retina.vision_progress(
-            #     capabilities, feagi_opu_channel, api_address, feagi_settings, raw_frame)
+            previous_frame_data, rgb, default_capabilities = \
+                retina.full_process_of_raw_to_feagi_data(
+                    raw_frame,
+                    default_capabilities,
+                    previous_frame_data,
+                    rgb, capabilities, True)
             message_to_feagi = pns.generate_feagi_data(rgb, msg_counter, datetime.now(),
                                                        message_to_feagi)
-            # Vision process ends of custom
             if start_timer == 0:
                 start_timer = datetime.now()
             while capabilities['image_reader']['pause'] >= int(
