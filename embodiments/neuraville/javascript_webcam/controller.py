@@ -133,7 +133,7 @@ if __name__ == "__main__":
         msg_counter = runtime_data["feagi_state"]['burst_counter']
         previous_frame_data = {}
         raw_frame = []
-        default_capabilities = {}  # It will be generated in update_region_split_downsize. See the
+        default_capabilities = {}  # It will be generated in full_process_of_raw_to_feagi_data. See the
         # overwrite manual
         previous_burst = 0
         default_capabilities = pns.create_runtime_default_list(default_capabilities, capabilities)
@@ -154,7 +154,7 @@ if __name__ == "__main__":
                         if default_capabilities['camera']['blink'] != []:
                             raw_frame = default_capabilities['camera']['blink']
                     previous_frame_data, rgb, default_capabilities = \
-                        retina.update_region_split_downsize(
+                        retina.full_process_of_raw_to_feagi_data(
                         raw_frame,
                         default_capabilities,
                         previous_frame_data,
