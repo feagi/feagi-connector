@@ -307,7 +307,7 @@ def fetch_vision_turner(message_from_feagi, capabilities):
                 for data_point in message_from_feagi["opu_data"]['ovtune']:
                     device_id = data_point.split('-')[0]
                     feagi_aptr = (int(data_point.split('-')[-1]))
-                    aptr_cortical_size = full_list_dimension['ovtune']['cortical_dimesion'][2] - 1
+                    aptr_cortical_size = full_list_dimension['ovtune']['cortical_dimensions'][2] - 1
                     max_range = capabilities['camera']["threshold_range"][1]
                     min_range = capabilities['camera']["threshold_range"][0]
                     capabilities['camera']["threshold_default"][int(device_id)] = int(
