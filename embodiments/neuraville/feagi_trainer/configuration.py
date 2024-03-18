@@ -18,7 +18,6 @@ limitations under the License.
 
 import os
 
-
 feagi_settings = {
     # "feagi_auth_url": "http://127.0.0.1:9000/v1/k8/feagi_settings/auth_token",
     "feagi_url": None,
@@ -45,8 +44,8 @@ capabilities = {
         "video_loop": False,
         "mirror": False,
         # "enhancement": {1:80, 2:80, 4: 80}, # Example. Brightness, Constrast, Shadow
-        # "gaze_control": {0: 25, 1: 55}, # Gaze shifts right
-        # "pupil_control": {0: 25, 1: 55}, # Pupil shifts up
+        "gaze_control": {0: 1, 1: 1},  # Gaze shifts right
+        "pupil_control": {0: 99, 1: 99},  # Pupil shifts up
         # "threshold_default": [50, 255, 130, 51] # min value, max value, min value, max value in
         # threshold setting. first and second is for regular webcam. Second is for vision blink OPU
     },
@@ -59,4 +58,3 @@ capabilities = {
 }
 
 message_to_feagi = {"data": {}}
-

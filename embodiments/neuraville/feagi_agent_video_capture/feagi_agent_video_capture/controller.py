@@ -121,7 +121,7 @@ def main(feagi_auth_url, feagi_settings, agent_settings, capabilities, message_t
     rgb['camera'] = dict()
     previous_frame_data = {}
     raw_frame = []
-    default_capabilities = {}  # It will be generated in full_process_of_raw_to_feagi_data. See the
+    default_capabilities = {}  # It will be generated in process_visual_stimuli. See the
     # overwrite manual
     default_capabilities = pns.create_runtime_default_list(default_capabilities, capabilities)
     threading.Thread(target=pns.feagi_listener, args=(feagi_opu_channel,), daemon=True).start()
@@ -135,7 +135,7 @@ def main(feagi_auth_url, feagi_settings, agent_settings, capabilities, message_t
             if 'camera' in default_capabilities:
                 if default_capabilities['camera']['blink'] != []:
                     raw_frame = default_capabilities['camera']['blink']
-            previous_frame_data, rgb, default_capabilities = retina.full_process_of_raw_to_feagi_data(
+            previous_frame_data, rgb, default_capabilities = retina.process_visual_stimuli(
                 raw_frame,
                 default_capabilities,
                 previous_frame_data,

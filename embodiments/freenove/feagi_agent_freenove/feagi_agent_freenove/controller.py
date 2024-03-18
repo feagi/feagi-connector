@@ -403,7 +403,7 @@ def process_video(default_capabilities, capabilities, cam, previous_frame_data, 
                 raw_frame = default_capabilities['camera']['blink']
             # Post image into vision
             previous_frame_data, rgb, default_capabilities = \
-                retina.full_process_of_raw_to_feagi_data(raw_frame, default_capabilities,
+                retina.process_visual_stimuli(raw_frame, default_capabilities,
                                                     previous_frame_data,
                                                     rgb,
                                                     capabilities)
@@ -551,7 +551,7 @@ def main(feagi_auth_url, feagi_settings, agent_settings, capabilities):
     servo.set_default_position(runtime_data)
 
     raw_frame = []
-    default_capabilities = {}  # It will be generated in full_process_of_raw_to_feagi_data. See the
+    default_capabilities = {}  # It will be generated in process_visual_stimuli. See the
     # overwrite manual
     camera_data = {"vision": {}}
     default_capabilities = pns.create_runtime_default_list(default_capabilities, capabilities)

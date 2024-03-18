@@ -65,7 +65,7 @@ if __name__ == "__main__":
     # overwrite manual
     camera_data = dict()
     camera_data['vision'] = dict()
-    default_capabilities = {}  # It will be generated in full_process_of_raw_to_feagi_data. See the
+    default_capabilities = {}  # It will be generated in process_visual_stimuli. See the
     default_capabilities = pns.create_runtime_default_list(default_capabilities, capabilities)
     threading.Thread(target=pns.feagi_listener, args=(feagi_opu_channel,), daemon=True).start()
     threading.Thread(target=retina.vision_progress,
@@ -82,11 +82,11 @@ if __name__ == "__main__":
             # CUSTOM MADE ONLY #############################
             size_list = pns.resize_list
             previous_frame_data, rgb, default_capabilities = \
-                retina.full_process_of_raw_to_feagi_data(
+                retina.process_visual_stimuli(
                     raw_frame,
                     default_capabilities,
                     previous_frame_data,
-                    rgb, capabilities, True)
+                    rgb, capabilities, False)
             message_to_feagi = pns.generate_feagi_data(rgb, msg_counter, datetime.now(),
                                                        message_to_feagi)
             if start_timer == 0:

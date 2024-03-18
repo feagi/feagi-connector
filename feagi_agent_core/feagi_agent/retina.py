@@ -331,7 +331,7 @@ def change_detector(previous, current, capabilities, compare_image):
     return dict(feagi_data)
 
 
-def full_process_of_raw_to_feagi_data(raw_frame, capabilities,
+def process_visual_stimuli(raw_frame, capabilities,
                                  previous_frame_data,
                                  rgb, actual_capabilities, compare_image=True):
     capabilities = pns.create_runtime_default_list(capabilities, actual_capabilities)
