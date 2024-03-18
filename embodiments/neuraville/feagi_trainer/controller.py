@@ -26,10 +26,8 @@ from feagi_agent import feagi_interface as feagi
 from feagi_agent import testing_mode
 from feagi_agent import trainer as feagi_trainer
 from configuration import *
-import requests
 import threading
 import os
-import cv2
 
 if __name__ == "__main__":
     # Generate runtime dictionary
@@ -96,7 +94,7 @@ if __name__ == "__main__":
                 # Testing mode section
                 if capabilities['image_reader']['test_mode']:
                     success_rate, success, total = testing_mode.mode_testing(name_id,
-                                                                             feagi_opu_channel,
+                                                                             pns.message_from_feagi,
                                                                              total, success,
                                                                              success_rate)
                 else:
