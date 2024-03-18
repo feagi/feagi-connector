@@ -63,6 +63,7 @@ if __name__ == "__main__":
     # overwrite manual
     camera_data = dict()
     camera_data['vision'] = dict()
+    temporary_previous = dict()
     default_capabilities = {}  # It will be generated in process_visual_stimuli. See the
     default_capabilities = pns.create_runtime_default_list(default_capabilities, capabilities)
     threading.Thread(target=pns.feagi_listener, args=(feagi_opu_channel,), daemon=True).start()
@@ -77,20 +78,23 @@ if __name__ == "__main__":
             name_id = image[1]
             message_to_feagi = feagi_trainer.id_training_with_image(message_to_feagi, name_id)
             # Post image into vision
-            # CUSTOM MADE ONLY #############################
-            size_list = pns.resize_list
-            previous_frame_data, rgb, default_capabilities = \
-                retina.process_visual_stimuli(
-                    raw_frame,
-                    default_capabilities,
-                    previous_frame_data,
-                    rgb, capabilities, False)
-            message_to_feagi = pns.generate_feagi_data(rgb, msg_counter, datetime.now(),
-                                                       message_to_feagi)
             if start_timer == 0:
                 start_timer = datetime.now()
             while capabilities['image_reader']['pause'] >= int(
                 (datetime.now() - start_timer).total_seconds()):
+                size_list = pns.resize_list
+                temporary_previous, rgb, default_capabilities = \
+                    retina.process_visual_stimuli(
+                        raw_frame,
+                        default_capabilities,
+                        previous_frame_data,
+                        rgb, capabilities, False)
+                if 'camera' in rgb:
+                    if rgb['camera'] == {}:
+                        break
+                    else:
+                        message_to_feagi = pns.generate_feagi_data(rgb, msg_counter, datetime.now(),
+                                                                   message_to_feagi)
                 # Testing mode section
                 if capabilities['image_reader']['test_mode']:
                     success_rate, success, total = testing_mode.mode_testing(name_id,
@@ -100,6 +104,7 @@ if __name__ == "__main__":
                 else:
                     success_rate, success, total = 0, 0, 0
                 pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
+            previous_frame_data = temporary_previous.copy()
             start_timer = 0
             message_to_feagi.clear()
 
