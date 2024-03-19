@@ -366,7 +366,7 @@ executor.add_node(servo_position)
 executor.add_node(servo)
 executor_thread = Thread(target=executor.spin, daemon=True)
 executor_thread.start()
-default_capabilities = {}  # It will be generated in update_region_split_downsize. See the
+default_capabilities = {}  # It will be generated in process_visual_stimuli. See the
 # overwrite manual
 default_capabilities = pns.create_runtime_default_list(default_capabilities, capabilities)
 threading.Thread(target=pns.feagi_listener, args=(feagi_opu_channel,), daemon=True).start()
