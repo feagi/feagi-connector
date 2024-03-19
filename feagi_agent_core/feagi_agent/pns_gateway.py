@@ -310,13 +310,10 @@ def fetch_vision_turner(message_from_feagi, capabilities):
                     aptr_cortical_size = full_list_dimension['ovtune']['cortical_dimensions'][2] - 1
                     max_range = capabilities['camera']["threshold_range"][1]
                     min_range = capabilities['camera']["threshold_range"][0]
-                    capabilities['camera']["threshold_default"][int(device_id)] = int(
-                        ((feagi_aptr / aptr_cortical_size) * (max_range - min_range)) + min_range)
-                # for data_point in message_from_feagi["opu_data"]["ovtune"]:
-                #     processed_data_point = feagi.block_to_array(data_point)
-                #     device_id = processed_data_point[0]
-                #     device_power = message_from_feagi["opu_data"]['ovtune'][data_point]
-                #     capabilities['camera']['effect'][device_id] = device_power
+                    if int(device_id) == 1:
+                        capabilities['camera']["percentage_to_allow_data"] = int(((feagi_aptr /aptr_cortical_size) * (10 - 1)) + 1) / 10
+                    else:
+                        capabilities['camera']["threshold_default"][int(device_id)] = int(((feagi_aptr / aptr_cortical_size) * (max_range - min_range)) + min_range)
     return capabilities
 
 
@@ -327,7 +324,6 @@ def fetch_threshold_type(message_from_feagi, capabilities):
                 device_id = int(data_point.split('-')[0])
                 capabilities['camera']["threshold_type"][int(device_id)] = True
     return capabilities
-
 
 def fetch_mirror_opu(message_from_feagi, capabilities):
     if "ovflph" in message_from_feagi["opu_data"]:
@@ -396,7 +392,9 @@ def create_runtime_default_list(list, capabilities):
                 "pupil_control": {0: 99, 1: 99},  # Controlled by pupil_control in genome
                 "vision_range": [1, 99],  # min, max
                 "size_list": [],  # To get the size in real time based on genome's change/update
-                "enhancement": {}  # Enable ov_enh OPU on inside the genome
+                "enhancement": {},  # Enable ov_enh OPU on inside the genome
+                "percentage_to_allow_data" : 0.5 # this will be percentage for the full data.
+                # Currently set to 0.5 to allow data go through otherwise discard it fully.
             }
         }
         camera_config_update(list, capabilities)
