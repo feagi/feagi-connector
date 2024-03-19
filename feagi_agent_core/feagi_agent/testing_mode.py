@@ -20,9 +20,8 @@ limitations under the License.
 from feagi_agent import pns_gateway as pns
 
 
-def mode_testing(name_id, feagi_opu_channel, total, success, success_rate):
+def mode_testing(name_id, message_from_feagi, total, success, success_rate):
     ipu_name = list(name_id.keys())[0]
-    message_from_feagi = pns.signals_from_feagi(feagi_opu_channel)
     if message_from_feagi is not None:
         data = pns.detect_ID_data(message_from_feagi)
         for key in data:

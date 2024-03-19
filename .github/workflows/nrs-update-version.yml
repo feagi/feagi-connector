@@ -1,0 +1,70 @@
+name: Update NRS version
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "staging"
+    paths:
+      - '!embodiments/elecfreaks/cutebot/web_html_microbit/version.py'
+      - 'embodiments/elecfreaks/cutebot/web_html_microbit/**'
+      - '!embodiments/neuraville/javascript_webcam/version.py'
+      - 'embodiments/neuraville/javascript_webcam/**'
+      - '!embodiments/neuraville/feagi_trainer/version.py'
+      - 'embodiments/neuraville/feagi_trainer/**'
+      - '!embodiments/embodiments/godot-games-controller/version.py'
+      - 'embodiments/embodiments/godot-games-controller/**'
+      - 'generate_version.sh'
+
+jobs:
+  bluetooth_ctrl_version:
+    runs-on: ubuntu-latest
+    if: github.repository == 'neuraville/feagi-agent'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Merge in New Changes
+        run: |
+          # Set up Git
+          git config --global user.name "BrainVisualizerPushAction"
+          git config --global user.email "BrainVisualizerPushAction@neuraville.com"
+          git config --global --add safe.directory /__w/brain-visualizer/brain-visualizer
+          echo "set vars"
+          git checkout -b temp
+
+      - name: Update bluetooth ctrl version
+        run: |
+          export FEAGI_PATH=$(pwd)
+          cd embodiments/elecfreaks/cutebot/web_html_microbit/
+          bash $FEAGI_PATH/generate_version.sh
+
+      - name: Update version of media capture
+        run: |
+          export FEAGI_PATH=$(pwd)
+          cd embodiments/neuraville/javascript_webcam/
+          bash $FEAGI_PATH/generate_version.sh
+
+      - name: Update version of godot-games
+        run: |
+          export FEAGI_PATH=$(pwd)
+          cd embodiments/embodiments/godot-games-controller/
+          bash $FEAGI_PATH/generate_version.sh
+
+      - name: Push version changes
+        run: |
+          if git ls-remote --heads origin pre-release | grep -q 'pre-release'; then
+            git pull origin pre-release
+          else
+            echo "pre-release branch does not exist on remote repository. Continuing with the workflow."
+          fi
+          git add .
+          git commit -m "Updated Version for NRS"
+          echo "committed"
+          if git ls-remote --heads origin pre-release | grep -q 'pre-release'; then
+            git pull origin pre-release
+            git push origin temp:pre-release
+          else
+              git push origin temp:pre-release
+          fi
