@@ -52,7 +52,7 @@ runtime_data = {
 
 previous_frame_data = {}
 rgb = {'camera': {}}
-default_capabilities = {}  # It will be generated in update_region_split_downsize. See the
+default_capabilities = {}  # It will be generated in process_visual_stimuli. See the
 # overwrite manual
 default_capabilities = pns.create_runtime_default_list(default_capabilities, capabilities)
 robot = {'accelerator': [], "ultrasonic": [], "gyro": [], 'servo_head': [], "battery": [],
@@ -182,7 +182,7 @@ def on_camera_image(cli, image):
     # if 'camera' in default_capabilities:
     #     if default_capabilities['camera']['blink'] != []:
     #         raw_frame = default_capabilities['camera']['blink']
-    # previous_frame_data, rgb, default_capabilities = retina.update_region_split_downsize(
+    # previous_frame_data, rgb, default_capabilities = retina.process_visual_stimuli(
     #     raw_frame,
     #     default_capabilities,
     #     previous_frame_data,

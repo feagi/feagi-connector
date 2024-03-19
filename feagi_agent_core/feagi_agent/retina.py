@@ -214,7 +214,7 @@ def create_feagi_data_grayscale(significant_changes, current, shape):
     return feagi_data
 
 
-def change_detector_grayscale(previous, current, capabilities):
+def change_detector_grayscale(previous, current, capabilities, compare_image, cortical_name):
     """
     Detects changes between previous and current frames and checks against a threshold.
 
@@ -229,40 +229,44 @@ def change_detector_grayscale(previous, current, capabilities):
     - Dictionary containing changes in the ndarray frames.
     """
     # Using cv2.absdiff for optimized difference calculation
-    if current.shape == previous.shape:
-        # start_time = datetime.now()
-        if len(capabilities['camera']['blink']) == 0:
-            current = effect(current, capabilities)
-            difference = cv2.absdiff(previous, current)  # there is more than 5 types
-            if capabilities['camera']['threshold_type']:
-                capabilities['camera']['threshold_name'] = threshold_detect(capabilities)
-            _, thresholded = cv2.threshold(difference,
-                                           capabilities['camera']['threshold_default'][0],
-                                           capabilities['camera']['threshold_default'][1],
-                                           capabilities['camera']['threshold_name'])
-            # thresholded = effect(thresholded, capabilities)
-        else:
-            difference = current
-            thresholded = cv2.threshold(difference, capabilities['camera']['threshold_default'][2],
-                                        capabilities['camera']['threshold_default'][3],
-                                        cv2.THRESH_TOZERO)[1]
-        thresholded = effect(thresholded, capabilities)
-        # print(check_brightness(current))
-        # cv2.imshow("difference", difference)
-        # cv2.imshow("center only", thresholded)
-        # cv2.imshow("current", current)
-        # cv2.imshow("previous", previous)
-        # Convert to boolean array for significant changes
-        significant_changes = thresholded > 0
+    if compare_image:
+      if current.shape == previous.shape:
+          # start_time = datetime.now()
+          if len(capabilities['camera']['blink']) == 0:
+              # current = effect(current, capabilities)
+              difference = cv2.absdiff(previous, current)  # there is more than 5 types
+              if capabilities['camera']['threshold_type']:
+                  capabilities['camera']['threshold_name'] = threshold_detect(capabilities)
+              _, thresholded = cv2.threshold(difference,
+                                             capabilities['camera']['threshold_default'][0], 255,
+                                             capabilities['camera']['threshold_name'])
+              # thresholded = effect(thresholded, capabilities) # ? why repeat
+          else:
+              difference = current
+              thresholded = cv2.threshold(difference, 1, 255, cv2.THRESH_TOZERO)[1]
 
-        feagi_data = create_feagi_data_grayscale(significant_changes, current, previous.shape)
+          # Convert to boolean array for significant changes
+          significant_changes = thresholded > 0
+          feagi_data = create_feagi_data_grayscale(significant_changes, thresholded, previous.shape)
+      else:
+          return {}
+      # print("grayscale change detect: ", (datetime.now() - start_time).total_seconds())
+    else:
+      if current.shape == previous.shape:
+        thresholded = effect(current, capabilities)
+        thresholded = cv2.threshold(thresholded,
+                                    capabilities['camera']['threshold_default'][0], 255,
+                                    cv2.THRESH_TOZERO)[1]
+      else:
+        return {}
+    if drop_high_frequency_events(thresholded) <= (get_full_dimension_of_cortical_area(cortical_name) * capabilities['camera']['percentage_to_allow_data']):
+        feagi_data = create_feagi_data_grayscale(thresholded, current, previous.shape)
+        return dict(feagi_data)
     else:
         return {}
-    # print("grayscale change detect: ", (datetime.now() - start_time).total_seconds())
-    return feagi_data
 
 
-def change_detector(previous, current, capabilities):
+def change_detector(previous, current, capabilities, compare_image, cortical_name):
     """
     Detects changes between previous and current frames and checks against a threshold.
 
@@ -279,37 +283,53 @@ def change_detector(previous, current, capabilities):
 
     # Using cv2.absdiff for optimized difference calculation
     start_time = datetime.now()
-    if current.shape == previous.shape:
-        if len(capabilities['camera']['blink']) == 0:
-          current = effect(current, capabilities)
-          difference = cv2.absdiff(previous, current)  # there is more than 5 types
-          if capabilities['camera']['threshold_type']:
-            capabilities['camera']['threshold_name'] = threshold_detect(capabilities)
-          _, thresholded = cv2.threshold(difference,
-                                         capabilities['camera']['threshold_default'][0],
-                                         capabilities['camera']['threshold_default'][1],
-                                         cv2.THRESH_TOZERO)
-          thresholded = effect(thresholded, capabilities)
-        else:
-          difference = current
-          thresholded = cv2.threshold(difference, capabilities['camera']['threshold_default'][2],
-                                      capabilities['camera']['threshold_default'][3],
-                                      cv2.THRESH_TOZERO)[1]
-        thresholded = effect(thresholded, capabilities)
+    if compare_image:
+      if current.shape == previous.shape:
+          if len(capabilities['camera']['blink']) == 0:
+            # current = effect(current, capabilities)
+            difference = cv2.absdiff(previous, current)  # there is more than 5 types
+            if capabilities['camera']['threshold_type']:
+              capabilities['camera']['threshold_name'] = threshold_detect(capabilities)
+            _, thresholded = cv2.threshold(difference,
+                                           capabilities['camera']['threshold_default'][0], 255,
+                                           cv2.THRESH_TOZERO)
+            # thresholded = effect(thresholded, capabilities)
+          else:
+            difference = current
+            thresholded = cv2.threshold(difference, 1, 255, cv2.THRESH_TOZERO)[1]
+          # thresholded = effect(thresholded, capabilities)
+          # cv2.imshow("difference", difference)
+          # Convert to boolean array for significant changes
+          significant_changes = thresholded > 0
 
-        # Convert to boolean array for significant changes
-        significant_changes = thresholded > 0
-
-        feagi_data = create_feagi_data(significant_changes, current, previous.shape)
+          feagi_data = create_feagi_data(significant_changes, thresholded, previous.shape)
+      else:
+          return {}
     else:
+      if current.shape == previous.shape:
+        thresholded = effect(current, capabilities)
+        thresholded = cv2.threshold(thresholded,
+                                    capabilities['camera']['threshold_default'][0],
+                                    255,
+                                    cv2.THRESH_TOZERO)[1]
+        thresholded = effect(thresholded, capabilities)
+      else:
         return {}
     # print("change detect: ", (datetime.now() - start_time).total_seconds())
-    return dict(feagi_data)
+    if drop_high_frequency_events(thresholded) <= (get_full_dimension_of_cortical_area(cortical_name) * capabilities['camera']['percentage_to_allow_data']):
+        feagi_data = create_feagi_data(thresholded, current, previous.shape)
+        return dict(feagi_data)
+    else:
+        return {}
 
 
-def update_region_split_downsize(raw_frame, capabilities,
+def get_full_dimension_of_cortical_area(cortical_name):
+    return pns.resize_list[cortical_name][0] * pns.resize_list[cortical_name][1] * \
+           pns.resize_list[cortical_name][2]
+
+def process_visual_stimuli(raw_frame, capabilities,
                                  previous_frame_data,
-                                 rgb, actual_capabilities):
+                                 rgb, actual_capabilities, compare_image=True):
     capabilities = pns.create_runtime_default_list(capabilities, actual_capabilities)
     if pns.resize_list:
         if capabilities["camera"]["mirror"]:
@@ -326,27 +346,27 @@ def update_region_split_downsize(raw_frame, capabilities,
                                                     raw_frame_data=raw_frame)
         compressed_data = dict()
         for cortical in segmented_frame_data:
-            compressed_data[cortical] = downsize_regions(segmented_frame_data[cortical],
-                                                         pns.resize_list[cortical])
+            compressed_data[cortical] = effect(downsize_regions(segmented_frame_data[cortical],
+                                                                pns.resize_list[cortical]), capabilities)
         vision_dict = dict()
 
         # for segment in compressed_data:
         #     cv2.imshow(segment, compressed_data[segment])
-        # if cv2.waitKey(30) & 0xFF == ord('q'):
-        #     pass
+        if cv2.waitKey(30) & 0xFF == ord('q'):
+            pass
         for get_region in compressed_data:
             if pns.resize_list[get_region][2] == 3:
                 if previous_frame_data != {}:
                     vision_dict[get_region] = change_detector(
                         previous_frame_data[get_region],
                         compressed_data[get_region],
-                        capabilities)
+                        capabilities, compare_image, get_region)
             else:
                 if previous_frame_data != {}:
                     vision_dict[get_region] = change_detector_grayscale(
                         previous_frame_data[get_region],
                         compressed_data[get_region],
-                        capabilities)
+                        capabilities, compare_image, get_region)
         previous_frame_data = compressed_data
         rgb['camera'] = vision_dict
         return previous_frame_data, rgb, capabilities
@@ -369,6 +389,9 @@ def obtain_cortical_vision_size(camera_index, response):
                                       data[name_from_data]["cortical_dimensions"][2]
                     size_list[name] = dimension_array
     return size_list
+
+def drop_high_frequency_events(data):
+    return np.count_nonzero(data)
 
 
 def update_size_list(capabilities):
