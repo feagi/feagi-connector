@@ -412,6 +412,8 @@ def camera_config_update(list, capabilities):
             list['camera']['pupil_control'] = capabilities['camera']['pupil_control']
         if "enhancement" in capabilities['camera']:
             list['camera']['enhancement'] = capabilities['camera']['enhancement']
+        if "mirror" in capabilities['camera']:
+            list['camera']['mirror'] = capabilities['camera']['mirror']
 
 
 def feagi_listener(feagi_opu_channel):
