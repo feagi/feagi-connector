@@ -14,17 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================
 """
-import asyncio
 import threading
-import zlib
 import godot_bridge_functions as bridge
 import feagi_agent.pns_gateway as pns
 from version import __version__
 from time import sleep
-from collections import deque
-import websockets
 import feagi_agent.feagi_interface as feagi
 from configuration import *
+from network_configuration import *
 
 runtime_data = {
     "cortical_data": {},
@@ -37,110 +34,6 @@ runtime_data = {
     "genome_number": 0,
     "old_cortical_data": {}
 }
-
-
-async def echo(websocket):
-    """
-    Main thread for websocket only.
-    """
-    if not current_websocket_address:
-        current_websocket_address.append(websocket)
-    else:
-        current_websocket_address[0] = websocket
-    while True:
-        new_data = await websocket.recv()
-        decompressed_data = zlib.decompress(new_data)
-        queue_of_recieve_godot_data.append(decompressed_data)
-        if "stimulation_period" in runtime_data:
-            sleep(runtime_data["stimulation_period"])
-
-
-async def bridge_to_BV():
-    while True:
-        if send_to_BV_queue:
-            try:
-                if current_websocket_address:
-                    await current_websocket_address[0].send(zlib.compress(str(send_to_BV_queue[0]).encode()))
-                    if "update" in send_to_BV_queue[0]:
-                        send_to_BV_queue.popleft()
-                    if "ping" in send_to_BV_queue:
-                        send_to_BV_queue.popleft()
-                    else:
-                        send_to_BV_queue.pop()
-            except Exception as error:
-                sleep(0.001)
-        else:
-            sleep(0.001)
-
-
-async def websocket_main():
-    """
-    This function sets up a WebSocket server using the 'websockets' library to communicate with a
-    Godot game engine.
-
-    The function establishes a WebSocket connection with a Godot game engine running on the
-    specified IP address and port provided in 'agent_settings'. It uses the 'echo' coroutine to
-    handle incoming WebSocket messages, which will echo back the received messages to the sender.
-
-    Parameters: None
-
-    Returns:
-        None
-
-    Raises:
-        None
-
-    Note: - The 'agent_settings' dictionary should contain the following keys: -
-    'godot_websocket_ip': The IP address where websocket will broadcast for. By default,
-    it should be "0.0.0.0".
-    'godot_websocket_port': The port is by default to 9050. You can update in configuration.
-
-        - The WebSocket server is configured with the following options: - 'max_size': The
-        maximum size (in bytes) of incoming WebSocket messages. Set to 'None' for no limit. -
-        'max_queue': The maximum number of incoming WebSocket messages that can be queued for
-        processing. Set to 'None' for no limit. - 'write_limit': The maximum rate (in bytes per
-        second) at which outgoing WebSocket messages can be sent. Set to 'None' for no limit. -
-        'compression': The compression method to use for outgoing WebSocket messages. Set to
-        'None' for no compression.
-
-        - The function uses 'asyncio.Future()' to keep the WebSocket server running indefinitely.
-        This is required because the 'websockets.serve()' coroutine itself does not naturally
-        keep the server running; it only sets up the server to accept incoming connections and
-        requires another coroutine or task to run the event loop.
-
-    """
-    async with websockets.serve(echo, agent_settings["godot_websocket_ip"],
-                                agent_settings['godot_websocket_port'], max_size=None,
-                                max_queue=None, write_limit=None):
-        await asyncio.Future()
-
-
-def websocket_operation():
-    """
-    Run asyncio using websocket operations.
-
-    This function runs the 'websocket_main()' coroutine using asyncio's 'run' function,
-    which provides a simple way to execute the coroutine in the event loop.
-    """
-    asyncio.run(websocket_main())
-
-
-def bridge_operation():
-    asyncio.run(bridge_to_BV())
-
-
-def feagi_to_brain_visualizer():
-    """
-    Keep send_to_BV queue stay under 2 for bridge_to_BV() function. So that way, it can send latest.
-    """
-    while True:
-        if len(send_to_BV_queue) > 0:
-            if len(send_to_BV_queue) > 2:
-                stored_value = send_to_BV_queue.pop()
-                send_to_BV_queue.clear()
-                send_to_BV_queue.append(stored_value)
-        if "stimulation_period" in runtime_data:
-            sleep(runtime_data["stimulation_period"])
 
 
 def main(feagi_settings, runtime_data, capabilities):
@@ -218,13 +111,9 @@ def main(feagi_settings, runtime_data, capabilities):
 
 
 if __name__ == "__main__":
-    queue_of_recieve_godot_data = deque()
-    send_to_BV_queue = deque()
-    current_websocket_address = deque()
-    threading.Thread(target=websocket_operation, daemon=True).start()
+    threading.Thread(target=websocket_operation, args=(agent_settings,), daemon=True).start()
     threading.Thread(target=bridge_operation, daemon=True).start()
     threading.Thread(target=feagi_to_brain_visualizer, daemon=True).start()
-    current_cortical_area = {}
     while True:
         FEAGI_FLAG = False
         print("Waiting on FEAGI...")
