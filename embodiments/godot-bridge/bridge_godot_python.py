@@ -66,7 +66,7 @@ async def bridge_to_BV():
             try:
                 if ws_operation:
                     await ws_operation[0].send(zlib.compress(str(zmq_queue[0]).encode()))
-                    if "update" in zmq_queue[0]: # This code is written in 2 years ago. gg
+                    if "update" in zmq_queue[0]:  # This code is written in 2 years ago. gg
                         zmq_queue.popleft()
                     if "ping" in zmq_queue:
                         zmq_queue.popleft()
@@ -148,9 +148,6 @@ def feagi_to_brain_visualizer():
             sleep(runtime_data["stimulation_period"])
 
 
-
-
-
 def main(feagi_settings, runtime_data, capabilities):
     """
     Main script for bridge to communicate with FEAGI and Godot.
@@ -189,11 +186,6 @@ def main(feagi_settings, runtime_data, capabilities):
                                __version__, True)
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     godot_list = {}  # initialized the list from Godot
-    # detect_lag = False
-    # flag_zmq = False
-    # connect_status_counter = 0
-    # burst_second = 0.01
-    # old_data = []
     threading.Thread(target=pns.feagi_listener, args=(feagi_opu_channel,), daemon=True).start()
     while True:
         one_frame = pns.message_from_feagi
@@ -201,19 +193,18 @@ def main(feagi_settings, runtime_data, capabilities):
             # print(one_frame['godot'])
             if one_frame["genome_changed"] != previous_genome_timestamp:
                 previous_genome_timestamp = one_frame["genome_changed"]
-                runtime_data["cortical_data"] = \
-                    requests.get(
-                        'http://' + feagi_settings['feagi_host'] + ':' + feagi_settings['feagi_api_port'] + dimensions_endpoint,
-                        timeout=10).json()
+                runtime_data["cortical_data"] = requests.get('http://' + feagi_settings['feagi_host'] + ':' + feagi_settings['feagi_api_port'] + dimensions_endpoint, timeout=10).json()
                 if one_frame["genome_changed"] is not None:
                     print("updated time")
                     zmq_queue.append("updated")
             # burst_second = one_frame['burst_frequency']
             runtime_data["stimulation_period"] = one_frame['burst_frequency']
+            # processed_one_frame is the data from godot. It break down due to absolutely and
+            # relatively coordination
             processed_one_frame = bridge.feagi_breakdown(one_frame,
-                                                  feagi_settings['feagi_host'],
-                                                  feagi_settings['feagi_api_port'],
-                                                  dimensions_endpoint,
+                                                         feagi_settings['feagi_host'],
+                                                         feagi_settings['feagi_api_port'],
+                                                         dimensions_endpoint,
                                                          runtime_data)
             # # Debug section start
             # if processed_one_frame != old_data:
@@ -247,26 +238,26 @@ def main(feagi_settings, runtime_data, capabilities):
         #     runtime_data["cortical_data"] = \
         #         requests.get('http://' + feagi_settings['feagi_host'] + ':' + feagi_settings['feagi_api_port'] + dimensions_endpoint,
         #                      timeout=10).json()
-        if "cortical_name" in data_from_godot:
-            url = "http://" + feagi_settings['feagi_host'] + ":" + feagi_settings['feagi_api_port'] + "/v1/cortical_area/cortical_area"
-            request_obj = data_from_godot
-            requests.post(url, data=request_obj, timeout=10)
-            data_from_godot = {}
+        # if "cortical_name" in data_from_godot:
+        #     url = "http://" + feagi_settings['feagi_host'] + ":" + feagi_settings[
+        #         'feagi_api_port'] + "/v1/cortical_area/cortical_area"
+        #     request_obj = data_from_godot
+        #     requests.post(url, data=request_obj, timeout=10)
+        #     data_from_godot = {}
 
         invalid_values = {"None", "{}", "refresh", "[]"}
         if data_from_godot not in invalid_values and data_from_godot != godot_list:
             godot_list = bridge.godot_data(data_from_godot)
             converted_data = bridge.convert_absolute_to_relative_coordinate(
                 stimulation_from_godot=godot_list,
-                cortical_data=runtime_data[
-                    "cortical_data"])
+                cortical_data=runtime_data["cortical_data"])
             print("raw data from godot:", godot_list)
             print(">>> > > > >> > converted data:", converted_data)
             if converted_data != {}:
                 pns.signals_to_feagi(converted_data, feagi_ipu_channel, agent_settings)
         sleep(runtime_data["stimulation_period"])
         godot_list = {}
-        converted_data = {}
+        # converted_data = {}
         #
         # if data_from_godot == "refresh":
         #     godot_list = {}
