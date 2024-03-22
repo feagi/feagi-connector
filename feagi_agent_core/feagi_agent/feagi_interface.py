@@ -319,7 +319,8 @@ def control_data_processor(data):
                configuration.capabilities["position"]
 
 
-def connect_to_feagi(feagi_settings, runtime_data, agent_settings, capabilities, current_version):
+def connect_to_feagi(feagi_settings, runtime_data, agent_settings, capabilities, current_version,
+                     bind_flag=False):
     print("Connecting to FEAGI resources...")
     feagi_auth_url = feagi_settings.pop('feagi_auth_url', None)
     runtime_data["feagi_state"] = feagi_registration(feagi_auth_url=feagi_auth_url,
@@ -341,7 +342,7 @@ def connect_to_feagi(feagi_settings, runtime_data, agent_settings, capabilities,
     # ip = '172.28.0.2'
     # opu_channel_address = 'tcp://' + str(ip) + ':3000'
     # ipu_channel_address = 'tcp://' + str(ip) + ':3000'
-    feagi_ipu_channel = pub_initializer(ipu_channel_address, bind=False)
+    feagi_ipu_channel = pub_initializer(ipu_channel_address, bind=bind_flag)
     feagi_opu_channel = sub_initializer(opu_address=opu_channel_address)
     router.global_feagi_opu_channel = feagi_opu_channel
     return feagi_settings, runtime_data, api_address, feagi_ipu_channel, feagi_opu_channel
