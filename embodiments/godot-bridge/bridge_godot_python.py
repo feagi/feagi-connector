@@ -14,12 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================
 """
-import time
-import json
 import asyncio
-import random
 import threading
-import logging
 import zlib
 import godot_bridge_functions as bridge
 import feagi_agent.pns_gateway as pns
@@ -27,7 +23,6 @@ from version import __version__
 from time import sleep
 from collections import deque
 import websockets
-import requests
 import feagi_agent.feagi_interface as feagi
 from configuration import *
 
@@ -48,30 +43,30 @@ async def echo(websocket):
     """
     Main thread for websocket only.
     """
-    if not ws_operation:
-        ws_operation.append(websocket)
+    if not current_websocket_address:
+        current_websocket_address.append(websocket)
     else:
-        ws_operation[0] = websocket
+        current_websocket_address[0] = websocket
     while True:
         new_data = await websocket.recv()
         decompressed_data = zlib.decompress(new_data)
-        ws_queue.append(decompressed_data)
+        queue_of_recieve_godot_data.append(decompressed_data)
         if "stimulation_period" in runtime_data:
             sleep(runtime_data["stimulation_period"])
 
 
 async def bridge_to_BV():
     while True:
-        if zmq_queue:
+        if send_to_BV_queue:
             try:
-                if ws_operation:
-                    await ws_operation[0].send(zlib.compress(str(zmq_queue[0]).encode()))
-                    if "update" in zmq_queue[0]:  # This code is written in 2 years ago. gg
-                        zmq_queue.popleft()
-                    if "ping" in zmq_queue:
-                        zmq_queue.popleft()
+                if current_websocket_address:
+                    await current_websocket_address[0].send(zlib.compress(str(send_to_BV_queue[0]).encode()))
+                    if "update" in send_to_BV_queue[0]:
+                        send_to_BV_queue.popleft()
+                    if "ping" in send_to_BV_queue:
+                        send_to_BV_queue.popleft()
                     else:
-                        zmq_queue.pop()
+                        send_to_BV_queue.pop()
             except Exception as error:
                 sleep(0.001)
         else:
@@ -136,14 +131,14 @@ def bridge_operation():
 
 def feagi_to_brain_visualizer():
     """
-    Keep zmq queue stay under 2 for bridge_to_BV()
+    Keep send_to_BV queue stay under 2 for bridge_to_BV() function. So that way, it can send latest.
     """
     while True:
-        if len(zmq_queue) > 0:
-            if len(zmq_queue) > 2:
-                stored_value = zmq_queue.pop()
-                zmq_queue.clear()
-                zmq_queue.append(stored_value)
+        if len(send_to_BV_queue) > 0:
+            if len(send_to_BV_queue) > 2:
+                stored_value = send_to_BV_queue.pop()
+                send_to_BV_queue.clear()
+                send_to_BV_queue.append(stored_value)
         if "stimulation_period" in runtime_data:
             sleep(runtime_data["stimulation_period"])
 
@@ -153,124 +148,79 @@ def main(feagi_settings, runtime_data, capabilities):
     Main script for bridge to communicate with FEAGI and Godot.
     """
     previous_genome_timestamp = 0
-    dimensions_endpoint = '/v1/connectome/properties/dimensions'
     print(
         "================================ @@@@@@@@@@@@@@@ "
-        "==========================================")
-    print(
-        "================================ @@@@@@@@@@@@@@@ "
-        "==========================================")
-    print(
-        "================================ @@@@@@@@@@@@@@@ "
-        "==========================================")
+        "==========================================\n" * 3)
     print(
         "================================  Godot  Bridge  "
         "==========================================")
     print(
         "================================ @@@@@@@@@@@@@@@ "
-        "==========================================")
-    print(
-        "================================ @@@@@@@@@@@@@@@ "
-        "==========================================")
-    print(
-        "================================ @@@@@@@@@@@@@@@ "
-        "==========================================")
-    print(
-        "================================ @@@@@@@@@@@@@@@ "
-        "==========================================")
+        "==========================================\n" * 3)
 
-    # # # FEAGI registration # # # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    # - - - - - - - - - - - - - - - - - - #
+    # # # FEAGI registration # # # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -#
     feagi_settings, runtime_data, api_address, feagi_ipu_channel, feagi_opu_channel = \
         feagi.connect_to_feagi(feagi_settings, runtime_data, agent_settings, capabilities,
                                __version__, True)
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
     godot_list = {}  # initialized the list from Godot
+
     threading.Thread(target=pns.feagi_listener, args=(feagi_opu_channel,), daemon=True).start()
+
+    # This does not use PNS's websocket starter due to fundamental design differences between the
+    # bridge and controllers.
     while True:
         one_frame = pns.message_from_feagi
         if one_frame != {}:
-            # print(one_frame['godot'])
+            pns.check_genome_status_no_vision(one_frame)
             if one_frame["genome_changed"] != previous_genome_timestamp:
                 previous_genome_timestamp = one_frame["genome_changed"]
-                runtime_data["cortical_data"] = requests.get('http://' + feagi_settings['feagi_host'] + ':' + feagi_settings['feagi_api_port'] + dimensions_endpoint, timeout=10).json()
                 if one_frame["genome_changed"] is not None:
                     print("updated time")
-                    zmq_queue.append("updated")
-            # burst_second = one_frame['burst_frequency']
+                    send_to_BV_queue.append("updated")
             runtime_data["stimulation_period"] = one_frame['burst_frequency']
+
             # processed_one_frame is the data from godot. It break down due to absolutely and
             # relatively coordination
-            processed_one_frame = bridge.feagi_breakdown(one_frame,
-                                                         feagi_settings['feagi_host'],
-                                                         feagi_settings['feagi_api_port'],
-                                                         dimensions_endpoint,
-                                                         runtime_data)
-            # # Debug section start
-            # if processed_one_frame != old_data:
-            #     old_data = processed_one_frame
-            zmq_queue.append(processed_one_frame)
-        if ws_queue:
-            data_from_godot = ws_queue[0].decode('UTF-8')  # ADDED this line to decode into string
-            ws_queue.pop()
+            processed_one_frame = bridge.feagi_breakdown(one_frame)
+            send_to_BV_queue.append(processed_one_frame)
+        # If queue_of_recieve_godot_data has a data, it will obtain the latest then pop it for
+        # the next data.
+        if queue_of_recieve_godot_data:
+            obtained_data_from_godot = queue_of_recieve_godot_data[0].decode('UTF-8')  # Do we
+            # need it still??
+            queue_of_recieve_godot_data.pop()
         else:
-            data_from_godot = "{}"
-        # print("DATA FROM GODOT: ", data_from_godot)
-        # if data_from_godot != "{}":
-        #     print(data_from_godot)
-        # if data_from_godot == "lagged":
-        #     detect_lag = True
-        #     data_from_godot = "{}"
-        # if data_from_godot == "empty":
-        #     print("EMPTY!")
-        #     data_from_godot = "{}"
-        #     data_from_genome = requests.get('http://' + feagi_settings['feagi_host'] + ':' + feagi_settings['feagi_api_port'] +
-        #                                     '/v1/connectome/properties/dimensions',
-        #                                     timeout=10).json()
-        #     json_object = json.dumps(data_from_genome)
-        #     zmq_queue.append("genome: " + json_object)
-        if data_from_godot == "ping":
-            data_from_godot = "{}"
-            zmq_queue.append("ping")
-        # if data_from_godot == "updated":
-        #     data_from_godot = "{}"
-        #     reload_genome(feagi_settings['feagi_host'], feagi_settings['feagi_api_port'], dimensions_endpoint)
-        #     runtime_data["cortical_data"] = \
-        #         requests.get('http://' + feagi_settings['feagi_host'] + ':' + feagi_settings['feagi_api_port'] + dimensions_endpoint,
-        #                      timeout=10).json()
-        # if "cortical_name" in data_from_godot:
-        #     url = "http://" + feagi_settings['feagi_host'] + ":" + feagi_settings[
-        #         'feagi_api_port'] + "/v1/cortical_area/cortical_area"
-        #     request_obj = data_from_godot
-        #     requests.post(url, data=request_obj, timeout=10)
-        #     data_from_godot = {}
+            obtained_data_from_godot = "{}"
 
+        # BV wil send "ping" string so when it happens, the data will be replaced to {} for feagi
+        # to not doing anything. Bridge will return the "ping" for BV to do the calculation of
+        # latency.
+        if obtained_data_from_godot == "ping":
+            obtained_data_from_godot = "{}"
+            send_to_BV_queue.append("ping")
+
+        # Godot will send 4 of those. 3.5 or 4.0. Even if we are out of 3.5 fully, there is a
+        # good chance that one of those might be occur. the usual data would be "{}" from godot.
         invalid_values = {"None", "{}", "refresh", "[]"}
-        if data_from_godot not in invalid_values and data_from_godot != godot_list:
-            godot_list = bridge.godot_data(data_from_godot)
-            converted_data = bridge.convert_absolute_to_relative_coordinate(
+        if obtained_data_from_godot not in invalid_values and obtained_data_from_godot != godot_list:
+            godot_list = bridge.godot_data(obtained_data_from_godot)
+            converted_data = bridge.convet_godot_coord_to_feagi_coord(
                 stimulation_from_godot=godot_list,
-                cortical_data=runtime_data["cortical_data"])
+                cortical_data_list=pns.full_list_dimension)
             print("raw data from godot:", godot_list)
             print(">>> > > > >> > converted data:", converted_data)
             if converted_data != {}:
                 pns.signals_to_feagi(converted_data, feagi_ipu_channel, agent_settings)
+
         sleep(runtime_data["stimulation_period"])
         godot_list = {}
-        # converted_data = {}
-        #
-        # if data_from_godot == "refresh":
-        #     godot_list = {}
-        #     converted_data = {}
-        #     feagi_ipu_channel.send(godot_list)
-        # else:
-        #     pass
 
 
 if __name__ == "__main__":
-    ws_queue = deque()
-    zmq_queue = deque()
-    ws_operation = deque()
+    queue_of_recieve_godot_data = deque()
+    send_to_BV_queue = deque()
+    current_websocket_address = deque()
     threading.Thread(target=websocket_operation, daemon=True).start()
     threading.Thread(target=bridge_operation, daemon=True).start()
     threading.Thread(target=feagi_to_brain_visualizer, daemon=True).start()
