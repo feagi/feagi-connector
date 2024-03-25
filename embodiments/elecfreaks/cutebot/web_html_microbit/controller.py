@@ -23,10 +23,10 @@ import websockets
 from urllib.parse import urlparse, parse_qs
 from configuration import *
 from version import __version__
-from feagi_agent import pns_gateway as pns
-from feagi_agent import sensors as sensors
-from feagi_agent import actuators
-from feagi_agent import feagi_interface as feagi
+from feagi_connector import pns_gateway as pns
+from feagi_connector import sensors as sensors
+from feagi_connector import actuators
+from feagi_connector import feagi_interface as feagi
 
 ws = deque()
 ws_operation = deque()

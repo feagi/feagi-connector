@@ -20,12 +20,12 @@ from collections import deque
 from datetime import datetime
 from time import sleep
 from version import __version__
-from feagi_agent import pns_gateway as pns
+from feagi_connector import pns_gateway as pns
 import websockets
 from configuration import *
-from feagi_agent import retina as retina
-from feagi_agent import sensors
-from feagi_agent import feagi_interface as feagi
+from feagi_connector import retina as retina
+from feagi_connector import sensors
+from feagi_connector import feagi_interface as feagi
 import numpy as np
 import array
 import traceback

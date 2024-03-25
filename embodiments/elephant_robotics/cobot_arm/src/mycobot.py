@@ -1,8 +1,8 @@
 #! /usr/bin/env python3
 
 from pymycobot.mycobot import MyCobot
-from feagi_agent import feagi_interface as FEAGI
-from feagi_agent import retina as retina
+from feagi_connector import feagi_interface as FEAGI
+from feagi_connector import retina as retina
 from collections import deque
 from threading import Thread
 from configuration import *

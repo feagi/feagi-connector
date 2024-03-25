@@ -7,11 +7,11 @@ pip3/Python3 installed, follow these steps:
 
 1. Run the following command to set up for the first time:
 ```
-   python3 -m feagi_agent_freenove --ip <url/ip> --setup true
+   python3 -m feagi_connector_freenove --ip <url/ip> --setup true
 ```
 If you have already run the setup, use this command instead:
 ```
-   python3 -m feagi_agent_freenove --ip <url/ip>
+   python3 -m feagi_connector_freenove --ip <url/ip>
 ```
 Replace `<url/ip>` with your FEAGI's IP address.
 
@@ -64,24 +64,24 @@ It will ask you to reboot due to enabling legacy camera support. Press OK to use
 
 13) Open the terminal and type the following:
 ```
-    pip3 install feagi_agent_freenove
+    pip3 install feagi_connector_freenove
 ```
 
 14) Run the following command to set up for the first time:
 ```
-   python3 -m feagi_agent_freenove --ip <url/ip> --setup true
+   python3 -m feagi_connector_freenove --ip <url/ip> --setup true
 ```
 If you have already run the setup, use this command instead:
 ```
-   python3 -m feagi_agent_freenove --ip <url/ip>
+   python3 -m feagi_connector_freenove --ip <url/ip>
 ```
 Replace `<url/ip>` with your FEAGI's IP address.
 
-# Install feagi_agent_freenove
-`pip3 install feagi_agent_freenove`
+# Install feagi_connector_freenove
+`pip3 install feagi_connector_freenove`
 
-# What is feagi_agent_freenove?
-Feagi_agent_freenove is a package that allows you to connect with the Freenove Smartcar, which you can purchase on Amazon: [here on amazon](https://www.amazon.com/Freenove-Raspberry-Tracking-Avoidance-Ultrasonic/dp/B07YD2LT9D). 
+# What is feagi_connector_freenove?
+feagi_connector_freenove is a package that allows you to connect with the Freenove Smartcar, which you can purchase on Amazon: [here on amazon](https://www.amazon.com/Freenove-Raspberry-Tracking-Avoidance-Ultrasonic/dp/B07YD2LT9D). 
 
 It checks all the settings as the first step to ensure that you have all the necessary packages installed. 
 After that, it runs requirements.txt and then starts the Freenove smartcar. 
@@ -91,5 +91,5 @@ At first, it may be a little slow because it is checking for all the necessary p
 # Requirements.txt
 These are the requirements which will be updated over time. The script will use this requirement to scan.
 
-Here: [requirements.txt](https://github.com/feagi/feagi/blob/staging/peripherals/feagi_agent_freenove/feagi_agent_freenove/requirements.txt)
+Here: [requirements.txt](https://github.com/feagi/feagi/blob/staging/peripherals/feagi_connector_freenove/feagi_connector_freenove/requirements.txt)
 

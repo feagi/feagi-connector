@@ -9,16 +9,16 @@ import RPi.GPIO as GPIO
 from time import sleep
 from collections import deque
 from datetime import datetime
-from feagi_agent import router
-from feagi_agent_freenove.Led import *
-from feagi_agent_freenove.ADC import *
-from feagi_agent import retina as retina
-from feagi_agent import pns_gateway as pns
-from feagi_agent import sensors as sensors
-from feagi_agent import actuators as actuators
-from feagi_agent import feagi_interface as FEAGI
-from feagi_agent_freenove.PCA9685 import PCA9685
-from feagi_agent_freenove.version import __version__
+from feagi_connector import router
+from feagi_connector_freenove.Led import *
+from feagi_connector_freenove.ADC import *
+from feagi_connector import retina as retina
+from feagi_connector import pns_gateway as pns
+from feagi_connector import sensors as sensors
+from feagi_connector import actuators as actuators
+from feagi_connector import feagi_interface as FEAGI
+from feagi_connector_freenove.PCA9685 import PCA9685
+from feagi_connector_freenove.version import __version__
 
 ir_data = deque()
 ultrasonic_data = deque()

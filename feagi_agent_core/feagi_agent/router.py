@@ -26,7 +26,7 @@ import lz4.frame
 import traceback
 import websockets
 from time import sleep
-from feagi_agent import pns_gateway as pns
+from feagi_connector import pns_gateway as pns
 from websockets.sync.client import connect
 
 global_feagi_opu_channel = ''  # Updated by feagi.connect_to_feagi()

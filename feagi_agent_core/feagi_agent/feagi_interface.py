@@ -1,7 +1,7 @@
 import traceback
-from feagi_agent import router
-from feagi_agent import pns_gateway as pns
-from feagi_agent.version import __version__
+from feagi_connector import router
+from feagi_connector import pns_gateway as pns
+from feagi_connector.version import __version__
 from time import sleep
 import requests
 import socket

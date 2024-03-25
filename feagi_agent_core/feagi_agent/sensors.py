@@ -16,7 +16,7 @@ limitations under the License.
 ==============================================================================
 """
 
-from feagi_agent import pns_gateway as pns
+from feagi_connector import pns_gateway as pns
 
 
 def add_infrared_to_feagi_data(ir_list, message_to_feagi, capabilities):

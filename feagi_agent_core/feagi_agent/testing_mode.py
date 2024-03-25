@@ -17,7 +17,7 @@ limitations under the License.
 ==============================================================================
 """
 
-from feagi_agent import pns_gateway as pns
+from feagi_connector import pns_gateway as pns
 
 
 def mode_testing(name_id, message_from_feagi, total, success, success_rate):

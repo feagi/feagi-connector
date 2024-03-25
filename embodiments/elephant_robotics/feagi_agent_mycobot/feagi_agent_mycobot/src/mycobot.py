@@ -1,14 +1,14 @@
 #! /usr/bin/env python3
 
 from pymycobot.mycobot import MyCobot
-from feagi_agent import feagi_interface as FEAGI
+from feagi_connector import feagi_interface as FEAGI
 from collections import deque
 from threading import Thread
 from configuration import *
 from rclpy.node import Node
 from version import __version__
-from feagi_agent import pns_gateway as pns
-from feagi_agent import sensors
+from feagi_connector import pns_gateway as pns
+from feagi_connector import sensors
 import cv2
 import os
 from datetime import datetime

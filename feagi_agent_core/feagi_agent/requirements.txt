@@ -1,4 +1,4 @@
 opencv-python
-feagi-agent
+feagi-connector
 requests
 zmq

@@ -20,8 +20,8 @@ import cv2
 import numpy as np
 import traceback
 from datetime import datetime
-from feagi_agent import pns_gateway as pns
-from feagi_agent import router
+from feagi_connector import pns_gateway as pns
+from feagi_connector import router
 from time import sleep
 import asyncio
 import zmq.asyncio

@@ -16,9 +16,9 @@ limitations under the License.
 ==============================================================================
 """
 
-from feagi_agent import feagi_interface as feagi
-from feagi_agent import retina
-from feagi_agent import router
+from feagi_connector import feagi_interface as feagi
+from feagi_connector import retina
+from feagi_connector import router
 from time import sleep
 import requests
 import threading
