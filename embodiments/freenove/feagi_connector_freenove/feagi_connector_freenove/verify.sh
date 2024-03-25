@@ -34,9 +34,9 @@ done < requirements.txt
 #      break
 #  fi
 #done
-#location="$(pip3 show feagi_agent | grep Location: )"
+#location="$(pip3 show feagi_connector | grep Location: )"
 #echo $location
 #new_location="${location/Location: /""}"
 #echo $new_location
-#python3 $new_location/feagi_agent/robot_controllers/freenove_smartcar/freenove_SmartCar.py
+#python3 $new_location/feagi_connector/robot_controllers/freenove_smartcar/freenove_SmartCar.py
 

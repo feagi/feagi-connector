@@ -24,7 +24,7 @@ sudo apt-get install -y python3-smbus
 sudo apt-get install -y libatlas-base-dev
 sudo apt install -y python3-pip
 sudo pip3 install zmq
-sudo pip3 install feagi-agent
+sudo pip3 install feagi-connector
 sudo pip3 install rpi_ws281x
 sudo pip3 install opencv-python==4.6.0.66
 sudo pip3 install -U numpy

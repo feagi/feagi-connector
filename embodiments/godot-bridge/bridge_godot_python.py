@@ -16,10 +16,10 @@ limitations under the License.
 """
 import threading
 import godot_bridge_functions as bridge
-import feagi_agent.pns_gateway as pns
+import feagi_connector.pns_gateway as pns
 from version import __version__
 from time import sleep
-import feagi_agent.feagi_interface as feagi
+import feagi_connector.feagi_interface as feagi
 from configuration import *
 from network_configuration import *
 

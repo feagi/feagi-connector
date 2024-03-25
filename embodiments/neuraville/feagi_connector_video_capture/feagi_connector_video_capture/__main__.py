@@ -4,14 +4,14 @@ import subprocess
 import sys
 import os
 import sysconfig
-import feagi_agent_video_capture
+import feagi_connector_video_capture
 import traceback
 import requests
 from time import sleep
-from feagi_agent_video_capture.configuration import *
+from feagi_connector_video_capture.configuration import *
 
 if __name__ == '__main__':
-    # Check if feagi_agent has arg
+    # Check if feagi_connector has arg
     parser = argparse.ArgumentParser(description='configuration for any webcam')
     parser.add_argument('-loop', '--loop', help='Enable loop for the video', required=False)
     parser.add_argument('-ip', '--ip', help='Description for ip address argument', required=False)
@@ -54,7 +54,7 @@ if __name__ == '__main__':
         inital_message_to_feagi = message_to_feagi.copy()
         while True:
             try:
-                from feagi_agent_video_capture import controller as video_controller
+                from feagi_connector_video_capture import controller as video_controller
 
                 feagi_auth_url = feagi_settings.pop('feagi_auth_url', None)
                 print("FEAGI AUTH URL ------- ", feagi_auth_url)

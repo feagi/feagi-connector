@@ -1,7 +1,7 @@
 import os
 import re
 import cv2
-from feagi_agent import pns_gateway as pns
+from feagi_connector import pns_gateway as pns
 
 
 def scan_the_folder(path_direction):

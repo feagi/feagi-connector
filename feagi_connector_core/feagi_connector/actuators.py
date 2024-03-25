@@ -2,8 +2,8 @@
 import asyncio
 from time import sleep
 from collections import deque
-from feagi_agent import pns_gateway as pns
-from feagi_agent import feagi_interface as feagi
+from feagi_connector import pns_gateway as pns
+from feagi_connector import feagi_interface as feagi
 
 motor_data = dict()
 

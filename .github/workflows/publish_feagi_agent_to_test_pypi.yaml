@@ -18,7 +18,7 @@ jobs:
   deploy:
 
     runs-on: ubuntu-latest
-    if: github.repository == 'Neuraville/feagi-agent'
+    if: github.repository == 'Neuraville/feagi-connector'
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python
@@ -32,8 +32,8 @@ jobs:
         pip install twine
     - name: Build package then publish to pypi
       run: |
-        python3 -m build feagi_agent_core/
-        cd feagi_agent_core/
+        python3 -m build feagi_connector_core/
+        cd feagi_connector_core/
         python3 -m twine upload --repository testpypi dist/*
       env:
         TWINE_USERNAME: ${{ secrets.TESTPYPI_TOKEN }}
