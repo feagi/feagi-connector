@@ -18,12 +18,12 @@ limitations under the License.
 
 import time
 from PIL import Image
-from feagi_agent import feagi_interface as FEAGI
-from feagi_agent import PIL_retina as pitina
-from feagi_agent import pns_gateway as pns
-from feagi_agent import retina as retina
-from feagi_agent import actuators
-from feagi_agent import sensors
+from feagi_connector import feagi_interface as FEAGI
+from feagi_connector import PIL_retina as pitina
+from feagi_connector import pns_gateway as pns
+from feagi_connector import retina as retina
+from feagi_connector import actuators
+from feagi_connector import sensors
 from configuration import *
 from version import __version__
 import facial_expression

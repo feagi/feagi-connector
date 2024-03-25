@@ -4,7 +4,7 @@ import subprocess
 import sys
 import os
 import sysconfig
-import feagi_agent_mycobot
+import feagi_connector_mycobot
 import platform
 
 
@@ -15,11 +15,11 @@ def read_contents(file_path):
 
 if __name__ == '__main__':
     if platform.uname()[0] == "Linux":
-        # Check if feagi_agent has arg
+        # Check if feagi_connector has arg
         parser = argparse.ArgumentParser(description='configuration for any webcam')
         parser.add_argument('-ip', '--ip', help='Description for ip address argument', required=False)
         args = vars(parser.parse_args())
-        current_path = feagi_agent_mycobot.__path__
+        current_path = feagi_connector_mycobot.__path__
         path = current_path[0] + "/src/configuration.py"
         obtain_line = ""
         whole_file = ""

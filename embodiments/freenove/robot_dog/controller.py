@@ -1,6 +1,6 @@
-from feagi_agent import feagi_interface as FEAGI
+from feagi_connector import feagi_interface as FEAGI
 import RPi.GPIO as GPIO
-from feagi_agent import retina as retina
+from feagi_connector import retina as retina
 import configuration
 import traceback
 import requests

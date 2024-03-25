@@ -18,7 +18,7 @@ jobs:
   deploy:
 
     runs-on: ubuntu-latest
-    if: github.repository == 'feagi/feagi-agent'
+    if: github.repository == 'feagi/feagi-connector'
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python
@@ -32,8 +32,8 @@ jobs:
         pip install twine
     - name: Build package then publish to pypi
       run: |
-        python3 -m build embodiments/freenove/feagi_agent_freenove/
-        cd embodiments/freenove/feagi_agent_freenove/
+        python3 -m build embodiments/freenove/feagi_connector_freenove/
+        cd embodiments/freenove/feagi_connector_freenove/
         python3 -m twine upload -u $TWINE_USERNAME -p $TWINE_PASSWORD dist/*
       env:
         TWINE_USERNAME: ${{ secrets.PYPI_USERNAME_TOKEN }}
