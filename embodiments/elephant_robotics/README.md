@@ -4,6 +4,6 @@ sudo apt install python3-pip python3-dev
 
 
 requirement:
-feagi-agent
+feagi-connector
 pymycobot
 zmq

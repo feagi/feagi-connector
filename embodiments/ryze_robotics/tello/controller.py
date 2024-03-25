@@ -6,11 +6,11 @@ from configuration import *
 from djitellopy import Tello
 from datetime import datetime
 from version import __version__
-from feagi_agent import retina
-from feagi_agent import sensors
-from feagi_agent import actuators
-from feagi_agent import pns_gateway as pns
-from feagi_agent import feagi_interface as FEAGI
+from feagi_connector import retina
+from feagi_connector import sensors
+from feagi_connector import actuators
+from feagi_connector import pns_gateway as pns
+from feagi_connector import feagi_interface as FEAGI
 import cv2
 
 previous_frame_data = dict()
