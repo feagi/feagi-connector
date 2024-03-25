@@ -18,7 +18,7 @@ jobs:
   deploy:
 
     runs-on: ubuntu-latest
-    if: github.repository == 'feagi/feagi-agent'
+    if: github.repository == 'feagi/feagi-connector'
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python
@@ -27,12 +27,12 @@ jobs:
         python-version: '3.x'
     - name: Merge in New Changes
       run: |
-        git config --global --add safe.directory /__w/feagi/feagi-agent
+        git config --global --add safe.directory /__w/feagi/feagi-connector
     - name: Update Dockerfile and version
       run: |
         ls
         export FEAGI_PATH=$(pwd)
-        cd feagi_agent_core/feagi_agent
+        cd feagi_connector_core/feagi_connector
         bash $FEAGI_PATH/generate_version.sh
     - name: Install dependencies
       run: |
@@ -41,8 +41,8 @@ jobs:
         pip install twine
     - name: Build package then publish to pypi
       run: |
-        python3 -m build feagi_agent_core/
-        cd feagi_agent_core/
+        python3 -m build feagi_connector_core/
+        cd feagi_connector_core/
         python3 -m twine upload -u $TWINE_USERNAME -p $TWINE_PASSWORD dist/*
       env:
         TWINE_USERNAME: ${{ secrets.PYPI_USERNAME_TOKEN }}
