@@ -1,4 +1,4 @@
-# Quick start using feagi_agent
+# Quick start using feagi_connector
 1) `git clone https://github.com/feagi/feagi.git`
 2) `cd feagi/docker`
 3) `docker compose -f feagi.yml build`
@@ -11,12 +11,12 @@
 Any issue? Needs detailed documentation about docker? [Deployment documentation](https://github.com/feagi/feagi/wiki/Deployment)
 
 
-# Where is feagi_agent? 
-`feagi_agent` allows you to integrate with our FEAGI with your preferred robots. 
-`feagi_agent` has been tested on <i>freenove_smart_car, Gazebo, Godot, Tello, and Psychopy.</i> 
+# Where is feagi_connector? 
+`feagi_connector` allows you to integrate with our FEAGI with your preferred robots. 
+`feagi_connector` has been tested on <i>freenove_smart_car, Gazebo, Godot, Tello, and Psychopy.</i> 
 You can use it on your computer or docker.
 
-# What is inside feagi_agent?
+# What is inside feagi_connector?
 There are two large library: feagi_interface and retina. `feagi_interface.py` handles the bridge between your project and FEAGI. It allows FEAGI to communicate/controls your robot.
 `retina.py` is the vision where it can see things through any type of camera. 
 
@@ -60,18 +60,18 @@ See examples here:
 
 [Gazebo](https://github.com/feagi/feagi/tree/feature-refactor-vision/third_party/gazebo/simulation/src)
 
-# Where is feagi_agent being used?
+# Where is feagi_connector being used?
 It is being used in python code.
 
 Just install through pip.
 
 Windows:
-`pip install feagi-agent`  
+`pip install feagi-connector`  
 
 Linux/Mac:
-`pip3 install feagi-agent`
+`pip3 install feagi-connector`
 
-and after that, you can just use `from feagi-agent import feagi_interface`
+and after that, you can just use `from feagi-connector import feagi_interface`
 
 See examples:
 [Tellos' code](https://github.com/feagi/feagi/blob/feature-refactor-vision/third_party/physical_robots/tello/tello.py#L6)

@@ -22,9 +22,9 @@ import sys
 from time import sleep
 from configuration import *
 from datetime import datetime
-from feagi_agent import pns_gateway as pns
-from feagi_agent import sensors as sensors
-from feagi_agent import feagi_interface as FEAGI
+from feagi_connector import pns_gateway as pns
+from feagi_connector import sensors as sensors
+from feagi_connector import feagi_interface as FEAGI
 from version import __version__
 
 

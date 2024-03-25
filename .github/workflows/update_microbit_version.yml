@@ -14,7 +14,7 @@ on:
 jobs:
   microbit_version:
     runs-on: ubuntu-latest
-    if: github.repository == 'feagi/feagi-agent'
+    if: github.repository == 'feagi/feagi-connector'
     steps:
       - name: Checkout
         uses: actions/checkout@v4

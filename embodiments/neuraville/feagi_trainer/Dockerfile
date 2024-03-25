@@ -6,7 +6,7 @@ RUN apt-get update
 
 # Python
 RUN pip3 install --upgrade pip && \
-    pip3 install -U feagi_agent && \
+    pip3 install -U feagi_connector && \
     pip3 install opencv-python==4.7.0.68
 RUN pip3 install websockets
 RUN pip3 install fastapi

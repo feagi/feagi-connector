@@ -17,7 +17,7 @@ RUN apt install -y ros-foxy-ros-ign-image
 RUN apt install -y wmctrl
 RUN apt install -y python3-pip
 RUN pip3 install opencv-python
-RUN pip3 install feagi-agent
+RUN pip3 install feagi-connector
 RUN sudo apt install libignition-gazebo3-dev -y \
         lsb-release \
         wget \
@@ -36,7 +36,7 @@ ENV OPENBOX_ARGS='--startup "/opt/source-code/simulation/start_controller.sh"'
 RUN apt install -y wmctrl
 RUN apt install -y python3-pip
 RUN pip3 install opencv-python
-RUN pip3 install feagi-agent
+RUN pip3 install feagi-connector
 
 WORKDIR /etc/xdg/openbox
 RUN sed -i "s|<number>4</number>|<number>1</number> |g" rc.xml

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Copyright 2016-2023 The FEAGI Authors. All Rights Reserved.
+Copyright 2016-2024 The FEAGI Authors. All Rights Reserved.
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
@@ -28,10 +28,10 @@ import lz4.frame
 
 from configuration import *
 from collections import deque
-from feagi_agent import retina
+from feagi_connector import retina
 from version import __version__
-from feagi_agent import feagi_interface as feagi
-from feagi_agent import pns_gateway as pns
+from feagi_connector import feagi_interface as feagi
+from feagi_connector import pns_gateway as pns
 
 rgb_array = {}
 ws = deque()
