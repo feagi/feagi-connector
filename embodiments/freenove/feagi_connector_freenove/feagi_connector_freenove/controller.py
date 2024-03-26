@@ -555,15 +555,15 @@ def main(feagi_auth_url, feagi_settings, agent_settings, capabilities):
     # overwrite manual
     camera_data = {"vision": {}}
     default_capabilities = pns.create_runtime_default_list(default_capabilities, capabilities)
-    # threading.Thread(target=pns.feagi_listener, args=(feagi_opu_channel,), daemon=True).start()
+    threading.Thread(target=pns.feagi_listener, args=(feagi_opu_channel,), daemon=True).start()
 
-    router.websocket_client_initalize('192.168.50.218', '9053')
+    # router.websocket_client_initalize('ip', '9053')
     threading.Thread(target=retina.vision_progress,
                      args=(default_capabilities, feagi_opu_channel, api_address, feagi_settings,
                            camera_data['vision'],), daemon=True).start()
     threading.Thread(target=process_video, args=(default_capabilities, capabilities, cam,
                                                  previous_frame_data, rgb), daemon=True).start()
-    threading.Thread(target=router.websocket_recieve, daemon=True).start()
+    # threading.Thread(target=router.websocket_recieve, daemon=True).start()
     while True:
         try:
             message_from_feagi = pns.message_from_feagi
@@ -588,8 +588,8 @@ def main(feagi_auth_url, feagi_settings, agent_settings, capabilities):
                                                        message_to_feagi)
             sleep(feagi_settings['feagi_burst_speed'])
             # Send the data contains IR, Ultrasonic, and camera
-            # pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
-            router.websocket_send(message_to_feagi)
+            pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
+            # router.websocket_send(message_to_feagi) # WS
             message_to_feagi.clear()
         except KeyboardInterrupt as ke:  # Keyboard error
             motor.stop()
