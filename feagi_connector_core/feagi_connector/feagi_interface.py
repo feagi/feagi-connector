@@ -333,7 +333,11 @@ def connect_to_feagi(feagi_settings, runtime_data, agent_settings, capabilities,
     agent_data_port = str(runtime_data["feagi_state"]['agent_state']['agent_data_port'])
     print("** **", runtime_data["feagi_state"])
     feagi_settings['feagi_burst_speed'] = float(runtime_data["feagi_state"]['burst_duration'])
-    ipu_channel_address = feagi_outbound(feagi_settings['feagi_host'], agent_data_port)
+    if bind_flag:
+        ipu_channel_address = "tcp://*:" + agent_data_port # This is for godot to work due to
+        # bind unable to use the dns.
+    else:
+        ipu_channel_address = feagi_outbound(feagi_settings['feagi_host'], agent_data_port)
 
     print("IPU_channel_address=", ipu_channel_address)
     opu_channel_address = feagi_outbound(feagi_settings['feagi_host'],
