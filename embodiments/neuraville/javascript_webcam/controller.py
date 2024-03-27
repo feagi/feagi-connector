@@ -164,12 +164,12 @@ if __name__ == "__main__":
                     # if previous_burst != feagi_settings['feagi_burst_speed']:
                     #     ws.append({"newRefreshRate": feagi_settings['feagi_burst_speed']})
                     #     previous_burst = feagi_settings['feagi_burst_speed']
-                    sleep(feagi_settings['feagi_burst_speed'])  # bottleneck
                     pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
-                    message_to_feagi.clear()
-                    if 'camera' in rgb:
-                        for i in rgb['camera']:
-                            rgb['camera'][i].clear()
+                sleep(feagi_settings['feagi_burst_speed'])  # bottleneck
+                message_to_feagi.clear()
+                if 'camera' in rgb:
+                    for i in rgb['camera']:
+                        rgb['camera'][i].clear()
             except Exception as e:
                 # pass
                 print("ERROR! : ", e)
