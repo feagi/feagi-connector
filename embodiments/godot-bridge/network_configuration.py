@@ -43,7 +43,7 @@ async def echo(websocket):
             sleep(runtime_data["stimulation_period"])
 
 
-async def bridge_to_BV():
+async def bridge_to_BV(runtime_data):
     while True:
         if send_to_BV_queue:
             try:
@@ -56,6 +56,7 @@ async def bridge_to_BV():
                         send_to_BV_queue.popleft()
                     else:
                         send_to_BV_queue.pop()
+                sleep(runtime_data["stimulation_period"])
             except Exception as error:
                 sleep(0.001)
         else:
@@ -114,11 +115,11 @@ def websocket_operation(agent):
     asyncio.run(websocket_main(agent))
 
 
-def bridge_operation():
-    asyncio.run(bridge_to_BV())
+def bridge_operation(runtime_data):
+    asyncio.run(bridge_to_BV(runtime_data))
 
 
-def feagi_to_brain_visualizer():
+def feagi_to_brain_visualizer(runtime_data):
     """
     Keep send_to_BV queue stay under 2 for bridge_to_BV() function. So that way, it can send latest.
     """
@@ -130,3 +131,5 @@ def feagi_to_brain_visualizer():
                 send_to_BV_queue.append(stored_value)
         if "stimulation_period" in runtime_data:
             sleep(runtime_data["stimulation_period"])
+        else:
+            sleep(1)

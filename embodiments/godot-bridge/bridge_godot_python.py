@@ -112,12 +112,12 @@ def main(feagi_settings, runtime_data, capabilities):
 
 if __name__ == "__main__":
     threading.Thread(target=websocket_operation, args=(agent_settings,), daemon=True).start()
-    threading.Thread(target=bridge_operation, daemon=True).start()
-    threading.Thread(target=feagi_to_brain_visualizer, daemon=True).start()
+    threading.Thread(target=bridge_operation, args=(runtime_data,), daemon=True).start()
+    # threading.Thread(target=feagi_to_brain_visualizer, args=(runtime_data,), daemon=True).start()
     while True:
         FEAGI_FLAG = False
-        print("Waiting on FEAGI...")
         while not FEAGI_FLAG:
+            print("entered")
             FEAGI_FLAG = feagi.is_FEAGI_reachable(
                 os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1"),
                 int(os.environ.get('FEAGI_OPU_PORT', "3000")))
