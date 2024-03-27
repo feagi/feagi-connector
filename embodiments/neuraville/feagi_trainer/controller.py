@@ -25,11 +25,24 @@ from feagi_connector.version import __version__
 from feagi_connector import feagi_interface as feagi
 from feagi_connector import testing_mode
 from feagi_connector import trainer as feagi_trainer
-from configuration import *
 import threading
 import os
+import json
 
 if __name__ == "__main__":
+    # NEW JSON UPDATE
+    f = open('configuration.json')
+    configuration = json.load(f)
+    feagi_settings =  configuration["feagi_settings"]
+    agent_settings = configuration['agent_settings']
+    capabilities = configuration['capabilities']
+    feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
+    feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
+    agent_settings['godot_websocket_port'] = os.environ.get('WS_WEBCAM_PORT', "9051")
+    f.close()
+    message_to_feagi = {"data": {}}
+    # END JSON UPDATE
+
     # Generate runtime dictionary
     runtime_data = {"vision": {}, "current_burst_id": None, "stimulation_period": None,
                     "feagi_state": None,
