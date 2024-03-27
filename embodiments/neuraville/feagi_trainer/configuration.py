@@ -1,60 +1,41 @@
-#!/usr/bin/env python3
-"""
-Copyright 2016-2022 The FEAGI Authors. All Rights Reserved.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-==============================================================================
-"""
-
-import os
-
-feagi_settings = {
-    # "feagi_auth_url": "http://127.0.0.1:9000/v1/k8/feagi_settings/auth_token",
-    "feagi_url": None,
-    "feagi_dns": None,
-    "feagi_host": os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1"),
-    "feagi_api_port": os.environ.get('FEAGI_API_PORT', "8000")
-}
-agent_settings = {
-    "agent_data_port": "10009",
-    "agent_id": "feagi_trainer",
-    "agent_type": "embodiment",
-    'TTL': 2,
-    'last_message': 0,
-    'compression': True
-}
-
-capabilities = {
-    "camera": {
-        "type": "ipu",
-        "disabled": False,
-        "index": "00",
-        "video_device_index": 0,
-        "image": "",
-        "video_loop": False,
-        "mirror": False,
-        # "enhancement": {1:80, 2:80, 4: 80}, # Example. Brightness, Constrast, Shadow
-        "gaze_control": {0: 1, 1: 1},  # Gaze shifts right
-        "pupil_control": {0: 99, 1: 99},  # Pupil shifts up
-        # "threshold_default": [50, 255, 130, 51] # min value, max value, min value, max value in
-        # threshold setting. first and second is for regular webcam. Second is for vision blink OPU
+{
+    "feagi_settings": {
+        "feagi_url": null,
+        "feagi_dns": null,
+        "feagi_host": "127.0.0.1",
+        "feagi_api_port": "8000"
     },
-    "image_reader": {
-        "loop": True,
-        "pause": 0,
-        "path": "./",
-        "test_mode": False
+    "agent_settings": {
+        "agent_data_port": "10009",
+        "agent_id": "feagi_trainer",
+        "agent_type": "embodiment",
+        "TTL": 2,
+        "last_message": 0,
+        "compression": true
+    },
+    "capabilities": {
+        "camera": {
+            "type": "ipu",
+            "disabled": false,
+            "index": "00",
+            "video_device_index": 0,
+            "image": "",
+            "video_loop": false,
+            "mirror": false,
+            "gaze_control": {
+                "0": 1,
+                "1": 1
+            },
+            "pupil_control": {
+                "0": 99,
+                "1": 99
+            }
+        },
+        "image_reader": {
+            "loop": true,
+            "pause": 0,
+            "path": "./",
+            "test_mode": false
+        }
     }
 }
-
-message_to_feagi = {"data": {}}
