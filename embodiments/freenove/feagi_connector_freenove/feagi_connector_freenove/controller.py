@@ -359,33 +359,34 @@ class Ultrasonic:
         GPIO.setwarnings(False)
         self.trigger_pin = 27
         self.echo_pin = 22
+        self.MAX_DISTANCE = 300  # define the maximum measuring distance, unit: cm
+        self.timeOut = self.MAX_DISTANCE * 60  # calculate timeout according to the maximum measuring distance
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(self.trigger_pin, GPIO.OUT)
         GPIO.setup(self.echo_pin, GPIO.IN)
 
-    def send_trigger_pulse(self):
-        GPIO.output(self.trigger_pin, True)
-        # time.sleep(0.00015)
-        GPIO.output(self.trigger_pin, False)
+    def pulseIn(self, pin, level, timeOut):  # obtain pulse time of a pin under timeOut
+        t0 = time.time()
+        while (GPIO.input(pin) != level):
+            if ((time.time() - t0) > timeOut * 0.000001):
+                return 0;
+        t0 = time.time()
+        while (GPIO.input(pin) == level):
+            if ((time.time() - t0) > timeOut * 0.000001):
+                return 0;
+        pulseTime = (time.time() - t0) * 1000000
+        return pulseTime
 
-    def wait_for_echo(self, value, timeout):
-        count = timeout
-        while GPIO.input(self.echo_pin) != value and count > 0:
-            count = count - 1
-
-    def get_distance(self):
-        distance_cm = [0, 0, 0]
-        for i in range(3):
-            self.send_trigger_pulse()
-            self.wait_for_echo(True, 1000)
-            start = time.time()
-            self.wait_for_echo(False, 1000)
-            finish = time.time()
-            pulse_len = finish - start
-            distance_cm[i] = pulse_len / 0.000058
+    def get_distance(self):  # get the measurement results of ultrasonic module,with unit: cm
+        distance_cm = [0, 0, 0, 0, 0]
+        for i in range(5):
+            GPIO.output(self.trigger_pin, GPIO.HIGH)  # make trigger_pin output 10us HIGH level
+            time.sleep(0.00001)  # 10us
+            GPIO.output(self.trigger_pin, GPIO.LOW)  # make trigger_pin output LOW level
+            pingTime = self.pulseIn(self.echo_pin, GPIO.HIGH, self.timeOut)  # read plus time of echo_pin
+            distance_cm[i] = pingTime * 340.0 / 2.0 / 10000.0  # calculate distance with sound speed 340m/s
         distance_cm = sorted(distance_cm)
-        distance_meter = (distance_cm[1] * 0.01) * 2
-        return distance_meter
+        return int(distance_cm[2])/100
 
 
 class Battery:
