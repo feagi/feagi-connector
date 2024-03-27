@@ -1,16 +1,18 @@
 {
+    "description": "Feagi Trainer",
+    
+    "version": "v0.0.0",
+
     "feagi_settings": {
         "feagi_url": null,
         "feagi_dns": null,
         "feagi_host": "127.0.0.1",
-        "feagi_api_port": "8000"
+        "feagi_api_port": 8000
     },
     "agent_settings": {
-        "agent_data_port": "10009",
+        "agent_data_port": 10009,
         "agent_id": "feagi_trainer",
         "agent_type": "embodiment",
-        "TTL": 2,
-        "last_message": 0,
         "compression": true
     },
     "capabilities": {
