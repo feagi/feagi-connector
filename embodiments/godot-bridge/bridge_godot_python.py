@@ -113,7 +113,7 @@ def main(feagi_settings, runtime_data, capabilities):
 if __name__ == "__main__":
     threading.Thread(target=websocket_operation, args=(agent_settings,), daemon=True).start()
     threading.Thread(target=bridge_operation, args=(runtime_data,), daemon=True).start()
-    # threading.Thread(target=feagi_to_brain_visualizer, args=(runtime_data,), daemon=True).start()
+    threading.Thread(target=feagi_to_brain_visualizer, args=(runtime_data,), daemon=True).start()
     while True:
         FEAGI_FLAG = False
         while not FEAGI_FLAG:
