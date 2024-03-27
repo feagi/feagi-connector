@@ -63,6 +63,7 @@ def main(feagi_settings, runtime_data, capabilities):
     # This does not use PNS's websocket starter due to fundamental design differences between the
     # bridge and controllers.
     while True:
+
         one_frame = pns.message_from_feagi
         if one_frame != {}:
             pns.check_genome_status_no_vision(one_frame)
@@ -105,7 +106,6 @@ def main(feagi_settings, runtime_data, capabilities):
             print(">>> > > > >> > converted data:", converted_data)
             if converted_data != {}:
                 pns.signals_to_feagi(converted_data, feagi_ipu_channel, agent_settings)
-
         sleep(runtime_data["stimulation_period"])
         godot_list = {}
 
@@ -117,7 +117,6 @@ if __name__ == "__main__":
     while True:
         FEAGI_FLAG = False
         while not FEAGI_FLAG:
-            print("entered")
             FEAGI_FLAG = feagi.is_FEAGI_reachable(
                 os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1"),
                 int(os.environ.get('FEAGI_OPU_PORT', "3000")))
