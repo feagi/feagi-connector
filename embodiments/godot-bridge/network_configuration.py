@@ -39,8 +39,7 @@ async def echo(websocket):
         new_data = await websocket.recv()
         decompressed_data = zlib.decompress(new_data)
         queue_of_recieve_godot_data.append(decompressed_data)
-        if "stimulation_period" in runtime_data:
-            sleep(runtime_data["stimulation_period"])
+
 
 
 async def bridge_to_BV(runtime_data):
@@ -48,15 +47,14 @@ async def bridge_to_BV(runtime_data):
         if send_to_BV_queue:
             try:
                 if current_websocket_address:
-                    await current_websocket_address[0].send(
-                        zlib.compress(str(send_to_BV_queue[0]).encode()))
+                    await current_websocket_address[0].send(zlib.compress(str(send_to_BV_queue[0]).encode()))
                     if "update" in send_to_BV_queue[0]:
                         send_to_BV_queue.popleft()
                     if "ping" in send_to_BV_queue:
                         send_to_BV_queue.popleft()
                     else:
                         send_to_BV_queue.pop()
-                sleep(runtime_data["stimulation_period"])
+                sleep(runtime_data['stimulation_period']/2)
             except Exception as error:
                 sleep(0.001)
         else:
@@ -129,7 +127,6 @@ def feagi_to_brain_visualizer(runtime_data):
                 stored_value = send_to_BV_queue.pop()
                 send_to_BV_queue.clear()
                 send_to_BV_queue.append(stored_value)
-        if "stimulation_period" in runtime_data:
             sleep(runtime_data["stimulation_period"])
         else:
             sleep(1)
