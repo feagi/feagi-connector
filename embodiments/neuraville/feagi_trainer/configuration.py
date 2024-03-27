@@ -1,8 +1,6 @@
 {
-    "description": "Feagi Trainer",
-    
+    "description": "feagi_trainer_configuration",
     "version": "v0.0.0",
-
     "feagi_settings": {
         "feagi_url": null,
         "feagi_dns": null,
