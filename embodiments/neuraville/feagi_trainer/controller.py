@@ -80,8 +80,7 @@ if __name__ == "__main__":
             # Post image into vision
             if start_timer == 0:
                 start_timer = datetime.now()
-            while capabilities['image_reader']['pause'] >= int(
-                (datetime.now() - start_timer).total_seconds()):
+            while capabilities['image_reader']['pause'] >= int((datetime.now() - start_timer).total_seconds()):
                 size_list = pns.resize_list
                 temporary_previous, rgb, default_capabilities = \
                     retina.process_visual_stimuli(
@@ -104,8 +103,9 @@ if __name__ == "__main__":
                 else:
                     success_rate, success, total = 0, 0, 0
                 pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
+                sleep(feagi_settings['burst_duration'])
             previous_frame_data = temporary_previous.copy()
             start_timer = 0
             message_to_feagi.clear()
-
+        sleep(feagi_settings['burst_duration'])
         continue_loop = capabilities['image_reader']['loop']
