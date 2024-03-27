@@ -39,7 +39,7 @@ ws_operation = deque()
 webcam_size = {'size': []}
 
 
-async def bridge_to_godot():
+async def bridge_to_godot(runtime_data):
     while True:
         if ws:
             try:
@@ -51,8 +51,7 @@ async def bridge_to_godot():
                             ws.append(stored_value)
                     await ws_operation[0].send(str(ws[0]))
                     ws.pop()
-                if "stimulation_period" in runtime_data:
-                    sleep(runtime_data["stimulation_period"])
+                sleep(runtime_data["stimulation_period"])
             except Exception as error:
                 print("error in websocket sender: ", error)
                 traceback.print_exc()
@@ -61,8 +60,8 @@ async def bridge_to_godot():
             sleep(0.001)
 
 
-def bridge_operation():
-    asyncio.run(bridge_to_godot())
+def bridge_operation(runtime_data):
+    asyncio.run(bridge_to_godot(runtime_data))
 
 def utc_time():
     current_time = datetime.utcnow()
@@ -105,25 +104,25 @@ def websocket_operation():
 
 
 if __name__ == "__main__":
+    runtime_data = {"cortical_data": {}, "current_burst_id": None,
+                    "stimulation_period": 0.01, "feagi_state": None,
+                    "feagi_network": None}
     rgb = {}
     CHECKPOINT_TOTAL = 5
     rgb['camera'] = {}
     rgb_array['current'] = {}
     camera_data = {"vision": {}}
     threading.Thread(target=websocket_operation, daemon=True).start()
-    threading.Thread(target=bridge_operation, daemon=True).start()
+    threading.Thread(target=bridge_operation, args=(runtime_data,), daemon=True).start()
     while True:
         feagi_flag = False
-        # print("Waiting on FEAGI...")
-        # while not feagi_flag:
-        #     feagi_flag = feagi.is_FEAGI_reachable(os.environ.get('FEAGI_HOST_INTERNAL',
-        #                                                          "127.0.0.1"), int(os.environ.get('FEAGI_OPU_PORT', "3000")))
-        #     sleep(2)
+        print("Waiting on FEAGI...")
+        while not feagi_flag:
+            feagi_flag = feagi.is_FEAGI_reachable(os.environ.get('FEAGI_HOST_INTERNAL',
+                                                                 "127.0.0.1"), int(os.environ.get('FEAGI_OPU_PORT', "3000")))
+            sleep(2)
         print("DONE")
         previous_data_frame = {}
-        runtime_data = {"cortical_data": {}, "current_burst_id": None,
-                        "stimulation_period": 0.01, "feagi_state": None,
-                        "feagi_network": None}
 
         # # # FEAGI registration # # # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         feagi_settings, runtime_data, api_address, feagi_ipu_channel, feagi_opu_channel = \
