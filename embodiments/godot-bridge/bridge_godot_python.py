@@ -63,7 +63,6 @@ def main(feagi_settings, runtime_data, capabilities):
     # This does not use PNS's websocket starter due to fundamental design differences between the
     # bridge and controllers.
     while True:
-
         one_frame = pns.message_from_feagi
         if one_frame != {}:
             pns.check_genome_status_no_vision(one_frame)
