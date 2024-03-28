@@ -409,7 +409,7 @@ def process_video(default_capabilities, capabilities, cam, previous_frame_data, 
                                                     rgb,
                                                     capabilities)
             default_capabilities['camera']['blink'] = []
-            sleep(0.01)
+        sleep(0.01)
 
 
 def action(obtained_data, led_tracking_list, feagi_settings, capabilities, rolling_window, motor,
@@ -469,19 +469,10 @@ async def read_ultrasonic(feagi_settings):
         sleep(feagi_settings['feagi_burst_speed'])
 
 
-async def listening_feagi(feagi_dict, feagi_opu_channel, feagi_settings):
-    while True:
-        if len(feagi_dict) > 2:
-            feagi_dict.popleft()
-        feagi_dict.append(pns.efferent_signaling(feagi_opu_channel))
-
 
 def start_ultrasonic(feagi_settings):
     asyncio.run(read_ultrasonic(feagi_settings))
 
-
-def start_feagi_bridge(feagi_dict, feagi_opu_channel, feagi_settings):
-    asyncio.run(listening_feagi(feagi_dict, feagi_opu_channel, feagi_settings))
 
 
 def main(feagi_auth_url, feagi_settings, agent_settings, capabilities):
@@ -545,8 +536,8 @@ def main(feagi_auth_url, feagi_settings, agent_settings, capabilities):
     # Initialize rolling window for each motor
     for motor_id in range(motor_count):
         rolling_window[motor_id] = deque([0] * rolling_window_len)
-    # threading.Thread(target=start_ultrasonic, args=(feagi_settings,), daemon=True).start()
-    ultrasonic = Ultrasonic()
+    threading.Thread(target=start_ultrasonic, args=(feagi_settings,), daemon=True).start()
+    # ultrasonic = Ultrasonic()
     motor.stop()
     cam = cv2.VideoCapture(0)  # you need to do sudo rpi-update to be able to use this
     servo.set_default_position(runtime_data)
@@ -578,7 +569,11 @@ def main(feagi_auth_url, feagi_settings, agent_settings, capabilities):
             message_to_feagi = sensors.add_infrared_to_feagi_data(ir_list, message_to_feagi,
                                                                   capabilities)
             # add ultrasonic data into feagi data
-            ultrasonic_list = ultrasonic.get_distance()
+            # ultrasonic_list = ultrasonic.get_distance()
+            if ultrasonic_data:
+                ultrasonic_list = ultrasonic_data[0]
+            else:
+                ultrasonic_list = 0
             message_to_feagi = sensors.add_ultrasonic_to_feagi_data(ultrasonic_list,
                                                                     message_to_feagi)
             # add battery data into feagi data
