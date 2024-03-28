@@ -47,7 +47,7 @@ Here is the diagram of workflow:
 4) Edit that file
 5) Change from `gazebo` and `ros-gazebo` under [Socket] to 127.0.0.1 or your computer's IP
 6) Navigate to `feagi/third_party/godot/src`
-7) edit configuration.py
+7) edit configuration.json
 8) Replace "feagi" next to feagi_host to 127.0.0.1 or the computer where FEAGI is on.
 9) Turn Microbit on
 10) Navigate to feagi/docker/

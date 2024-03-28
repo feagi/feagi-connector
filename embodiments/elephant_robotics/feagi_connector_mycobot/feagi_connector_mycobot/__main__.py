@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import subprocess
-import sys
 import os
-import sysconfig
 import feagi_connector_mycobot
 import platform
 
@@ -20,18 +18,8 @@ if __name__ == '__main__':
         parser.add_argument('-ip', '--ip', help='Description for ip address argument', required=False)
         args = vars(parser.parse_args())
         current_path = feagi_connector_mycobot.__path__
-        path = current_path[0] + "/src/configuration.py"
-        obtain_line = ""
-        whole_file = ""
         if args['ip']:
-            with open(path, "r") as f:
-                for textline in f:
-                    if "feagi_host" in textline:
-                        obtain_line = textline
-            whole_file = read_contents(path)
-            with open(path, "w") as f:
-                new_file = whole_file.replace(obtain_line, "     \"feagi_host\": \"" + args['ip'] + "\",\n")
-                f.write(new_file)
+            os.environ['FEAGI_HOST_INTERNAL'] = args['ip']
         subprocess.run(["./start_mycobot.sh"], cwd=current_path[0])
     elif platform.uname()[0] == "Windows":
         print("This feature is currently not supported on Windows.")

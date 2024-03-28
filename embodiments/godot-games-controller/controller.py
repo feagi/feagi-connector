@@ -12,23 +12,23 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================
 """
-
-import asyncio
+import os
+import json
 import zlib
-import threading
-from collections import deque
-from datetime import datetime
-from time import sleep
-from version import __version__
-from feagi_connector import pns_gateway as pns
-import websockets
-from configuration import *
-from feagi_connector import retina as retina
-from feagi_connector import sensors
-from feagi_connector import feagi_interface as feagi
-import numpy as np
 import array
+import asyncio
 import traceback
+import threading
+import websockets
+import numpy as np
+from time import sleep
+from datetime import datetime
+from collections import deque
+from version import __version__
+from feagi_connector import sensors
+from feagi_connector import retina as retina
+from feagi_connector import pns_gateway as pns
+from feagi_connector import feagi_interface as feagi
 
 ws = deque()
 zmq_queue = deque()
@@ -242,7 +242,19 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, mes
 
 
 if __name__ == '__main__':
-    from configuration import feagi_settings, agent_settings, capabilities, message_to_feagi
+    # NEW JSON UPDATE
+    f = open('configuration.json')
+    configuration = json.load(f)
+    feagi_settings =  configuration["feagi_settings"]
+    agent_settings = configuration['agent_settings']
+    capabilities = configuration['capabilities']
+    feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
+    feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
+    agent_settings['godot_websocket_port'] = os.environ.get('WS_GODOT_GENERIC_PORT', "9055")
+    f.close()
+    message_to_feagi = {"data": {}}
+    # END JSON UPDATE
+
 
     ws_operation = deque()
     acc = {}
