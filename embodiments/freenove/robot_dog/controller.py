@@ -251,7 +251,7 @@ class Servo:
 
         Since 0-1 is motor 1, 2-3 is motor 2 and so on. In this case, 0 is for forward and 1 is for backward.
         """
-        # motor_total = capabilities['motor']['count'] #be sure to update your motor total in configuration.py
+        # motor_total = capabilities['motor']['count'] #be sure to update your motor total in configuration.json
         # increment = 0
         # for motor in range(motor_total):
         #     if motor_id <= motor + 1:
@@ -375,7 +375,7 @@ class Motor:
 
         Since 0-1 is motor 1, 2-3 is motor 2 and so on. In this case, 0 is for forward and 1 is for backward.
         """
-        # motor_total = capabilities['motor']['count'] #be sure to update your motor total in configuration.py
+        # motor_total = capabilities['motor']['count'] #be sure to update your motor total in configuration.json
         # increment = 0
         # for motor in range(motor_total):
         #     if motor_id <= motor + 1:
