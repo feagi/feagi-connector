@@ -12,26 +12,24 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ===============================================================================
 """
-
-import asyncio
-import threading
-from time import sleep
+import os
+import json
 import time
-from datetime import datetime
-import traceback
-
-import numpy as np
-import websockets
-import requests
-import lz4.frame
 import pickle
-
-from configuration import *
+import asyncio
+import requests
+import traceback
+import lz4.frame
+import threading
+import websockets
+import numpy as np
+from time import sleep
 from collections import deque
-from feagi_connector import retina
+from datetime import datetime
 from version import __version__
-from feagi_connector import feagi_interface as feagi
+from feagi_connector import retina
 from feagi_connector import pns_gateway as pns
+from feagi_connector import feagi_interface as feagi
 
 ws = deque()
 ws_operation = deque()
@@ -52,6 +50,20 @@ async def echo(websocket):
 
 
 if __name__ == "__main__":
+    # NEW JSON UPDATE
+    f = open('configuration.json')
+    configuration = json.load(f)
+    feagi_settings =  configuration["feagi_settings"]
+    agent_settings = configuration['agent_settings']
+    capabilities = configuration['capabilities']
+    feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
+    feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
+    agent_settings['godot_websocket_port'] = os.environ.get('WS_CONTROLLER_PORT', "9053")
+    # agent_settings['godot_websocket_ip'] = os.environ.get('WS_MICROBIT_PORT', "9052")
+    f.close()
+    message_to_feagi = {"data": {}}
+    # END JSON UPDATE
+
     while True:
         feagi_flag = False
         print("Waiting on FEAGI...")

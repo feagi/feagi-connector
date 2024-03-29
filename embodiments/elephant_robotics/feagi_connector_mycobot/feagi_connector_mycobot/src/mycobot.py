@@ -1,25 +1,26 @@
 #! /usr/bin/env python3
 
-from pymycobot.mycobot import MyCobot
-from feagi_connector import feagi_interface as FEAGI
-from collections import deque
-from threading import Thread
-from configuration import *
-from rclpy.node import Node
-from version import __version__
-from feagi_connector import pns_gateway as pns
-from feagi_connector import sensors
-import cv2
 import os
-from datetime import datetime
-import geometry_msgs.msg
-import rclpy
 import sys
+import cv2
+import time
+import json
+import rclpy
+import threading
 import traceback
 import std_msgs.msg
+import geometry_msgs.msg
+from rclpy.node import Node
+from threading import Thread
+from datetime import datetime
+from collections import deque
+import feagi_connector_mycobot
+from version import __version__
+from feagi_connector import sensors
+from pymycobot.mycobot import MyCobot
 from rclpy.qos import qos_profile_sensor_data
-import time
-import threading
+from feagi_connector import pns_gateway as pns
+from feagi_connector import feagi_interface as FEAGI
 
 previous_data_frame = dict()
 
@@ -292,6 +293,22 @@ def action(obtained_data, runtime_data):
             print("ERROR: ", e)
             traceback.print_exc()
 
+
+
+# NEW JSON UPDATE
+current_path = feagi_connector_mycobot.__path__
+path = current_path[0] + "/src/configuration.json"
+f = open(path)
+configuration = json.load(f)
+feagi_settings =  configuration["feagi_settings"]
+agent_settings = configuration['agent_settings']
+capabilities = configuration['capabilities']
+feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
+feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
+print("HERE: ", feagi_settings)
+f.close()
+message_to_feagi = {"data": {}}
+# END JSON UPDATE
 
 runtime_data = {
     "current_burst_id": 0,

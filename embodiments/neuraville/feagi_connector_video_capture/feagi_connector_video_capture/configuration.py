@@ -42,6 +42,7 @@ capabilities = {
         "image": "",
         "video_loop": False,
         "mirror": False,
+        "monitor": 0,
         # "enhancement": {1:80, 2:80, 4: 80}, # Example. Brightness, Constrast, Shadow
         # "gaze_control": {0: 25, 1: 55}, # Gaze shifts right
         # "pupil_control": {0: 25, 1: 55}, # Pupil shifts up

@@ -16,29 +16,29 @@ limitations under the License.
 ==============================================================================
 """
 
-import time
-from PIL import Image
-from feagi_connector import feagi_interface as FEAGI
-from feagi_connector import PIL_retina as pitina
-from feagi_connector import pns_gateway as pns
-from feagi_connector import retina as retina
-from feagi_connector import actuators
-from feagi_connector import sensors
-from configuration import *
-from version import __version__
-import facial_expression
-import threading
-import requests
-import pycozmo
 import os
-import asyncio
-from datetime import datetime
-from collections import deque
-import numpy as np
-from time import sleep
-import traceback
-import motor_functions
 import cv2
+import time
+import json
+import pycozmo
+import asyncio
+import requests
+import traceback
+import threading
+import numpy as np
+from PIL import Image
+from time import sleep
+import motor_functions
+import facial_expression
+from collections import deque
+from datetime import datetime
+from version import __version__
+from feagi_connector import sensors
+from feagi_connector import actuators
+from feagi_connector import retina as retina
+from feagi_connector import pns_gateway as pns
+from feagi_connector import PIL_retina as pitina
+from feagi_connector import feagi_interface as FEAGI
 
 runtime_data = {
     "current_burst_id": 0,
@@ -52,9 +52,6 @@ runtime_data = {
 
 previous_frame_data = {}
 rgb = {'camera': {}}
-default_capabilities = {}  # It will be generated in process_visual_stimuli. See the
-# overwrite manual
-default_capabilities = pns.create_runtime_default_list(default_capabilities, capabilities)
 robot = {'accelerator': [], "ultrasonic": [], "gyro": [], 'servo_head': [], "battery": [],
          'lift_height': []}
 camera_data = {"vision": {}}
@@ -178,15 +175,15 @@ def on_camera_image(cli, image):
     # update astype to work well with retina and cv2
     raw_frame = retina.update_astype(new_rgb)
     camera_data['vision'] = raw_frame
-    # default_capabilities['camera']['blink'] = []
-    # if 'camera' in default_capabilities:
-    #     if default_capabilities['camera']['blink'] != []:
-    #         raw_frame = default_capabilities['camera']['blink']
-    # previous_frame_data, rgb, default_capabilities = retina.process_visual_stimuli(
-    #     raw_frame,
-    #     default_capabilities,
-    #     previous_frame_data,
-    #     rgb, capabilities)
+    default_capabilities['camera']['blink'] = []
+    if 'camera' in default_capabilities:
+        if default_capabilities['camera']['blink'] != []:
+            raw_frame = default_capabilities['camera']['blink']
+    previous_frame_data, rgb, default_capabilities = retina.process_visual_stimuli(
+        raw_frame,
+        default_capabilities,
+        previous_frame_data,
+        rgb, capabilities)
     time.sleep(0.01)
 
 
@@ -278,6 +275,21 @@ def action(obtained_data, arms_angle, head_angle):
 
 
 if __name__ == '__main__':
+    # NEW JSON UPDATE
+    f = open('configuration.json')
+    configuration = json.load(f)
+    feagi_settings =  configuration["feagi_settings"]
+    agent_settings = configuration['agent_settings']
+    capabilities = configuration['capabilities']
+    feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
+    feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
+    f.close()
+    message_to_feagi = {"data": {}}
+    # END JSON UPDATE
+    default_capabilities = {}  # It will be generated in process_visual_stimuli. See the
+    # overwrite manual
+    default_capabilities = pns.create_runtime_default_list(default_capabilities, capabilities)
+
     # # FEAGI REACHABLE CHECKER # #
     feagi_flag = False
     print("retrying...")
@@ -385,8 +397,8 @@ if __name__ == '__main__':
 
 
             raw_frame = camera_data['vision']
-            cv2.imshow("test",   raw_frame)
-            cv2.waitKey(30)
+            # cv2.imshow("test",   raw_frame)
+            # cv2.waitKey(30)
             message_to_feagi = pns.generate_feagi_data(rgb, msg_counter, datetime.now(),
                                                        message_to_feagi)
             battery = robot['battery']

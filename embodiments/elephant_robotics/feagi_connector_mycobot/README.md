@@ -20,7 +20,7 @@ You can use it on your computer or docker.
 There are two large library: feagi_interface and retina. `feagi_interface.py` handles the bridge between your project and FEAGI. It allows FEAGI to communicate/controls your robot.
 `retina.py` is the vision where it can see things through any type of camera. 
 
-# configuration.py is REQUIRED
+# configuration.json is REQUIRED
 You will need to have your own configuration where you can adjust setting to see the different results. If you don't have one, use the template below:
 ```
 app_name = 'embodiment'
