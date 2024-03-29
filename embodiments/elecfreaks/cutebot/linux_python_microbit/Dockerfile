@@ -1,6 +1,6 @@
 FROM neuraville/feagi-microbit
 
-COPY ./configuration.py /root
+COPY ./configuration.json /root
 COPY ./microbit_initalizer.sh /root
 COPY ./controller.py /root
 COPY ./router.py /root

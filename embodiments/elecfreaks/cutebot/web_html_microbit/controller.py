@@ -21,12 +21,13 @@ from time import sleep
 import traceback
 import websockets
 from urllib.parse import urlparse, parse_qs
-from configuration import *
 from version import __version__
 from feagi_connector import pns_gateway as pns
 from feagi_connector import sensors as sensors
 from feagi_connector import actuators
 from feagi_connector import feagi_interface as feagi
+import os
+import json
 
 ws = deque()
 ws_operation = deque()
@@ -247,8 +248,21 @@ def microbit_action(obtained_data):
 
 
 if __name__ == "__main__":
-    CHECKPOINT_TOTAL = 5
-    FLAG_COUNTER = 0
+
+    # NEW JSON UPDATE
+    f = open('configuration.json')
+    configuration = json.load(f)
+    feagi_settings =  configuration["feagi_settings"]
+    agent_settings = configuration['agent_settings']
+    capabilities = configuration['capabilities']
+    feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
+    feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
+    agent_settings['godot_websocket_port'] = os.environ.get('WS_MICROBIT_PORT', "9052")
+    f.close()
+    message_to_feagi = {"data": {}}
+    # END JSON UPDATE
+
+
     microbit_data = {'ir': [], 'ultrasonic': {}, 'accelerator': {}, 'sound_level': {}}
     threading.Thread(target=websocket_operation, daemon=True).start()
     # threading.Thread(target=bridge_to_godot, daemon=True).start()

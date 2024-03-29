@@ -193,7 +193,7 @@ class Servo:
         for backward.
         """
         # motor_total = capabilities['motor']['count'] #be sure to update your motor total in
-        # configuration.py increment = 0 for motor in range(motor_total): if motor_id <= motor +
+        # configuration.json increment = 0 for motor in range(motor_total): if motor_id <= motor +
         # 1: print("motor_id: ", motor_id) increment += 1 return increment
         if motor_id <= 1:
             return 0
@@ -313,7 +313,7 @@ class Motor:
         Since 0-1 is motor 1, 2-3 is motor 2 and so on. In this case, 0 is for forward and 1 is for backward.
         """
         # motor_total = capabilities['motor']['count'] #be sure to update your motor total in
-        # configuration.py increment = 0 for motor in range(motor_total): if motor_id <= motor +
+        # configuration.json increment = 0 for motor in range(motor_total): if motor_id <= motor +
         # 1: print("motor_id: ", motor_id) increment += 1 return increment
         if motor_id == 0:
             return 0
@@ -359,33 +359,34 @@ class Ultrasonic:
         GPIO.setwarnings(False)
         self.trigger_pin = 27
         self.echo_pin = 22
+        self.MAX_DISTANCE = 300  # define the maximum measuring distance, unit: cm
+        self.timeOut = self.MAX_DISTANCE * 60  # calculate timeout according to the maximum measuring distance
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(self.trigger_pin, GPIO.OUT)
         GPIO.setup(self.echo_pin, GPIO.IN)
 
-    def send_trigger_pulse(self):
-        GPIO.output(self.trigger_pin, True)
-        # time.sleep(0.00015)
-        GPIO.output(self.trigger_pin, False)
+    def pulseIn(self, pin, level, timeOut):  # obtain pulse time of a pin under timeOut
+        t0 = time.time()
+        while (GPIO.input(pin) != level):
+            if ((time.time() - t0) > timeOut * 0.000001):
+                return 0;
+        t0 = time.time()
+        while (GPIO.input(pin) == level):
+            if ((time.time() - t0) > timeOut * 0.000001):
+                return 0;
+        pulseTime = (time.time() - t0) * 1000000
+        return pulseTime
 
-    def wait_for_echo(self, value, timeout):
-        count = timeout
-        while GPIO.input(self.echo_pin) != value and count > 0:
-            count = count - 1
-
-    def get_distance(self):
-        distance_cm = [0, 0, 0]
-        for i in range(3):
-            self.send_trigger_pulse()
-            self.wait_for_echo(True, 1000)
-            start = time.time()
-            self.wait_for_echo(False, 1000)
-            finish = time.time()
-            pulse_len = finish - start
-            distance_cm[i] = pulse_len / 0.000058
+    def get_distance(self):  # get the measurement results of ultrasonic module,with unit: cm
+        distance_cm = [0, 0, 0, 0, 0]
+        for i in range(5):
+            GPIO.output(self.trigger_pin, GPIO.HIGH)  # make trigger_pin output 10us HIGH level
+            time.sleep(0.00001)  # 10us
+            GPIO.output(self.trigger_pin, GPIO.LOW)  # make trigger_pin output LOW level
+            pingTime = self.pulseIn(self.echo_pin, GPIO.HIGH, self.timeOut)  # read plus time of echo_pin
+            distance_cm[i] = pingTime * 340.0 / 2.0 / 10000.0  # calculate distance with sound speed 340m/s
         distance_cm = sorted(distance_cm)
-        distance_meter = (distance_cm[1] * 0.01) * 2
-        return distance_meter
+        return int(distance_cm[2])/100
 
 
 class Battery:
@@ -408,7 +409,7 @@ def process_video(default_capabilities, capabilities, cam, previous_frame_data, 
                                                     rgb,
                                                     capabilities)
             default_capabilities['camera']['blink'] = []
-            sleep(0.01)
+        sleep(0.01)
 
 
 def action(obtained_data, led_tracking_list, feagi_settings, capabilities, rolling_window, motor,
@@ -468,19 +469,10 @@ async def read_ultrasonic(feagi_settings):
         sleep(feagi_settings['feagi_burst_speed'])
 
 
-async def listening_feagi(feagi_dict, feagi_opu_channel, feagi_settings):
-    while True:
-        if len(feagi_dict) > 2:
-            feagi_dict.popleft()
-        feagi_dict.append(pns.efferent_signaling(feagi_opu_channel))
-
 
 def start_ultrasonic(feagi_settings):
     asyncio.run(read_ultrasonic(feagi_settings))
 
-
-def start_feagi_bridge(feagi_dict, feagi_opu_channel, feagi_settings):
-    asyncio.run(listening_feagi(feagi_dict, feagi_opu_channel, feagi_settings))
 
 
 def main(feagi_auth_url, feagi_settings, agent_settings, capabilities):
@@ -544,8 +536,8 @@ def main(feagi_auth_url, feagi_settings, agent_settings, capabilities):
     # Initialize rolling window for each motor
     for motor_id in range(motor_count):
         rolling_window[motor_id] = deque([0] * rolling_window_len)
-    # threading.Thread(target=start_ultrasonic, args=(feagi_settings,), daemon=True).start()
-    ultrasonic = Ultrasonic()
+    threading.Thread(target=start_ultrasonic, args=(feagi_settings,), daemon=True).start()
+    # ultrasonic = Ultrasonic()
     motor.stop()
     cam = cv2.VideoCapture(0)  # you need to do sudo rpi-update to be able to use this
     servo.set_default_position(runtime_data)
@@ -555,15 +547,15 @@ def main(feagi_auth_url, feagi_settings, agent_settings, capabilities):
     # overwrite manual
     camera_data = {"vision": {}}
     default_capabilities = pns.create_runtime_default_list(default_capabilities, capabilities)
-    # threading.Thread(target=pns.feagi_listener, args=(feagi_opu_channel,), daemon=True).start()
+    threading.Thread(target=pns.feagi_listener, args=(feagi_opu_channel,), daemon=True).start()
 
-    router.websocket_client_initalize('192.168.50.218', '9053')
+    # router.websocket_client_initalize('ip', '9053')
     threading.Thread(target=retina.vision_progress,
                      args=(default_capabilities, feagi_opu_channel, api_address, feagi_settings,
                            camera_data['vision'],), daemon=True).start()
     threading.Thread(target=process_video, args=(default_capabilities, capabilities, cam,
                                                  previous_frame_data, rgb), daemon=True).start()
-    threading.Thread(target=router.websocket_recieve, daemon=True).start()
+    # threading.Thread(target=router.websocket_recieve, daemon=True).start()
     while True:
         try:
             message_from_feagi = pns.message_from_feagi
@@ -577,7 +569,11 @@ def main(feagi_auth_url, feagi_settings, agent_settings, capabilities):
             message_to_feagi = sensors.add_infrared_to_feagi_data(ir_list, message_to_feagi,
                                                                   capabilities)
             # add ultrasonic data into feagi data
-            ultrasonic_list = ultrasonic.get_distance()
+            # ultrasonic_list = ultrasonic.get_distance()
+            if ultrasonic_data:
+                ultrasonic_list = ultrasonic_data[0]
+            else:
+                ultrasonic_list = 0
             message_to_feagi = sensors.add_ultrasonic_to_feagi_data(ultrasonic_list,
                                                                     message_to_feagi)
             # add battery data into feagi data
@@ -588,8 +584,8 @@ def main(feagi_auth_url, feagi_settings, agent_settings, capabilities):
                                                        message_to_feagi)
             sleep(feagi_settings['feagi_burst_speed'])
             # Send the data contains IR, Ultrasonic, and camera
-            # pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
-            router.websocket_send(message_to_feagi)
+            pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
+            # router.websocket_send(message_to_feagi) # WS
             message_to_feagi.clear()
         except KeyboardInterrupt as ke:  # Keyboard error
             motor.stop()

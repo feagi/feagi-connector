@@ -1,0 +1,38 @@
+{
+    "description": "web_html_microbit",
+    "version": "v0.0.0",
+    "feagi_settings": {
+        "feagi_url": null,
+        "feagi_dns": null,
+        "feagi_host": "127.0.0.1",
+        "feagi_api_port": 8000
+    },
+    "agent_settings": {
+        "agent_data_port": 10009,
+        "agent_id": "cutebot",
+        "agent_type": "embodiment",
+        "compression": true,
+        "godot_websocket_ip": "0.0.0.0",
+        "godot_websocket_port": 9052
+    },
+
+    "capabilities": {
+        "motor": {
+            "type": "opu",
+            "disabled": false,
+            "count": 4,
+            "rolling_window_len": 1,
+            "power_amount": 100
+        },
+        "infrared": {
+            "type": "ipu",
+            "disabled": false,
+            "count": 2,
+            "cortical_mapping": "i__inf",
+            "topic_identifier": "IR",
+            "power_amount": 10
+        }
+}
+}
+
+

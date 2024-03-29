@@ -24,7 +24,7 @@ cleanup() {
 
 trap cleanup SIGTERM SIGINT
 
-cd /root/src/
+cd /root/godot-bridge/
 python3 bridge_godot_python.py &
 cd /root/
 
