@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
-import argparse
-import subprocess
-import sys
 import os
-import sysconfig
-import feagi_connector_freenove
-import traceback
+import sys
+import json
 import requests
+import argparse
+import traceback
+import sysconfig
+import subprocess
 from time import sleep
-from feagi_connector_freenove.configuration import *
+import feagi_connector_freenove
+
 
 if __name__ == '__main__':
     # Check if feagi_connector has arg
@@ -26,6 +27,20 @@ if __name__ == '__main__':
     parser.add_argument('-url', '--url', help='full url',
                         required=False)
     args = vars(parser.parse_args())
+
+    # NEW JSON UPDATE
+    f = open('configuration.json')
+    configuration = json.load(f)
+    feagi_settings =  configuration["feagi_settings"]
+    agent_settings = configuration['agent_settings']
+    capabilities = configuration['capabilities']
+    feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
+    feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
+    f.close()
+    message_to_feagi = {"data": {}}
+    # END JSON UPDATE
+
+
     if args['ip']:
         feagi_settings["feagi_host"] = args['ip']
     if args['setup']:
@@ -47,6 +62,7 @@ if __name__ == '__main__':
                                               feagi_settings,
                                               agent_settings,
                                               capabilities)
+            sleep(5)
         except Exception as e:
             print(f"Controller run failed", e)
             traceback.print_exc()

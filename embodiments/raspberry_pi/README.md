@@ -1,13 +1,13 @@
 # Raspberry PI 
 ## Default Mapping in the Configuration
-Currently, the `configuration.py` file contains the default mapping to GPIOs. You have the 
+Currently, the `configuration.json` file contains the default mapping to GPIOs. You have the 
 flexibility to change the input/output settings without impacting anything other than turning 
 GPIOs into inputs or outputs. See the picture below:
 
 ![image](_static/GPIO.png)
 
 
-The GPIO pins on the left side are configured as outputs, while those on the right side are configured as inputs. You can modify these settings in the `configuration.py` file under the capabilities section. The numbers listed represent GPIO pins, and FEAGI and RPI will use these pins accordingly.
+The GPIO pins on the left side are configured as outputs, while those on the right side are configured as inputs. You can modify these settings in the `configuration.json` file under the capabilities section. The numbers listed represent GPIO pins, and FEAGI and RPI will use these pins accordingly.
 
 ## Current Availability of Input and Output for FEAGI
 At present, FEAGI has the capability to read both input and output. To control the output, it 

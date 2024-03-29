@@ -14,14 +14,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================
 """
+import os
+import json
 import threading
+from time import sleep
+from version import __version__
+from network_configuration import *
 import godot_bridge_functions as bridge
 import feagi_connector.pns_gateway as pns
-from version import __version__
-from time import sleep
 import feagi_connector.feagi_interface as feagi
-from configuration import *
-from network_configuration import *
 
 runtime_data = {
     "cortical_data": {},
@@ -105,18 +106,31 @@ def main(feagi_settings, runtime_data, capabilities):
             print(">>> > > > >> > converted data:", converted_data)
             if converted_data != {}:
                 pns.signals_to_feagi(converted_data, feagi_ipu_channel, agent_settings)
-
         sleep(runtime_data["stimulation_period"])
         godot_list = {}
 
 
 if __name__ == "__main__":
+    # NEW JSON UPDATE
+    f = open('configuration.json')
+    configuration = json.load(f)
+    feagi_settings =  configuration["feagi_settings"]
+    agent_settings = configuration['agent_settings']
+    capabilities = {} # Just to make feagi interface happy
+    feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
+    feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
+    agent_settings['godot_websocket_port'] = os.environ.get('WS_BRIDGE_PORT', "9050")
+    # agent_settings['godot_websocket_ip'] = os.environ.get('WS_MICROBIT_PORT', "9052")
+    f.close()
+    message_to_feagi = {"data": {}}
+    # END JSON UPDATE
+
+
     threading.Thread(target=websocket_operation, args=(agent_settings,), daemon=True).start()
-    threading.Thread(target=bridge_operation, daemon=True).start()
-    threading.Thread(target=feagi_to_brain_visualizer, daemon=True).start()
+    threading.Thread(target=bridge_operation, args=(runtime_data,), daemon=True).start()
+    threading.Thread(target=feagi_to_brain_visualizer, args=(runtime_data,), daemon=True).start()
     while True:
         FEAGI_FLAG = False
-        print("Waiting on FEAGI...")
         while not FEAGI_FLAG:
             FEAGI_FLAG = feagi.is_FEAGI_reachable(
                 os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1"),

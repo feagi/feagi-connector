@@ -13,25 +13,23 @@ limitations under the License.
 ===============================================================================
 """
 
-import asyncio
-import threading
-from time import sleep
+import os
 import time
-from datetime import datetime
-import traceback
 import json
-
-import numpy as np
-import websockets
+import asyncio
 import requests
+import traceback
 import lz4.frame
-
-from configuration import *
+import threading
+import websockets
+import numpy as np
+from time import sleep
 from collections import deque
-from feagi_connector import retina
+from datetime import datetime
 from version import __version__
-from feagi_connector import feagi_interface as feagi
+from feagi_connector import retina
 from feagi_connector import pns_gateway as pns
+from feagi_connector import feagi_interface as feagi
 
 rgb_array = {}
 ws = deque()
@@ -39,7 +37,7 @@ ws_operation = deque()
 webcam_size = {'size': []}
 
 
-async def bridge_to_godot():
+async def bridge_to_godot(runtime_data):
     while True:
         if ws:
             try:
@@ -51,8 +49,7 @@ async def bridge_to_godot():
                             ws.append(stored_value)
                     await ws_operation[0].send(str(ws[0]))
                     ws.pop()
-                if "stimulation_period" in runtime_data:
-                    sleep(runtime_data["stimulation_period"])
+                sleep(runtime_data["stimulation_period"])
             except Exception as error:
                 print("error in websocket sender: ", error)
                 traceback.print_exc()
@@ -61,8 +58,8 @@ async def bridge_to_godot():
             sleep(0.001)
 
 
-def bridge_operation():
-    asyncio.run(bridge_to_godot())
+def bridge_operation(runtime_data):
+    asyncio.run(bridge_to_godot(runtime_data))
 
 def utc_time():
     current_time = datetime.utcnow()
@@ -105,25 +102,38 @@ def websocket_operation():
 
 
 if __name__ == "__main__":
+    # NEW JSON UPDATE
+    f = open('configuration.json')
+    configuration = json.load(f)
+    feagi_settings =  configuration["feagi_settings"]
+    agent_settings = configuration['agent_settings']
+    capabilities = configuration['capabilities']
+    feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
+    feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
+    agent_settings['godot_websocket_port'] = os.environ.get('WS_WEBCAM_PORT', "9051")
+    # agent_settings['godot_websocket_ip'] = os.environ.get('WS_MICROBIT_PORT', "9052")
+    f.close()
+    message_to_feagi = {"data": {}}
+    # END JSON UPDATE
+    runtime_data = {"cortical_data": {}, "current_burst_id": None,
+                    "stimulation_period": 0.01, "feagi_state": None,
+                    "feagi_network": None}
     rgb = {}
     CHECKPOINT_TOTAL = 5
     rgb['camera'] = {}
     rgb_array['current'] = {}
     camera_data = {"vision": {}}
     threading.Thread(target=websocket_operation, daemon=True).start()
-    threading.Thread(target=bridge_operation, daemon=True).start()
+    threading.Thread(target=bridge_operation, args=(runtime_data,), daemon=True).start()
     while True:
         feagi_flag = False
-        # print("Waiting on FEAGI...")
-        # while not feagi_flag:
-        #     feagi_flag = feagi.is_FEAGI_reachable(os.environ.get('FEAGI_HOST_INTERNAL',
-        #                                                          "127.0.0.1"), int(os.environ.get('FEAGI_OPU_PORT', "3000")))
-        #     sleep(2)
+        print("Waiting on FEAGI...")
+        while not feagi_flag:
+            feagi_flag = feagi.is_FEAGI_reachable(os.environ.get('FEAGI_HOST_INTERNAL',
+                                                                 "127.0.0.1"), int(os.environ.get('FEAGI_OPU_PORT', "3000")))
+            sleep(2)
         print("DONE")
         previous_data_frame = {}
-        runtime_data = {"cortical_data": {}, "current_burst_id": None,
-                        "stimulation_period": 0.01, "feagi_state": None,
-                        "feagi_network": None}
 
         # # # FEAGI registration # # # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         feagi_settings, runtime_data, api_address, feagi_ipu_channel, feagi_opu_channel = \
@@ -165,12 +175,12 @@ if __name__ == "__main__":
                     # if previous_burst != feagi_settings['feagi_burst_speed']:
                     #     ws.append({"newRefreshRate": feagi_settings['feagi_burst_speed']})
                     #     previous_burst = feagi_settings['feagi_burst_speed']
-                    sleep(feagi_settings['feagi_burst_speed'])  # bottleneck
                     pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
-                    message_to_feagi.clear()
-                    if 'camera' in rgb:
-                        for i in rgb['camera']:
-                            rgb['camera'][i].clear()
+                sleep(feagi_settings['feagi_burst_speed'])  # bottleneck
+                message_to_feagi.clear()
+                if 'camera' in rgb:
+                    for i in rgb['camera']:
+                        rgb['camera'][i].clear()
             except Exception as e:
                 # pass
                 print("ERROR! : ", e)
