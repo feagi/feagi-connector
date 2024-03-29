@@ -1,8 +1,9 @@
+import os
+import cv2
+import json
 import time
 import requests
 import threading
-import configuration
-from configuration import *
 from djitellopy import Tello
 from datetime import datetime
 from version import __version__
@@ -11,7 +12,6 @@ from feagi_connector import sensors
 from feagi_connector import actuators
 from feagi_connector import pns_gateway as pns
 from feagi_connector import feagi_interface as FEAGI
-import cv2
 
 previous_frame_data = dict()
 flag = False
@@ -88,32 +88,6 @@ def return_resolution(data):
     frame_read = data
     height, width, _ = frame_read.frame.shape
     return height, width
-
-
-def control_drone(self, direction, cm_distance):
-    """
-    self: instantiation
-    direction: direction of forward, backward, left or right
-    cm_distance: the default measurement distance from the current position to the goal
-    """
-    cm_distance = cm_distance * configuration.capabilities['motor']['power_coefficient']
-    try:
-        if direction == "l":
-            self.send_command_without_return(
-                "{} {}".format("left", cm_distance))  # left cm * 11 (max 100)
-        elif direction == "r":
-            self.send_command_without_return("{} {}".format("right", cm_distance))
-        elif direction == "f":
-            self.send_command_without_return("{} {}".format("forward", cm_distance))
-        elif direction == "b":
-            self.send_command_without_return("{} {}".format("back", cm_distance))
-        elif direction == "u":
-            self.send_command_without_return("{} {}".format("up", cm_distance))
-        elif direction == "d":
-            self.send_command_without_return("{} {}".format("down", cm_distance))
-    except Exception as e:
-        print("ERROR at: ", e)
-
 
 def misc_control(self, data, battery_level):
     global flag
@@ -262,6 +236,18 @@ def action(obtained_signals):
 
 
 if __name__ == '__main__':
+    # NEW JSON UPDATE
+    f = open('configuration.json')
+    configuration = json.load(f)
+    feagi_settings =  configuration["feagi_settings"]
+    agent_settings = configuration['agent_settings']
+    capabilities = configuration['capabilities']
+    feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
+    feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
+    f.close()
+    message_to_feagi = {"data": {}}
+    # END JSON UPDATE
+
     feagi_auth_url = feagi_settings.pop('feagi_auth_url', None)
     print("FEAGI AUTH URL ------- ", feagi_auth_url)
     runtime_data = dict()
@@ -340,7 +326,7 @@ if __name__ == '__main__':
 
             # Sending data to FEAGI
             pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
-            configuration.message_to_feagi.clear()
+            message_to_feagi.clear()
             time.sleep(feagi_settings['feagi_burst_speed'])
         except KeyboardInterrupt as ke:
             print("ERROR: ", ke)
