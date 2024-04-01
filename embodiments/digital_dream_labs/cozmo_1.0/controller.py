@@ -22,6 +22,7 @@ import time
 import json
 import pycozmo
 import asyncio
+import argparse
 import requests
 import traceback
 import threading
@@ -277,21 +278,40 @@ if __name__ == '__main__':
     f.close()
     message_to_feagi = {"data": {}}
     # END JSON UPDATE
+
     default_capabilities = {}  # It will be generated in process_visual_stimuli. See the
     # overwrite manual
     default_capabilities = pns.create_runtime_default_list(default_capabilities, capabilities)
 
-    # # FEAGI REACHABLE CHECKER # #
-    feagi_flag = False
-    print("retrying...")
-    print("Waiting on FEAGI...")
-    while not feagi_flag:
-        feagi_flag = FEAGI.is_FEAGI_reachable(
-            os.environ.get('FEAGI_HOST_INTERNAL', feagi_settings["feagi_host"]),
-            int(os.environ.get('FEAGI_OPU_PORT', "3000")))
-        sleep(2)
+    # Check if feagi_connector has arg
+    parser = argparse.ArgumentParser(description='enable to use magic link')
+    parser.add_argument('-magic_link', '--magic_link', help='to use magic link, required=False')
+    parser.add_argument('-magic-link', '--magic-link', help='to use magic link, required=False')
+    parser.add_argument('-magic', '--magic', help='to use magic link, required=False')
+    args = vars(parser.parse_args())
+    if args['magic'] or args['magic_link']:
+        link = ""
+        for arg in args:
+            print("bwuk: ", arg, " and ", args[arg])
+            if args[arg] != None:
+                link = args[arg]
+                break
+        url_response = json.loads(requests.get(link).text)
+        feagi_settings['feagi_dns   '] = url_response['feagi_url']
+        feagi_settings['feagi_api_port'] = url_response['feagi_api_port']
+        print(type(url_response), " and ", url_response)
+    else:
+        # # FEAGI REACHABLE CHECKER # #
+        feagi_flag = False
+        print("retrying...")
+        print("Waiting on FEAGI...")
+        while not feagi_flag:
+            feagi_flag = FEAGI.is_FEAGI_reachable(
+                os.environ.get('FEAGI_HOST_INTERNAL', feagi_settings["feagi_host"]),
+                int(os.environ.get('FEAGI_OPU_PORT', "3000")))
+            sleep(2)
 
-    # # FEAGI REACHABLE CHECKER COMPLETED # #
+        # # FEAGI REACHABLE CHECKER COMPLETED # #
 
     # # # FEAGI registration # # # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     # - - - - - - - - - - - - - - - - - - #
