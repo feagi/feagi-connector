@@ -175,15 +175,6 @@ def on_camera_image(cli, image):
     # update astype to work well with retina and cv2
     raw_frame = retina.update_astype(new_rgb)
     camera_data['vision'] = raw_frame
-    default_capabilities['camera']['blink'] = []
-    if 'camera' in default_capabilities:
-        if default_capabilities['camera']['blink'] != []:
-            raw_frame = default_capabilities['camera']['blink']
-    previous_frame_data, rgb, default_capabilities = retina.process_visual_stimuli(
-        raw_frame,
-        default_capabilities,
-        previous_frame_data,
-        rgb, capabilities)
     time.sleep(0.01)
 
 
@@ -397,6 +388,15 @@ if __name__ == '__main__':
 
 
             raw_frame = camera_data['vision']
+            default_capabilities['camera']['blink'] = []
+            if 'camera' in default_capabilities:
+                if default_capabilities['camera']['blink'] != []:
+                    raw_frame = default_capabilities['camera']['blink']
+            previous_frame_data, rgb, default_capabilities = retina.process_visual_stimuli(
+                raw_frame,
+                default_capabilities,
+                previous_frame_data,
+                rgb, capabilities)
             # cv2.imshow("test",   raw_frame)
             # cv2.waitKey(30)
             message_to_feagi = pns.generate_feagi_data(rgb, msg_counter, datetime.now(),
