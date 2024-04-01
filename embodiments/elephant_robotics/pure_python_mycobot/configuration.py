@@ -16,15 +16,11 @@ limitations under the License.
 """
 # !/usr/bin/env python3
 
-feagi_settings = {
-    "feagi_host": "feagi",
-    "feagi_api_port": "8000",
-}
+app_name = 'gazebo'
 
-agent_settings = {
-    "agent_data_port": "30012",
-    "agent_id": "mycobot",
-    "agent_type": "embodiment",
+network_settings = {
+    "feagi_host": "192.168.50.246",
+    "feagi_api_port": "8000",
     'TTL': 2,
     'last_message': 0,
 }
@@ -33,12 +29,12 @@ capabilities = {
     "camera": {
         "type": "ipu",
         "disabled": False,
-        "index": "00",
+        "count": 1,
         "width": 8,
         "height": 8,
         "deviation_threshold": 0.1,
-        "retina_width_percent": 90,
-        "retina_height_percent": 80,
+        "retina_width_percent": 60,
+        "retina_height_percent": 40,
         "central_vision_compression": [64, 64],
         "peripheral_vision_compression": [8, 8],
         "previous_data": {}
@@ -46,12 +42,10 @@ capabilities = {
     "servo": {
         "type": "opu",
         "disabled": False,
-        "cortical_mapping": "o_sper",
-        'count': 7,
+        "refresh_rate": 1,
+        "cortical_mapping": "o__ser",
+        'count': 5,
         'topic_identifier': '/S',
-        'port': {
-            '0': '/dev/ttyUSB0'  # Find a way to add without hardcode
-        },
         'servo_range': {
             '1': [200, 3600],
             '2': [0, 0],
@@ -59,13 +53,7 @@ capabilities = {
             '4': [700, 3300],
             '5': [150, 3600],
             '6': [0, 4096]
-        },
-        'power': 50,
-        'sensitivity':
-            {
-                'micro': 50,
-                'macro': 150
-            }
+        }
     }
 }
 
