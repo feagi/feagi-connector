@@ -2,10 +2,13 @@ from pymycobot.mycobot import MyCobot
 from feagi_agent import feagi_interface as FEAGI
 from feagi_agent import retina as retina
 from datetime import datetime
-import time
-
+import json
+import os
+from time import sleep
+from collections import deque
 
 previous_data_frame = dict()
+
 
 class Arm:
     @staticmethod
@@ -14,32 +17,24 @@ class Arm:
         :param port: The default would be '/dev/ttyUSB0'. If the port is different, put a different port.
         :return:
         """
-        return MyCobot(port)
+        print("here: ", port)
+        return MyCobot(port, 115200)
 
-    @staticmethod
-    def get_coordination(robot):
-        """
-        :return: 6 servos' coordination
-        """
-        data = robot.get_coords()
-        return data
+    # @staticmethod
+    # def initialize(arm, count):
+    #     default = [2048, 2048, 2048, 2048, 2048, 2048]
+    #     arm.set_encoders(default, 100)
+    #     for number_id in range(1, count + 1, 1):
+    #         arm.get_encoder(2048)
+    #     time.sleep(1)
 
-    def move(self, robot, encoder_id, power):
-        """
-        :param encoder_id: servo ID
-        :param power: A power to move to the point
-        """
-        if encoder_id not in runtime_data['servo_status']:
-            runtime_data['servo_status'][encoder_id] = power
-        print("encoder_id: ", encoder_id)
-        print("power: ", runtime_data['servo_status'][encoder_id])
-        print("test: ", capabilities['servo']['servo_range'][str(encoder_id)][1])
-        if capabilities['servo']['servo_range'][str(encoder_id)][1] >= (
-                runtime_data['servo_status'][encoder_id] + power) >= \
-                capabilities['servo']['servo_range'][str(encoder_id)][0]:
-            print("WORKED!")
-            robot.set_encoder(encoder_id, runtime_data['servo_status'][encoder_id])
-            runtime_data['servo_status'][encoder_id] = runtime_data['servo_status'][encoder_id] + power
+    # @staticmethod
+    # def get_coordination(robot):
+    #     """
+    #     :return: 6 servos' coordination
+    #     """
+    #     data = robot.get_coords()
+    #     return data
 
     @staticmethod
     def power_convert(encoder_id, power):
@@ -73,6 +68,31 @@ class Arm:
             print("Input has been refused. Please put encoder ID.")
 
 
+def updating_encoder_position_in_bg():
+    global runtime_data, capabilities, feagi_settings
+    for i in range(1, capabilities['servo']['count'], 1):
+        runtime_data['actual_encoder_position'][i] = deque([0, 0, 0, 0, 0])
+    while True:
+        for i in range(1, capabilities['servo']['count'], 1):
+            if i != 2:
+                new_data = arm.get_encoder(i)
+                if new_data != -1:
+                    if runtime_data['actual_encoder_position'][i]:
+                        runtime_data['actual_encoder_position'][i].append(new_data)
+                        runtime_data['actual_encoder_position'][i].popleft()
+        print(runtime_data['actual_encoder_position'])
+        # sleep(feagi_settings['feagi_burst_speed'])
+        sleep(1)
+
+def move(arm, encoder_id, power):
+    if encoder_id not in runtime_data['servo_status']:
+        runtime_data['servo_status'][encoder_id] = power
+    max_range = capabilities['servo']['servo_range'][str(encoder_id)][1]
+    min_range = capabilities['servo']['servo_range'][str(encoder_id)][0]
+    if max_range >= power >= min_range:
+        arm.set_encoder(encoder_id, power)
+
+
 runtime_data = {
     "current_burst_id": 0,
     "feagi_state": None,
@@ -80,41 +100,38 @@ runtime_data = {
     "battery_charge_level": 1,
     "host_network": {},
     'motor_status': {},
-    'servo_status': {}
+    'servo_status': {},
+    'actual_encoder_position': {},
 }
-
-mycobot = Arm()
-arm = mycobot.connection_initialize()
-print(mycobot.get_coordination(arm))
-print(arm.release_servo(1))
-print("IS CONTROLLER CONNECTED?: ", arm.is_controller_connected())
-print("is all servo enabled", arm.is_all_servo_enable())
-
-# for i in range(1,6,1):
-#     arm.set_servo_calibration(i)
-# while True:
-#     print(str(1) + "'S STATUS: ", arm.get_encoder(2))
-#     print(str(2) + " ENABLED?: ", arm.is_servo_enable(2))
-#     # print(str(3) + "'S STATUS: ", arm.get_encoder(3))
-#     # print(str(4) + "'S STATUS: ", arm.get_encoder(4))
-print("version: ", arm.get_system_version())
 
 # NEW JSON UPDATE
 f = open('configuration.json')
 configuration = json.load(f)
-# feagi_settings = configuration["feagi_settings"]
-# agent_settings = configuration['agent_settings']
+feagi_settings = configuration["feagi_settings"]
+agent_settings = configuration['agent_settings']
 capabilities = configuration['capabilities']
 feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
 feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
 f.close()
 message_to_feagi = {"data": {}}
 # END JSON UPDATE
-# Make arm center
-for i in range(6):
-    if i != 2 and i != 0:
-        print("i: ", i)
-        mycobot.move(arm, i, 2048)
 
 
+mycobot = Arm()
+arm = mycobot.connection_initialize()
+# default = [2048, 2048, 2048, 2048, 2048, 2048]
+# arm.set_encoders(default, 100)
+# print("version: ", arm.get_system_version())
+# print("list of encoders here: ", arm.get_encoders())
+# print("list of angles here: ", arm.get_angles())
+arm.release_servo(1)
+# print("IS CONTROLLER CONNECTED?: ", arm.is_controller_connected())
+# print("is all servo enabled", arm.is_all_servo_enable())
 
+updating_encoder_position_in_bg()
+# move(arm, 2, 3000)
+# sleep(5)
+# move(arm, 2, 1000)
+# sleep(2)
+
+arm.release_all_servos()
