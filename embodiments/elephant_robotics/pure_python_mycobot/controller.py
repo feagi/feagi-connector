@@ -1,11 +1,7 @@
 from pymycobot.mycobot import MyCobot
 from feagi_agent import feagi_interface as FEAGI
 from feagi_agent import retina as retina
-from configuration import *
-from picamera.array import PiRGBArray
-from picamera import PiCamera
 from datetime import datetime
-import requests
 import time
 
 
@@ -87,22 +83,6 @@ runtime_data = {
     'servo_status': {}
 }
 
-# # # FEAGI registration # # #
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
-feagi_host, api_port = FEAGI.feagi_setting_for_registration()
-runtime_data["feagi_state"] = FEAGI.feagi_registration(feagi_host=feagi_host, api_port=api_port)
-ipu_channel_address = FEAGI.feagi_inbound(runtime_data["feagi_state"]['feagi_inbound_port_gazebo'])
-opu_channel_address = FEAGI.feagi_outbound(network_settings['feagi_host'],
-                                           runtime_data["feagi_state"]['feagi_outbound_port'])
-feagi_ipu_channel = FEAGI.pub_initializer(ipu_channel_address)
-feagi_opu_channel = FEAGI.sub_initializer(opu_address=opu_channel_address)
-api_address = FEAGI.feagi_gui_address(feagi_host, api_port)
-stimulation_period_endpoint = FEAGI.feagi_api_burst_engine()
-burst_counter_endpoint = FEAGI.feagi_api_burst_counter()
-network_settings['feagi_burst_speed'] = float(runtime_data["feagi_state"]['burst_duration'])
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
-
-
 mycobot = Arm()
 arm = mycobot.connection_initialize()
 print(mycobot.get_coordination(arm))
@@ -118,103 +98,23 @@ print("is all servo enabled", arm.is_all_servo_enable())
 #     # print(str(3) + "'S STATUS: ", arm.get_encoder(3))
 #     # print(str(4) + "'S STATUS: ", arm.get_encoder(4))
 print("version: ", arm.get_system_version())
-print("DONE!")
-flag = True
-keyboard_flag = True
 
+# NEW JSON UPDATE
+f = open('configuration.json')
+configuration = json.load(f)
+# feagi_settings = configuration["feagi_settings"]
+# agent_settings = configuration['agent_settings']
+capabilities = configuration['capabilities']
+feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
+feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
+f.close()
+message_to_feagi = {"data": {}}
+# END JSON UPDATE
 # Make arm center
 for i in range(6):
     if i != 2 and i != 0:
         print("i: ", i)
         mycobot.move(arm, i, 2048)
 
-# Camera section
-camera = PiCamera()
-camera.resolution = (640, 480)
-camera.framerate = 32
-rawCapture = PiRGBArray(camera, size=(640, 480))
-msg_counter = 0
 
 
-while flag:
-    try:
-        for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
-            if keyboard_flag:
-                image = frame.array
-                rawCapture.truncate(0)
-                if capabilities['camera']['disabled'] is not True:
-                    retina_data = retina.frame_split(image,
-                                                     capabilities['camera']['retina_width_percent'],
-                                                     capabilities['camera']['retina_height_percent'])
-                    for i in retina_data:
-                        if 'C' in i:
-                            retina_data[i] = retina.center_data_compression(retina_data[i],
-                                                                            capabilities['camera'][
-                                                                                "central_vision_compression"]
-                                                                            )
-                        else:
-                            retina_data[i] = retina.center_data_compression(retina_data[i],
-                                                                            capabilities['camera']
-                                                                            ['peripheral_vision_compression'])
-                    rgb = dict()
-                    rgb['camera'] = dict()
-                    if previous_data_frame == {}:
-                        for i in retina_data:
-                            previous_name = str(i) + "_prev"
-                            previous_data_frame[previous_name] = {}
-                    for i in retina_data:
-                        name = i
-                        if 'prev' not in i:
-                            data = retina.ndarray_to_list(retina_data[i])
-                            if 'C' in i:
-                                previous_name = str(i) + "_prev"
-                                rgb_data, previous_data_frame[previous_name] = \
-                                    retina.get_rgb(data,
-                                                   capabilities[
-                                                       'camera'][
-                                                       'central_vision_compression'],
-                                                   previous_data_frame[
-                                                       previous_name],
-                                                   name,
-                                                   capabilities['camera']['deviation_threshold'])
-                            else:
-                                previous_name = str(i) + "_prev"
-                                rgb_data, previous_data_frame[previous_name] = \
-                                    retina.get_rgb(data, capabilities['camera']['peripheral_vision_compression'],
-                                                   previous_data_frame[previous_name], name,
-                                                   capabilities['camera']['deviation_threshold'])
-                            for a in rgb_data['camera']:
-                                rgb['camera'][a] = rgb_data['camera'][a]
-                else:
-                    rgb = {}
-
-            message_to_feagi, bat = FEAGI.compose_message_to_feagi(original_message=rgb, data=message_to_feagi)
-
-            message_to_feagi['timestamp'] = datetime.now()
-            message_to_feagi['counter'] = msg_counter
-            feagi_ipu_channel.send(message_to_feagi)
-            message_to_feagi.clear()
-            msg_counter += 1
-            flag += 1
-            if flag == 10:
-                feagi_burst_speed = requests.get(api_address + stimulation_period_endpoint).json()
-                feagi_burst_counter = requests.get(api_address + burst_counter_endpoint).json()
-                flag = 0
-                if msg_counter < feagi_burst_counter:
-                    feagi_opu_channel = FEAGI.sub_initializer(opu_address=opu_channel_address)
-                    if feagi_burst_speed != network_settings['feagi_burst_speed']:
-                        network_settings['feagi_burst_speed'] = feagi_burst_speed
-            message_from_feagi = feagi_opu_channel.receive()
-            if message_from_feagi is not None:
-                opu_data = FEAGI.opu_processor(message_from_feagi)
-                if 'motor' in opu_data:
-                    if opu_data['motor'] is not {}:
-                        for data_point in opu_data['motor']:
-                            device_power = opu_data['motor'][data_point]
-                            device_power = mycobot.power_convert(data_point, device_power)
-                            device_id = mycobot.encoder_converter(data_point)
-                            mycobot.move(arm, device_id, device_power * 10)
-    except KeyboardInterrupt as ke:  # Keyboard error
-        arm.release_all_servos()
-        flag = False
-        keyboard_flag = False
