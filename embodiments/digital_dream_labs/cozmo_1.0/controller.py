@@ -397,8 +397,8 @@ if __name__ == '__main__':
                 default_capabilities,
                 previous_frame_data,
                 rgb, capabilities)
-            cv2.imshow("test",   raw_frame)
-            cv2.waitKey(30)
+            # cv2.imshow("test",   raw_frame)
+            # cv2.waitKey(30)
             message_to_feagi = pns.generate_feagi_data(rgb, msg_counter, datetime.now(),
                                                        message_to_feagi)
             battery = robot['battery']
