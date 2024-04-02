@@ -24,6 +24,8 @@ cleanup() {
 
 trap cleanup SIGTERM SIGINT
 
+export FEAGI_HOST_INTERNAL=$(hostname)
+
 cd /root/godot-bridge/
 python3 bridge_godot_python.py &
 cd /root/
