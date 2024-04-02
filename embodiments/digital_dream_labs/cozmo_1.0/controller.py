@@ -297,7 +297,7 @@ if __name__ == '__main__':
                 link = args[arg]
                 break
         url_response = json.loads(requests.get(link).text)
-        feagi_settings['feagi_dns   '] = url_response['feagi_url']
+        feagi_settings['feagi_dns'] = url_response['feagi_url']
         feagi_settings['feagi_api_port'] = url_response['feagi_api_port']
         print(type(url_response), " and ", url_response)
     else:
