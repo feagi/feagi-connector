@@ -1,15 +1,16 @@
-from pymycobot.mycobot import MyCobot
-from feagi_connector import feagi_interface as FEAGI
-from feagi_connector import retina as retina
-from datetime import datetime
-import json
 import os
+import json
+import traceback
+import threading
 from time import sleep
+from datetime import datetime
 from collections import deque
 from version import __version__
-import threading
+from feagi_connector import sensors
+from pymycobot.mycobot import MyCobot
+from feagi_connector import retina as retina
 from feagi_connector import pns_gateway as pns
-import traceback
+from feagi_connector import feagi_interface as FEAGI
 
 previous_data_frame = dict()
 
@@ -29,14 +30,6 @@ class Arm:
             if number_id != 2:
                 runtime_data['servo_status'][number_id] = 2048
                 arm.set_encoder(number_id, 2048)
-
-    # @staticmethod
-    # def get_coordination(robot):
-    #     """
-    #     :return: 6 servos' coordination
-    #     """
-    #     data = robot.get_coords()
-    #     return data
 
     @staticmethod
     def power_convert(encoder_id, power):
@@ -97,7 +90,7 @@ def move(arm, encoder_id, power):
 def action(obtained_data, arm):
     # if 'servo_position' in obtained_data:
     #     try:
-    #         if obtained_data['servo_position'] is not {}:
+    #         if obtained_data['servo_position']:
     #             for data_point in obtained_data['servo_position']:
     #                 device_id = data_point + 1
     #                 encoder_position = ((capabilities['servo']['servo_range'][str(device_id)][1] -
@@ -125,7 +118,6 @@ def action(obtained_data, arm):
         except Exception as e:
             print("ERROR: ", e)
             traceback.print_exc()
-    print(runtime_data['servo_status'])
 
 
 if __name__ == "__main__":
@@ -186,6 +178,16 @@ if __name__ == "__main__":
                 pns.check_genome_status_no_vision(message_from_feagi)
                 obtained_signals = pns.obtain_opu_data(message_from_feagi)
                 action(obtained_signals, arm)
+
+            # Encoder position
+            encoder_for_feagi = dict()
+            try:
+                for encoder_data in runtime_data['actual_encoder_position']:
+                    encoder_for_feagi[encoder_data] = runtime_data['actual_encoder_position'][encoder_data][4]
+                message_to_feagi = sensors.add_encoder_to_feagi_data(encoder_for_feagi,message_to_feagi)
+            except Exception as e:
+                print("error: ", e)
+
             sleep(feagi_settings['feagi_burst_speed'])
             if message_to_feagi:
                 pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
