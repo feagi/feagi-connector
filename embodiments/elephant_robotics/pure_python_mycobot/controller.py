@@ -87,23 +87,25 @@ def move(arm, encoder_id, power):
         runtime_data['servo_status'][encoder_id] = pre_power
 
 
+def move_encoder(arm, encoder_id, degree):
+    max_range = capabilities['servo']['servo_range'][str(encoder_id)][1]
+    min_range = capabilities['servo']['servo_range'][str(encoder_id)][0]
+    if max_range >= degree >= min_range:
+        arm.set_encoder(encoder_id, degree)
+        runtime_data['servo_status'][encoder_id] = degree
+
+
 def action(obtained_data, arm):
-    # if 'servo_position' in obtained_data:
-    #     try:
-    #         if obtained_data['servo_position']:
-    #             for data_point in obtained_data['servo_position']:
-    #                 device_id = data_point + 1
-    #                 encoder_position = ((capabilities['servo']['servo_range'][str(device_id)][1] -
-    #                                      capabilities['servo']['servo_range'][str(device_id)][
-    #                                          0]) / 20) * \
-    #                                    obtained_data['servo_position'][data_point]
-    #                 runtime_data['target_position'][device_id] = encoder_position
-    #                 # print(encoder_position, " is encoder id: ", device_id)
-    #                 # print(runtime_data['target_position'][device_id])
-    #                 speed[device_id] = (obtained_data['servo_position'][data_point] - 10) * 10
-    #     except Exception as e:
-    #         print("ERROR: ", e)
-    #         traceback.print_exc()
+    if 'servo_position' in obtained_data:
+        try:
+            if obtained_data['servo_position']:
+                for data_point in obtained_data['servo_position']:
+                    device_id = data_point + 1
+                    encoder_position = (obtained_data['servo_position'][data_point] / 20) * ((capabilities['servo']['servo_range'][str(device_id)][1] -capabilities['servo']['servo_range'][str(device_id)][0])+capabilities['servo']['servo_range'][str(device_id)][0])
+                    move_encoder(arm, device_id, encoder_position)
+        except Exception as e:
+            print("ERROR: ", e)
+            traceback.print_exc()
 
     if 'servo' in obtained_data:
         try:
