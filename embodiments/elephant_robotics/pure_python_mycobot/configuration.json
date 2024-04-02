@@ -17,7 +17,7 @@
     "servo": {
         "type": "opu",
         "disabled": "False",
-        "count": 5,
+        "count": 7,
         "servo_range": {
             "1": [200, 3600],
             "2": [0, 0],

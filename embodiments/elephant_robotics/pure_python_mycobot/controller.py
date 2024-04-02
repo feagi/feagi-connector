@@ -1,11 +1,15 @@
 from pymycobot.mycobot import MyCobot
-from feagi_agent import feagi_interface as FEAGI
-from feagi_agent import retina as retina
+from feagi_connector import feagi_interface as FEAGI
+from feagi_connector import retina as retina
 from datetime import datetime
 import json
 import os
 from time import sleep
 from collections import deque
+from version import __version__
+import threading
+from feagi_connector import pns_gateway as pns
+import traceback
 
 previous_data_frame = dict()
 
@@ -17,16 +21,14 @@ class Arm:
         :param port: The default would be '/dev/ttyUSB0'. If the port is different, put a different port.
         :return:
         """
-        print("here: ", port)
         return MyCobot(port, 115200)
 
-    # @staticmethod
-    # def initialize(arm, count):
-    #     default = [2048, 2048, 2048, 2048, 2048, 2048]
-    #     arm.set_encoders(default, 100)
-    #     for number_id in range(1, count + 1, 1):
-    #         arm.get_encoder(2048)
-    #     time.sleep(1)
+    @staticmethod
+    def pose_to_default(arm, count):
+        for number_id in range(1, count, 1):
+            if number_id != 2:
+                runtime_data['servo_status'][number_id] = 2048
+                arm.set_encoder(number_id, 2048)
 
     # @staticmethod
     # def get_coordination(robot):
@@ -80,58 +82,119 @@ def updating_encoder_position_in_bg():
                     if runtime_data['actual_encoder_position'][i]:
                         runtime_data['actual_encoder_position'][i].append(new_data)
                         runtime_data['actual_encoder_position'][i].popleft()
-        print(runtime_data['actual_encoder_position'])
-        # sleep(feagi_settings['feagi_burst_speed'])
-        sleep(1)
+        sleep(0.01)
+
 
 def move(arm, encoder_id, power):
-    if encoder_id not in runtime_data['servo_status']:
-        runtime_data['servo_status'][encoder_id] = power
     max_range = capabilities['servo']['servo_range'][str(encoder_id)][1]
     min_range = capabilities['servo']['servo_range'][str(encoder_id)][0]
-    if max_range >= power >= min_range:
-        arm.set_encoder(encoder_id, power)
+    pre_power = runtime_data['servo_status'][encoder_id] + power
+    if max_range >= pre_power >= min_range:
+        arm.set_encoder(encoder_id, pre_power)
+        runtime_data['servo_status'][encoder_id] = pre_power
 
 
-runtime_data = {
-    "current_burst_id": 0,
-    "feagi_state": None,
-    "cortical_list": (),
-    "battery_charge_level": 1,
-    "host_network": {},
-    'motor_status': {},
-    'servo_status': {},
-    'actual_encoder_position': {},
-}
+def action(obtained_data, arm):
+    # if 'servo_position' in obtained_data:
+    #     try:
+    #         if obtained_data['servo_position'] is not {}:
+    #             for data_point in obtained_data['servo_position']:
+    #                 device_id = data_point + 1
+    #                 encoder_position = ((capabilities['servo']['servo_range'][str(device_id)][1] -
+    #                                      capabilities['servo']['servo_range'][str(device_id)][
+    #                                          0]) / 20) * \
+    #                                    obtained_data['servo_position'][data_point]
+    #                 runtime_data['target_position'][device_id] = encoder_position
+    #                 # print(encoder_position, " is encoder id: ", device_id)
+    #                 # print(runtime_data['target_position'][device_id])
+    #                 speed[device_id] = (obtained_data['servo_position'][data_point] - 10) * 10
+    #     except Exception as e:
+    #         print("ERROR: ", e)
+    #         traceback.print_exc()
 
-# NEW JSON UPDATE
-f = open('configuration.json')
-configuration = json.load(f)
-feagi_settings = configuration["feagi_settings"]
-agent_settings = configuration['agent_settings']
-capabilities = configuration['capabilities']
-feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
-feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
-f.close()
-message_to_feagi = {"data": {}}
-# END JSON UPDATE
+    if 'servo' in obtained_data:
+        try:
+            if obtained_data['servo']:
+                for data_point in obtained_data['servo']:
+                    new_position = obtained_data['servo'][data_point]
+                    if data_point % 2 != 0:
+                        new_position *= -1
+                    device_id = (data_point // 2) + 1
+                    power = new_position
+                    move(arm, device_id, power)
+        except Exception as e:
+            print("ERROR: ", e)
+            traceback.print_exc()
+    print(runtime_data['servo_status'])
 
 
-mycobot = Arm()
-arm = mycobot.connection_initialize()
-# default = [2048, 2048, 2048, 2048, 2048, 2048]
-# arm.set_encoders(default, 100)
-# print("version: ", arm.get_system_version())
-# print("list of encoders here: ", arm.get_encoders())
-# print("list of angles here: ", arm.get_angles())
-arm.release_servo(1)
-# print("IS CONTROLLER CONNECTED?: ", arm.is_controller_connected())
-# print("is all servo enabled", arm.is_all_servo_enable())
+if __name__ == "__main__":
+    # NEW JSON UPDATE
+    f = open('configuration.json')
+    configuration = json.load(f)
+    feagi_settings = configuration["feagi_settings"]
+    agent_settings = configuration['agent_settings']
+    capabilities = configuration['capabilities']
+    feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
+    feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
+    f.close()
+    message_to_feagi = {"data": {}}
+    # END JSON UPDATE
 
-updating_encoder_position_in_bg()
-# move(arm, 2, 3000)
-# sleep(5)
-# move(arm, 2, 1000)
-# sleep(2)
+    # Checking if FEAGI is online
+    feagi_flag = False
+    print("Waiting on FEAGI...")
+    while not feagi_flag:
+        feagi_flag = FEAGI.is_FEAGI_reachable(os.environ.get('FEAGI_HOST_INTERNAL',
+                                                             "127.0.0.1"),
+                                              int(os.environ.get('FEAGI_OPU_PORT', "3000")))
+        sleep(2)
+    print("DONE")
+    # FEAGI is detected
 
-arm.release_all_servos()
+    runtime_data = \
+        {
+            "current_burst_id": 0,
+            "feagi_state": None,
+            "cortical_list": (),
+            "battery_charge_level": 1,
+            "host_network": {},
+            'servo_status': {},
+            'actual_encoder_position': {}
+        }
+
+    # # # FEAGI registration # # # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    feagi_settings, runtime_data, api_address, feagi_ipu_channel, feagi_opu_channel = \
+        FEAGI.connect_to_feagi(feagi_settings, runtime_data, agent_settings, capabilities,
+                               __version__)
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    threading.Thread(target=pns.feagi_listener, args=(feagi_opu_channel,), daemon=True).start()
+
+    # MYCOBOT SECTION
+    mycobot = Arm()
+    arm = mycobot.connection_initialize()
+    arm.set_speed(100)
+    mycobot.pose_to_default(arm, capabilities['servo']['count'])
+    arm.release_servo(1)
+    threading.Thread(target=updating_encoder_position_in_bg, daemon=True).start()
+
+    while True:
+        try:
+            message_from_feagi = pns.message_from_feagi
+            if message_from_feagi:
+                pns.check_genome_status_no_vision(message_from_feagi)
+                obtained_signals = pns.obtain_opu_data(message_from_feagi)
+                action(obtained_signals, arm)
+            sleep(feagi_settings['feagi_burst_speed'])
+            if message_to_feagi:
+                pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
+            message_to_feagi.clear()
+        except KeyboardInterrupt as ke:  # Keyboard error
+            arm.release_all_servos()
+            break
+        except Exception as e:
+            arm.release_all_servos()
+            print("ERROR! : ", e)
+            traceback.print_exc()
+            break
