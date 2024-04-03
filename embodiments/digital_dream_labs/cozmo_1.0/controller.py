@@ -312,6 +312,8 @@ if __name__ == '__main__':
         feagi_flag = False
         print("retrying...")
         print("Waiting on FEAGI...")
+        if args['ip']:
+            feagi_settings['feagi_host'] = args['ip']
         while not feagi_flag:
             feagi_flag = FEAGI.is_FEAGI_reachable(
                 os.environ.get('FEAGI_HOST_INTERNAL', feagi_settings["feagi_host"]),
