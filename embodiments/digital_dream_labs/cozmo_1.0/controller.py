@@ -286,9 +286,9 @@ if __name__ == '__main__':
 
     # Check if feagi_connector has arg
     parser = argparse.ArgumentParser(description='enable to use magic link')
-    parser.add_argument('-magic_link', '--magic_link', help='to use magic link, required=False')
-    parser.add_argument('-magic-link', '--magic-link', help='to use magic link, required=False')
-    parser.add_argument('-magic', '--magic', help='to use magic link, required=False')
+    parser.add_argument('-magic_link', '--magic_link', help='to use magic link', required=False)
+    parser.add_argument('-magic-link', '--magic-link', help='to use magic link', required=False)
+    parser.add_argument('-magic', '--magic', help='to use magic link', required=False)
     parser.add_argument('-ip', '--ip', help='to use feagi_ip', required=False)
     parser.add_argument('-port', '--port', help='to use feagi_port', required=False)
     args = vars(parser.parse_args())
@@ -371,7 +371,6 @@ if __name__ == '__main__':
     threading.Thread(target=retina.vision_progress,
                      args=(default_capabilities, feagi_opu_channel, api_address, feagi_settings,
                            camera_data['vision'],), daemon=True).start()
-
     time.sleep(2)
     # vision ends
 
