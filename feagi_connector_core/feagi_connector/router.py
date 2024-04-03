@@ -16,15 +16,16 @@ limitations under the License.
 ==============================================================================
 """
 import zmq
-import zmq.asyncio
 import json
 import socket
 import pickle
 import asyncio
 import requests
+import threading
 import lz4.frame
 import traceback
 import websockets
+import zmq.asyncio
 from time import sleep
 from feagi_connector import pns_gateway as pns
 from websockets.sync.client import connect
@@ -158,63 +159,6 @@ def fetch_geometry():
         return []
 
 
-# def register_with_feagi(feagi_ip, feagi_api_port, agent_type: str, agent_id: str, agent_ip: str, agent_data_port: int,
-#                         agent_capabilities):
-#     """
-#     To trade information between FEAGI and Controller
-
-#     Controller                      <--     FEAGI(IPU/OPU socket info)
-#     Controller (Capabilities)       -->     FEAGI
-#     """
-#     api_address = 'http://' + feagi_ip + ':' + feagi_api_port
-#     network_endpoint = '/v1/network'
-#     stimulation_period_endpoint = '/v1/burst_engine/stimulation_period'
-#     burst_counter_endpoint = '/v1/burst_engine/burst_counter'
-#     registration_endpoint = '/v1/agent/register'
-
-#     registration_complete = False
-#     feagi_settings = dict()
-#     while not registration_complete:
-#         try:
-#             feagi_settings = requests.get(api_address + network_endpoint).json()
-#             if feagi_settings:
-#                 print("Data from FEAGI::", feagi_settings)
-#             else:
-#                 print("No feagi settings!")
-
-#             agent_registration_data = dict()
-#             agent_registration_data["agent_type"] = str(agent_type)
-#             agent_registration_data["agent_id"] = str(agent_id)
-#             agent_registration_data["agent_ip"] = str(agent_ip)
-#             agent_registration_data["agent_data_port"] = int(agent_data_port)
-
-#             response = requests.post(api_address + registration_endpoint, params=agent_registration_data)
-#             if response.status_code == 200:
-#                 feagi_settings['agent_info'] =  response.json()
-#                 print("Agent successfully registered with FEAGI!")
-#                 # Receive FEAGI settings
-#                 feagi_settings['burst_duration'] = requests.get(api_address + stimulation_period_endpoint).json()
-#                 feagi_settings['burst_counter'] = requests.get(api_address + burst_counter_endpoint).json()
-
-
-#                 if feagi_settings and feagi_settings['burst_duration'] and feagi_settings['burst_counter']:
-#                     print("\n\n\n\nRegistration is complete....")
-#                     registration_complete = True
-#         except Exception as e:
-#             print("Trying to register with FEAGI at ", api_address)
-#         sleep(1)
-
-#     print("feagi_ip:agent_data_port", feagi_ip, agent_data_port)
-#     # Transmit Controller Capabilities
-#     # address, bind = f"tcp://*:{agent_data_port}", True
-#     address, bind = f"tcp://{feagi_ip}:{agent_data_port}", False
-
-#     publisher = Pub(address, bind)
-#     publisher.send(agent_capabilities)
-
-#     return feagi_settings
-
-
 def feagi_settings_from_composer(feagi_auth_url, feagi_settings):
     """
     Generate all needed information and return the full data to make it easier to connect with
@@ -240,7 +184,7 @@ def feagi_settings_from_composer(feagi_auth_url, feagi_settings):
 
 
 def register_with_feagi(feagi_auth_url, feagi_settings, agent_settings, agent_capabilities,
-                        controller_version, agent_version):
+                        controller_version, agent_version, magic_link=''):
     """
     To trade information between FEAGI and Controller
 
@@ -259,9 +203,12 @@ def register_with_feagi(feagi_auth_url, feagi_settings, agent_settings, agent_ca
             feagi_settings = feagi_settings_from_composer(feagi_auth_url, feagi_settings)
             feagi_url = feagi_settings['feagi_url']
 
+            print("feagiurl: ", feagi_url, " network endpoint: ", network_endpoint)
+
             network_output = requests.get(feagi_url + network_endpoint).json()
             # print(f"network_output ---- {network_output}")
-            feagi_settings['feagi_opu_port'] = network_output['feagi_opu_port']
+            if magic_link == '':
+                feagi_settings['feagi_opu_port'] = network_output['feagi_opu_port']
             if feagi_settings:
                 print("Data from FEAGI::", feagi_settings)
             else:
@@ -270,7 +217,7 @@ def register_with_feagi(feagi_auth_url, feagi_settings, agent_settings, agent_ca
             agent_registration_data = dict()
             agent_registration_data["agent_type"] = str(agent_settings['agent_type'])
             agent_registration_data["agent_id"] = str(agent_settings['agent_id'])
-            agent_registration_data["agent_ip"] = str(agent_settings['agent_ip'])#str("127.0.0.1")
+            agent_registration_data["agent_ip"] = str(agent_settings['agent_ip'])  # str("127.0.0.1")
             agent_registration_data["agent_data_port"] = int(agent_settings['agent_data_port'])
             agent_registration_data["controller_version"] = str(controller_version)
             agent_registration_data["agent_version"] = str(agent_version)
@@ -281,13 +228,10 @@ def register_with_feagi(feagi_auth_url, feagi_settings, agent_settings, agent_ca
                 feagi_settings['agent_state'] = response.json()
                 print("Agent successfully registered with FEAGI!")
                 # Receive FEAGI settings
-                feagi_settings['burst_duration'] = requests.get(
-                    feagi_url + stimulation_period_endpoint).json()
-                feagi_settings['burst_counter'] = requests.get(
-                    feagi_url + burst_counter_endpoint).json()
+                feagi_settings['burst_duration'] = requests.get(feagi_url + stimulation_period_endpoint).json()
+                feagi_settings['burst_counter'] = requests.get(feagi_url + burst_counter_endpoint).json()
 
-                if feagi_settings and feagi_settings['burst_duration'] and feagi_settings[
-                    'burst_counter']:
+                if feagi_settings and feagi_settings['burst_duration'] and feagi_settings['burst_counter']:
                     print("\n\n\n\nRegistration is complete....")
                     registration_complete = True
         except Exception as e:
@@ -295,17 +239,18 @@ def register_with_feagi(feagi_auth_url, feagi_settings, agent_settings, agent_ca
             # traceback.print_exc()
         sleep(2)
 
-    # feagi_settings['agent_state']['agent_ip'] = "127.0.0.1"
-    print(f"Final Feagi Settings ---- {feagi_settings}")
-    feagi_ip = feagi_settings['feagi_host']
-    agent_data_port = feagi_settings['agent_state']['agent_data_port']
-    print("feagi_ip:agent_data_port", feagi_ip, agent_data_port)
-    # Transmit Controller Capabilities
-    # address, bind = f"tcp://*:{agent_data_port}", True
-    address, bind = f"tcp://{feagi_ip}:{agent_data_port}", False
+    if magic_link == '':
+        # feagi_settings['agent_state']['agent_ip'] = "127.0.0.1"
+        print(f"Final Feagi Settings ---- {feagi_settings}")
+        feagi_ip = feagi_settings['feagi_host']
+        agent_data_port = feagi_settings['agent_state']['agent_data_port']
+        print("feagi_ip:agent_data_port", feagi_ip, agent_data_port)
+        # Transmit Controller Capabilities
+        # address, bind = f"tcp://*:{agent_data_port}", True
+        address, bind = f"tcp://{feagi_ip}:{agent_data_port}", False
 
-    publisher = Pub(address, bind)
-    publisher.send(agent_capabilities)
+        publisher = Pub(address, bind)
+        publisher.send(agent_capabilities)
 
     return feagi_settings
 
@@ -381,10 +326,5 @@ def websocket_recieve():
         try:
             pns.message_from_feagi = pickle.loads(websocket.recv())
         except Exception as e:
-            print("error: ", e)
+            print("error in websocket recieve: ", e)
             websocket = connect(global_websocket_address)
-
-
-
-
-
