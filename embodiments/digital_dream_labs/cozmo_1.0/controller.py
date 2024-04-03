@@ -276,8 +276,8 @@ if __name__ == '__main__':
     capabilities = configuration['capabilities']
     feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
     feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
-    f.close()
     message_to_feagi = {"data": {}}
+    f.close()
     # END JSON UPDATE
 
     default_capabilities = {}  # It will be generated in process_visual_stimuli. See the
@@ -289,13 +289,21 @@ if __name__ == '__main__':
     parser.add_argument('-magic_link', '--magic_link', help='to use magic link, required=False')
     parser.add_argument('-magic-link', '--magic-link', help='to use magic link, required=False')
     parser.add_argument('-magic', '--magic', help='to use magic link, required=False')
+    parser.add_argument('-ip', '--ip', help='to use feagi_ip', required=False)
+    parser.add_argument('-port', '--port', help='to use feagi_port', required=False)
     args = vars(parser.parse_args())
     magic_link = ''
-    if args['magic'] or args['magic_link']:
-        for arg in args:
-            if args[arg] is not None:
-                magic_link = args[arg]
-                break
+    if feagi_settings['feagi_url'] or args['magic'] or args['magic_link']:
+        if args['magic'] or args['magic_link']:
+            for arg in args:
+                if args[arg] is not None:
+                    magic_link = args[arg]
+                    break
+            configuration['feagi_settings']['feagi_url'] = magic_link
+            with open('configuration.json', 'w') as f:
+                json.dump(configuration, f)
+        else:
+            magic_link = feagi_settings['feagi_url']
         url_response = json.loads(requests.get(magic_link).text)
         feagi_settings['feagi_dns'] = url_response['feagi_url']
         feagi_settings['feagi_api_port'] = url_response['feagi_api_port']
