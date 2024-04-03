@@ -126,7 +126,6 @@ def feagi_listener(feagi_opu_channel):
         if data is not None:
             pns.message_from_feagi = data
         sleep(0.001)  # hardcoded and max second that it can run up to
-        # print("inside router: ", pns.message_from_feagi['opu_data']['o__gaz'])
 
 
 def send_feagi(message_to_feagi, feagi_ipu_channel, agent_settings):
