@@ -1,1 +1,38 @@
-{"description": "tello", "version": "v0.0.0", "feagi_settings": {"feagi_url": "https://us-staging-composer.neurorobotics.studio/v1/magic/feagi_session?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOiJ6NktibWxUd05JU3Brd05QR25PWk4xeGFUSEMyIn0.qYqp5WGYEyR29Ibxgyxtl66MtQoVfjaJSWMGyDQjY9s", "feagi_dns": null, "feagi_host": "127.0.0.1", "feagi_api_port": "8000"}, "agent_settings": {"agent_data_port": 10002, "agent_id": "tello_drone", "agent_type": "embodiment", "compression": true}, "capabilities": {"gyro": {"resolution": 20, "range": [-180, 180]}, "acc": {"resolution": 20, "range": [-1200, 1200]}, "camera": {"type": "ipu", "disabled": "False", "index": "00", "mirror": "True"}}}
+{
+    "description": "tello",
+    "version": "v0.0.0",
+    "feagi_settings": {
+        "feagi_url": null,
+        "feagi_dns": null,
+        "feagi_host": "127.0.0.1",
+        "feagi_api_port": "8000"
+    },
+    "agent_settings": {
+        "agent_data_port": 10002,
+        "agent_id": "tello_drone",
+        "agent_type": "embodiment",
+        "compression": true
+    },
+    "capabilities": {
+        "gyro": {
+            "resolution": 20,
+            "range": [
+                -180,
+                180
+            ]
+        },
+        "acc": {
+            "resolution": 20,
+            "range": [
+                -1200,
+                1200
+            ]
+        },
+        "camera": {
+            "type": "ipu",
+            "disabled": "False",
+            "index": "00",
+            "mirror": "True"
+        }
+    }
+}
