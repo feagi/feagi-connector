@@ -39,8 +39,8 @@ if [[ "$WEBCAM_FLAG" == "true" ]]; then
     cd /root/
 fi
 
-# Load microbit if MICROBIT_FLAG is true
-if [[ "$MICROBIT_FLAG" == "true" ]]; then
+# Load microbit if BT_CONTROLLER_FLAG is true
+if [[ "$BT_CONTROLLER_FLAG" == "true" ]]; then
     cd elecfreaks/cutebot/web_html_microbit/
     python3 controller.py &
     PID2=$!
@@ -48,7 +48,7 @@ if [[ "$MICROBIT_FLAG" == "true" ]]; then
     cd /root/
 fi
 
-# Load microbit if MICROBIT_FLAG is true
+# Load microbit if BT_CONTROLLER_FLAG is true
 if [[ "$GODOT_GAMES_FLAG" == "true" ]]; then
     cd godot-games-controller
     python3 controller.py &
@@ -57,7 +57,7 @@ if [[ "$GODOT_GAMES_FLAG" == "true" ]]; then
     cd /root/
 fi
 
-# Load microbit if MICROBIT_FLAG is true
+# Load microbit if BT_CONTROLLER_FLAG is true
 if [[ "$WEBSOCKET_BRIDGE" == "true" ]]; then
     cd controller-bridge
     python3 controller.py &
