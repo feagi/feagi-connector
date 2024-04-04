@@ -3,10 +3,12 @@ import cv2
 import json
 import time
 import requests
+import argparse
 import threading
 from djitellopy import Tello
 from datetime import datetime
 from version import __version__
+from feagi_connector import router
 from feagi_connector import retina
 from feagi_connector import sensors
 from feagi_connector import actuators
@@ -248,6 +250,42 @@ if __name__ == '__main__':
     message_to_feagi = {"data": {}}
     # END JSON UPDATE
 
+    # Check if feagi_connector has arg
+    parser = argparse.ArgumentParser(description='enable to use magic link')
+    parser.add_argument('-magic_link', '--magic_link', help='to use magic link', required=False)
+    parser.add_argument('-magic-link', '--magic-link', help='to use magic link', required=False)
+    parser.add_argument('-magic', '--magic', help='to use magic link', required=False)
+    parser.add_argument('-ip', '--ip', help='to use feagi_ip', required=False)
+    parser.add_argument('-port', '--port', help='to use feagi_port', required=False)
+    args = vars(parser.parse_args())
+    magic_link = ''
+    if feagi_settings['feagi_url'] or args['magic'] or args['magic_link']:
+        if args['magic'] or args['magic_link']:
+            for arg in args:
+                if args[arg] is not None:
+                    magic_link = args[arg]
+                    break
+            configuration['feagi_settings']['feagi_url'] = magic_link
+            with open('configuration.json', 'w') as f:
+                json.dump(configuration, f)
+        else:
+            magic_link = feagi_settings['feagi_url']
+        url_response = json.loads(requests.get(magic_link).text)
+        feagi_settings['feagi_dns'] = url_response['feagi_url']
+        feagi_settings['feagi_api_port'] = url_response['feagi_api_port']
+    else:
+        # # FEAGI REACHABLE CHECKER # #
+        feagi_flag = False
+        print("retrying...")
+        print("Waiting on FEAGI...")
+        if args['ip']:
+            feagi_settings['feagi_host'] = args['ip']
+        while not feagi_flag:
+            feagi_flag = FEAGI.is_FEAGI_reachable(
+                os.environ.get('FEAGI_HOST_INTERNAL', feagi_settings["feagi_host"]),
+                int(os.environ.get('FEAGI_OPU_PORT', "3000")))
+            time.sleep(2)
+
     feagi_auth_url = feagi_settings.pop('feagi_auth_url', None)
     print("FEAGI AUTH URL ------- ", feagi_auth_url)
     runtime_data = dict()
@@ -256,7 +294,7 @@ if __name__ == '__main__':
     # - - - - - - - - - - - - - - - - - - #
     feagi_settings, runtime_data, api_address, feagi_ipu_channel, feagi_opu_channel = \
         FEAGI.connect_to_feagi(feagi_settings, runtime_data, agent_settings, capabilities,
-                               __version__)
+                               __version__, magic_link=magic_link)
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     # # # # # # # # # # # # Variables/Dictionaries section # # # # # # # # # # # # # # # - - - -
@@ -325,7 +363,10 @@ if __name__ == '__main__':
             message_to_feagi = sensors.add_ultrasonic_to_feagi_data(sonar, message_to_feagi)
 
             # Sending data to FEAGI
-            pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
+            if magic_link == '':
+                pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
+            else:
+                router.websocket_send(message_to_feagi)
             message_to_feagi.clear()
             time.sleep(feagi_settings['feagi_burst_speed'])
         except KeyboardInterrupt as ke:

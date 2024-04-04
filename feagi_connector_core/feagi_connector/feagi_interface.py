@@ -5,6 +5,8 @@ from feagi_connector.version import __version__
 from time import sleep
 import requests
 import socket
+import threading
+
 
 
 def pub_initializer(ipu_address, bind=True):
@@ -16,7 +18,7 @@ def sub_initializer(opu_address, flags=router.zmq.NOBLOCK):
 
 
 def feagi_registration(feagi_auth_url, feagi_settings, agent_settings, capabilities,
-                       controller_version):
+                       controller_version, magic_link=''):
     host_info = router.app_host_info()
     runtime_data = {
         "host_network": {},
@@ -31,7 +33,7 @@ def feagi_registration(feagi_auth_url, feagi_settings, agent_settings, capabilit
         try:
             runtime_data["feagi_state"] = \
                 router.register_with_feagi(feagi_auth_url, feagi_settings, agent_settings,
-                                           capabilities, controller_version, __version__)
+                                           capabilities, controller_version, __version__, magic_link)
         except Exception as e:
             print("ERROR__: ", e, traceback.print_exc())
             pass
@@ -320,35 +322,48 @@ def control_data_processor(data):
 
 
 def connect_to_feagi(feagi_settings, runtime_data, agent_settings, capabilities, current_version,
-                     bind_flag=False):
+                     bind_flag=False, magic_link=''):
     print("Connecting to FEAGI resources...")
     feagi_auth_url = feagi_settings.pop('feagi_auth_url', None)
     runtime_data["feagi_state"] = feagi_registration(feagi_auth_url=feagi_auth_url,
                                                      feagi_settings=feagi_settings,
                                                      agent_settings=agent_settings,
                                                      capabilities=capabilities,
-                                                     controller_version=current_version)
+                                                     controller_version=current_version,
+                                                     magic_link=magic_link)
     api_address = runtime_data['feagi_state']["feagi_url"]
     router.global_api_address = api_address
     agent_data_port = str(runtime_data["feagi_state"]['agent_state']['agent_data_port'])
     print("** **", runtime_data["feagi_state"])
     feagi_settings['feagi_burst_speed'] = float(runtime_data["feagi_state"]['burst_duration'])
-    if bind_flag:
-        ipu_channel_address = "tcp://*:" + agent_data_port # This is for godot to work due to
-        # bind unable to use the dns.
+    if magic_link == '':
+        if bind_flag:
+            ipu_channel_address = "tcp://*:" + agent_data_port  # This is for godot to work due to
+            # bind unable to use the dns.
+        else:
+            ipu_channel_address = feagi_outbound(feagi_settings['feagi_host'], agent_data_port)
+
+        print("IPU_channel_address=", ipu_channel_address)
+        opu_channel_address = feagi_outbound(feagi_settings['feagi_host'],
+                                             runtime_data["feagi_state"]['feagi_opu_port'])
+
+        # ip = '172.28.0.2'
+        # opu_channel_address = 'tcp://' + str(ip) + ':3000'
+        # ipu_channel_address = 'tcp://' + str(ip) + ':3000'
+        feagi_ipu_channel = pub_initializer(ipu_channel_address, bind=bind_flag)
+        feagi_opu_channel = sub_initializer(opu_address=opu_channel_address)
+        router.global_feagi_opu_channel = feagi_opu_channel
+        threading.Thread(target=pns.feagi_listener, args=(feagi_opu_channel,), daemon=True).start()
     else:
-        ipu_channel_address = feagi_outbound(feagi_settings['feagi_host'], agent_data_port)
+        feagi_ipu_channel = None
+        feagi_opu_channel = None
+        print("websocket testing")
+        websocket_url = feagi_settings['feagi_dns'].replace("https", "wss") + str("/p9053")
+        print(websocket_url)
+        router.websocket_client_initalize('192.168.50.192', '9053', dns=websocket_url)
+        threading.Thread(target=router.websocket_recieve, daemon=True).start()
 
-    print("IPU_channel_address=", ipu_channel_address)
-    opu_channel_address = feagi_outbound(feagi_settings['feagi_host'],
-                                         runtime_data["feagi_state"]['feagi_opu_port'])
 
-    # ip = '172.28.0.2'
-    # opu_channel_address = 'tcp://' + str(ip) + ':3000'
-    # ipu_channel_address = 'tcp://' + str(ip) + ':3000'
-    feagi_ipu_channel = pub_initializer(ipu_channel_address, bind=bind_flag)
-    feagi_opu_channel = sub_initializer(opu_address=opu_channel_address)
-    router.global_feagi_opu_channel = feagi_opu_channel
     return feagi_settings, runtime_data, api_address, feagi_ipu_channel, feagi_opu_channel
 
 
