@@ -28,7 +28,7 @@ if __name__ == '__main__':
     parser.add_argument('-magic-link', '--magic-link', help='to use magic link', required=False)
     parser.add_argument('-magic', '--magic', help='to use magic link', required=False)
     parser.add_argument('-model', '--model', help='add `-model` and put type: 4wd, dog, '
-                                                  'tank, or hexapod', 
+                                                  'tank, or hexapod',
                         required=True)
     args = vars(parser.parse_args())
     magic_link = ''
