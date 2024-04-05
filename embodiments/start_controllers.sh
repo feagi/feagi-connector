@@ -24,36 +24,46 @@ cleanup() {
 
 trap cleanup SIGTERM SIGINT
 
+export FEAGI_HOST_INTERNAL=$(hostname)
+
 cd /root/godot-bridge/
 python3 bridge_godot_python.py &
 cd /root/
 
 # Load javascript webcam if WEBCAM_FLAG is true
 if [[ "$WEBCAM_FLAG" == "true" ]]; then
-    python3 neuraville/javascript_webcam/controller.py &
+    cd neuraville/javascript_webcam/
+    python3 controller.py &
     PID1=$!
     echo "PID of the webcam: $PID1"
+    cd /root/
 fi
 
-# Load microbit if MICROBIT_FLAG is true
-if [[ "$MICROBIT_FLAG" == "true" ]]; then
-    python3 elecfreaks/cutebot/web_html_microbit/controller.py &
+# Load microbit if BT_CONTROLLER_FLAG is true
+if [[ "$BT_CONTROLLER_FLAG" == "true" ]]; then
+    cd elecfreaks/cutebot/web_html_microbit/
+    python3 controller.py &
     PID2=$!
     echo "PID of the microbit: $PID2"
+    cd /root/
 fi
 
-# Load microbit if MICROBIT_FLAG is true
+# Load microbit if BT_CONTROLLER_FLAG is true
 if [[ "$GODOT_GAMES_FLAG" == "true" ]]; then
-    python3 godot-games-controller/controller.py &
+    cd godot-games-controller
+    python3 controller.py &
     PID3=$!
     echo "PID of the godot games: $PID3"
+    cd /root/
 fi
 
-# Load microbit if MICROBIT_FLAG is true
+# Load microbit if BT_CONTROLLER_FLAG is true
 if [[ "$WEBSOCKET_BRIDGE" == "true" ]]; then
-    python3 controller-bridge/controller.py &
+    cd controller-bridge
+    python3 controller.py &
     PID4=$!
     echo "PID of the controller-bridge: $PID4"
+    cd /root/
 fi
 
 cd /opt/source-code/feagi/src/

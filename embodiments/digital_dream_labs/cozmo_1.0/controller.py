@@ -17,11 +17,11 @@ limitations under the License.
 """
 
 import os
-import cv2
 import time
 import json
 import pycozmo
 import asyncio
+import argparse
 import requests
 import traceback
 import threading
@@ -33,6 +33,7 @@ import facial_expression
 from collections import deque
 from datetime import datetime
 from version import __version__
+from feagi_connector import router
 from feagi_connector import sensors
 from feagi_connector import actuators
 from feagi_connector import retina as retina
@@ -175,15 +176,6 @@ def on_camera_image(cli, image):
     # update astype to work well with retina and cv2
     raw_frame = retina.update_astype(new_rgb)
     camera_data['vision'] = raw_frame
-    default_capabilities['camera']['blink'] = []
-    if 'camera' in default_capabilities:
-        if default_capabilities['camera']['blink'] != []:
-            raw_frame = default_capabilities['camera']['blink']
-    previous_frame_data, rgb, default_capabilities = retina.process_visual_stimuli(
-        raw_frame,
-        default_capabilities,
-        previous_frame_data,
-        rgb, capabilities)
     time.sleep(0.01)
 
 
@@ -245,9 +237,9 @@ def action(obtained_data, arms_angle, head_angle):
     motor_functions.drive_wheels(cli,
                                  lwheel_speed=lwheel_speed,
                                  rwheel_speed=rwheel_speed,
-                                 duration=feagi_settings['feagi_burst_speed']/2)
+                                 duration=feagi_settings['feagi_burst_speed'] / 2)
 
-    for id in recieve_servo_data: # example output: {0: 100, 2: 100}
+    for id in recieve_servo_data:  # example output: {0: 100, 2: 100}
         servo_power = actuators.servo_generate_power(150, recieve_servo_data[id], id)
         if id in [0, 1]:
             test_head_angle = head_angle
@@ -278,27 +270,54 @@ if __name__ == '__main__':
     # NEW JSON UPDATE
     f = open('configuration.json')
     configuration = json.load(f)
-    feagi_settings =  configuration["feagi_settings"]
+    feagi_settings = configuration["feagi_settings"]
     agent_settings = configuration['agent_settings']
     capabilities = configuration['capabilities']
     feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
     feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
-    f.close()
     message_to_feagi = {"data": {}}
+    f.close()
     # END JSON UPDATE
+
     default_capabilities = {}  # It will be generated in process_visual_stimuli. See the
     # overwrite manual
     default_capabilities = pns.create_runtime_default_list(default_capabilities, capabilities)
 
-    # # FEAGI REACHABLE CHECKER # #
-    feagi_flag = False
-    print("retrying...")
-    print("Waiting on FEAGI...")
-    while not feagi_flag:
-        feagi_flag = FEAGI.is_FEAGI_reachable(
-            os.environ.get('FEAGI_HOST_INTERNAL', feagi_settings["feagi_host"]),
-            int(os.environ.get('FEAGI_OPU_PORT', "3000")))
-        sleep(2)
+    # Check if feagi_connector has arg
+    parser = argparse.ArgumentParser(description='enable to use magic link')
+    parser.add_argument('-magic_link', '--magic_link', help='to use magic link', required=False)
+    parser.add_argument('-magic-link', '--magic-link', help='to use magic link', required=False)
+    parser.add_argument('-magic', '--magic', help='to use magic link', required=False)
+    parser.add_argument('-ip', '--ip', help='to use feagi_ip', required=False)
+    parser.add_argument('-port', '--port', help='to use feagi_port', required=False)
+    args = vars(parser.parse_args())
+    magic_link = ''
+    if feagi_settings['feagi_url'] or args['magic'] or args['magic_link']:
+        if args['magic'] or args['magic_link']:
+            for arg in args:
+                if args[arg] is not None:
+                    magic_link = args[arg]
+                    break
+            configuration['feagi_settings']['feagi_url'] = magic_link
+            with open('configuration.json', 'w') as f:
+                json.dump(configuration, f)
+        else:
+            magic_link = feagi_settings['feagi_url']
+        url_response = json.loads(requests.get(magic_link).text)
+        feagi_settings['feagi_dns'] = url_response['feagi_url']
+        feagi_settings['feagi_api_port'] = url_response['feagi_api_port']
+    else:
+        # # FEAGI REACHABLE CHECKER # #
+        feagi_flag = False
+        print("retrying...")
+        print("Waiting on FEAGI...")
+        if args['ip']:
+            feagi_settings['feagi_host'] = args['ip']
+        while not feagi_flag:
+            feagi_flag = FEAGI.is_FEAGI_reachable(
+                os.environ.get('FEAGI_HOST_INTERNAL', feagi_settings["feagi_host"]),
+                int(os.environ.get('FEAGI_OPU_PORT', "3000")))
+            sleep(2)
 
     # # FEAGI REACHABLE CHECKER COMPLETED # #
 
@@ -306,7 +325,7 @@ if __name__ == '__main__':
     # - - - - - - - - - - - - - - - - - - #
     feagi_settings, runtime_data, api_address, feagi_ipu_channel, feagi_opu_channel = \
         FEAGI.connect_to_feagi(feagi_settings, runtime_data, agent_settings, capabilities,
-                               __version__)
+                               __version__, magic_link=magic_link)
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     face_selected = deque()
     eye_one_location = deque()
@@ -321,7 +340,6 @@ if __name__ == '__main__':
         rolling_window[motor_id] = deque([0] * rolling_window_len)
 
     threading.Thread(target=face_starter, daemon=True).start()
-    threading.Thread(target=pns.feagi_listener, args=(feagi_opu_channel,), daemon=True).start()
     msg_counter = 0
     genome_tracker = 0
     # Raise head.
@@ -352,55 +370,64 @@ if __name__ == '__main__':
     threading.Thread(target=retina.vision_progress,
                      args=(default_capabilities, feagi_opu_channel, api_address, feagi_settings,
                            camera_data['vision'],), daemon=True).start()
-
     time.sleep(2)
     # vision ends
 
     while True:
         try:
             message_from_feagi = pns.message_from_feagi
-            obtained_signals = pns.obtain_opu_data(message_from_feagi)
-            angle_of_arms, angle_of_head = action(obtained_signals, angle_of_arms,
-                                                  angle_of_head)
-            # OPU section ENDS
-            if "o_eye1" in message_from_feagi["opu_data"]:
-                if message_from_feagi["opu_data"]["o_eye1"]:
-                    for i in message_from_feagi["opu_data"]["o_eye1"]:
-                        split_data = i.split("-")
-                        y_array = [70, 40, -60]
-                        if split_data[0] == '2':
-                            eye_one_location.append([80, y_array[int(split_data[1])]])
-                        if split_data[0] == '1':
-                            eye_one_location.append([0, y_array[int(split_data[1])]])
-                        if split_data[0] == '0':
-                            eye_one_location.append([-30, y_array[int(split_data[1])]])
-                    face_selected.append(0)
-            if "o_eye2" in message_from_feagi["opu_data"]:
-                if message_from_feagi["opu_data"]["o_eye2"]:
-                    for i in message_from_feagi["opu_data"]["o_eye2"]:
-                        split_data = i.split("-")
-                        y_array = [65, 40, -50]
-                        if split_data[0] == '2':
-                            eye_two_location.append([40, y_array[int(split_data[1])]])
-                        if split_data[0] == '1':
-                            eye_two_location.append([-10, y_array[int(split_data[1])]])
-                        if split_data[0] == '0':
-                            eye_two_location.append([-30, y_array[int(split_data[1])]])
-                    if len(face_selected) == 0:
+            if message_from_feagi:
+                obtained_signals = pns.obtain_opu_data(message_from_feagi)
+                angle_of_arms, angle_of_head = action(obtained_signals, angle_of_arms,
+                                                      angle_of_head)
+                # OPU section ENDS
+                if "o_eye1" in message_from_feagi["opu_data"]:
+                    if message_from_feagi["opu_data"]["o_eye1"]:
+                        for i in message_from_feagi["opu_data"]["o_eye1"]:
+                            split_data = i.split("-")
+                            y_array = [70, 40, -60]
+                            if split_data[0] == '2':
+                                eye_one_location.append([80, y_array[int(split_data[1])]])
+                            if split_data[0] == '1':
+                                eye_one_location.append([0, y_array[int(split_data[1])]])
+                            if split_data[0] == '0':
+                                eye_one_location.append([-30, y_array[int(split_data[1])]])
                         face_selected.append(0)
-            if "o_init" in message_from_feagi["opu_data"]:
-                if message_from_feagi["opu_data"]["o_init"]:
-                    for i in message_from_feagi["opu_data"]["o_init"]:
-                        split_data = i.split("-")
-                        if split_data[0] == '0':
-                            motor_functions.display_lines(cli)
-
+                if "o_eye2" in message_from_feagi["opu_data"]:
+                    if message_from_feagi["opu_data"]["o_eye2"]:
+                        for i in message_from_feagi["opu_data"]["o_eye2"]:
+                            split_data = i.split("-")
+                            y_array = [65, 40, -50]
+                            if split_data[0] == '2':
+                                eye_two_location.append([40, y_array[int(split_data[1])]])
+                            if split_data[0] == '1':
+                                eye_two_location.append([-10, y_array[int(split_data[1])]])
+                            if split_data[0] == '0':
+                                eye_two_location.append([-30, y_array[int(split_data[1])]])
+                        if len(face_selected) == 0:
+                            face_selected.append(0)
+                if "o_init" in message_from_feagi["opu_data"]:
+                    if message_from_feagi["opu_data"]["o_init"]:
+                        for i in message_from_feagi["opu_data"]["o_init"]:
+                            split_data = i.split("-")
+                            if split_data[0] == '0':
+                                motor_functions.display_lines(cli)
 
             raw_frame = camera_data['vision']
+            default_capabilities['camera']['blink'] = []
+            if 'camera' in default_capabilities:
+                if default_capabilities['camera']['blink'] != []:
+                    raw_frame = default_capabilities['camera']['blink']
+            previous_frame_data, rgb, default_capabilities = retina.process_visual_stimuli(
+                raw_frame,
+                default_capabilities,
+                previous_frame_data,
+                rgb, capabilities)
             # cv2.imshow("test",   raw_frame)
             # cv2.waitKey(30)
-            message_to_feagi = pns.generate_feagi_data(rgb, msg_counter, datetime.now(),
-                                                       message_to_feagi)
+            if rgb:
+                message_to_feagi = pns.generate_feagi_data(rgb, msg_counter, datetime.now(),
+                                                           message_to_feagi)
             battery = robot['battery']
             if robot['ultrasonic']:
                 ultrasonic_data = robot['ultrasonic'][0]  # obtain ultrasonic data
@@ -410,12 +437,16 @@ if __name__ == '__main__':
                                                              message_to_feagi)
             message_to_feagi = sensors.add_battery_to_feagi_data(battery, message_to_feagi)
             sleep(feagi_settings['feagi_burst_speed'])  # bottleneck
-            pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
+            if magic_link == '':
+                pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
+            else:
+                router.websocket_send(message_to_feagi)
             message_to_feagi.clear()
 
-            for i in rgb['camera']:
-                rgb['camera'][i].clear()
+            if rgb:
+                for i in rgb['camera']:
+                    rgb['camera'][i].clear()
         except Exception as e:
-            print("ERROR: ", e)
+            print("ERROR IN COZMO MAIN CODE: ", e)
             traceback.print_exc()
             break
