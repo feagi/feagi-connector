@@ -268,10 +268,7 @@ if __name__ == '__main__':
     start_camera(tello)
 
     # overwrite manual
-    threading.Thread(target=retina.vision_progress, args=(
-        default_capabilities, feagi_opu_channel, api_address, feagi_settings,
-        camera_data['vision'],),
-                     daemon=True).start()
+    threading.Thread(target=retina.vision_progress, args=(default_capabilities, feagi_opu_channel, api_address, feagi_settings, camera_data['vision'],), daemon=True).start()
 
     while True:
         try:
