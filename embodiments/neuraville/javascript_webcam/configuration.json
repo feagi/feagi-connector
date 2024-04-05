@@ -20,7 +20,7 @@
             "type": "ipu",
             "disabled": false,
             "index": "00",
-            "mirror": false,
+            "mirror": true,
             "gaze_control": {
                 "0": 1,
                 "1": 1
