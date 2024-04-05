@@ -4,8 +4,11 @@ from feagi_connector import pns_gateway as pns
 from feagi_connector.version import __version__
 from time import sleep
 import requests
+import json
+import os
 import socket
 import threading
+import argparse
 
 
 
@@ -391,3 +394,63 @@ def mctl_neuron_update(feagi_power, id):
         return feagi_power / 100.0
     else:
         return feagi_power / z_depth
+
+def configuration_load(path='./'):
+    # NEW JSON UPDATE
+    f = open(path + 'configuration.json')
+    configuration = json.load(f)
+    feagi_settings = configuration["feagi_settings"]
+    agent_settings = configuration['agent_settings']
+    capabilities = configuration['capabilities']
+    feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
+    feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
+    message_to_feagi = {"data": {}}
+    f.close()
+    return feagi_settings, agent_settings, capabilities, message_to_feagi, configuration
+    # END JSON UPDATE
+
+def reading_parameters_to_confirm_communication(feagi_settings, configuration, path="."):
+    # Check if feagi_connector has arg
+    parser = argparse.ArgumentParser(description='enable to use magic link')
+    parser.add_argument('-magic_link', '--magic_link', help='to use magic link', required=False)
+    parser.add_argument('-magic-link', '--magic-link', help='to use magic link', required=False)
+    parser.add_argument('-magic', '--magic', help='to use magic link', required=False)
+    parser.add_argument('-ip', '--ip', help='to use feagi_ip', required=False)
+    parser.add_argument('-port', '--port', help='to use feagi_port', required=False)
+    args = vars(parser.parse_args())
+    magic_link = ''
+    if feagi_settings['feagi_url'] or args['magic'] or args['magic_link']:
+        if args['magic'] or args['magic_link']:
+            for arg in args:
+                if args[arg] is not None:
+                    magic_link = args[arg]
+                    break
+            configuration['feagi_settings']['feagi_url'] = magic_link
+            with open(path+'configuration.json', 'w') as f:
+                json.dump(configuration, f)
+        else:
+            magic_link = feagi_settings['feagi_url']
+        url_response = json.loads(requests.get(magic_link).text)
+        feagi_settings['feagi_dns'] = url_response['feagi_url']
+        feagi_settings['feagi_api_port'] = url_response['feagi_api_port']
+    else:
+        # # FEAGI REACHABLE CHECKER # #
+        feagi_flag = False
+        print("retrying...")
+        print("Waiting on FEAGI...")
+        if args['ip']:
+            feagi_settings['feagi_host'] = args['ip']
+        while not feagi_flag:
+            feagi_flag = is_FEAGI_reachable(os.environ.get('FEAGI_HOST_INTERNAL', feagi_settings["feagi_host"]),int(os.environ.get('FEAGI_OPU_PORT', "3000")))
+            sleep(2)
+    return magic_link, feagi_settings, configuration
+
+def build_up_from_configuration(path="./"):
+    feagi_settings, agent_settings, capabilities, message_to_feagi, configuration = configuration_load(path)
+    default_capabilities = {}  # It will be generated in process_visual_stimuli. See the
+    # overwrite manual
+    default_capabilities = pns.create_runtime_default_list(default_capabilities, capabilities)
+
+    magic_link, feagi_settings, configuration = reading_parameters_to_confirm_communication(feagi_settings, configuration,path)
+    return magic_link, feagi_settings, configuration, agent_settings, default_capabilities, \
+           message_to_feagi, capabilities
