@@ -10,7 +10,7 @@
 1. Connect your micro-USB cable to the micro:bit and your computer.
    ![Connected Microbit](_static/microbit_and_usb.jpg)
 
-2. Visit this [link](https://github.com/feagi/feagi/blob/staging/third_party/embodiments/elecfreaks/cutebot/web_html_microbit/microbit-bluetooth-ir_only.hex) and download 
+2. Visit this [link](https://github.com/feagi/feagi-connector/blob/staging/embodiments/elecfreaks/cutebot/web_html_microbit/microbit-bluetooth-allsensors.hex) and download 
    the HEX file. It should look like this and see the red circle. 
 
    ![Download HEX](_static/download_hex.png)
@@ -27,3 +27,5 @@
    ![bluetooth_confirm](_static/mac_bluetooth_confirm.png)
 
 7. You should now see the number `2` displayed on the micro:bit's LCD. This indicates a successful connection.
+
+
