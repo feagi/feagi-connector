@@ -17,49 +17,31 @@ limitations under the License.
 ==============================================================================
 """
 
+import threading
 from time import sleep
 from datetime import datetime
-from feagi_connector import pns_gateway as pns
-from feagi_connector import retina as retina
-from feagi_connector.version import __version__
-from feagi_connector import feagi_interface as feagi
+from feagi_connector import router
 from feagi_connector import testing_mode
+from feagi_connector import retina as retina
+from feagi_connector import pns_gateway as pns
+from feagi_connector.version import __version__
 from feagi_connector import trainer as feagi_trainer
-import threading
-import os
-import json
+from feagi_connector import feagi_interface as feagi
 
 if __name__ == "__main__":
-    # NEW JSON UPDATE
-    f = open('configuration.json')
-    configuration = json.load(f)
-    feagi_settings =  configuration["feagi_settings"]
-    agent_settings = configuration['agent_settings']
-    capabilities = configuration['capabilities']
-    feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
-    feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
-    agent_settings['godot_websocket_port'] = os.environ.get('WS_WEBCAM_PORT', "9051")
-    f.close()
-    message_to_feagi = {"data": {}}
-    # END JSON UPDATE
-
     # Generate runtime dictionary
     runtime_data = {"vision": {}, "current_burst_id": None, "stimulation_period": None,
                     "feagi_state": None,
                     "feagi_network": None}
-    print("retrying...")
-    FEAGI_FLAG = False
-    print("Waiting on FEAGI...")
-    while not FEAGI_FLAG:
-        FEAGI_FLAG = feagi.is_FEAGI_reachable(
-            os.environ.get('FEAGI_HOST_INTERNAL', feagi_settings["feagi_host"]),
-            int(os.environ.get('FEAGI_OPU_PORT', "3000")))
-        sleep(2)
+
+    magic_link, feagi_settings, configuration, agent_settings, default_capabilities, \
+    message_to_feagi, capabilities = feagi.build_up_from_configuration()
+
     # # # FEAGI registration # # # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     # - - - - - - - - - - - - - - - - - - #
     feagi_settings, runtime_data, api_address, feagi_ipu_channel, feagi_opu_channel = \
         feagi.connect_to_feagi(feagi_settings, runtime_data, agent_settings, capabilities,
-                               __version__)
+                               __version__, magic_link=magic_link)
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     msg_counter = runtime_data["feagi_state"]['burst_counter']
     if not pns.full_list_dimension:
@@ -79,7 +61,6 @@ if __name__ == "__main__":
     temporary_previous = dict()
     default_capabilities = {}  # It will be generated in process_visual_stimuli. See the
     default_capabilities = pns.create_runtime_default_list(default_capabilities, capabilities)
-    threading.Thread(target=pns.feagi_listener, args=(feagi_opu_channel,), daemon=True).start()
     threading.Thread(target=retina.vision_progress,
                      args=(default_capabilities, feagi_opu_channel, api_address, feagi_settings,
                            camera_data['vision'],), daemon=True).start()
@@ -115,7 +96,10 @@ if __name__ == "__main__":
                                                                              success_rate)
                 else:
                     success_rate, success, total = 0, 0, 0
-                pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
+                if magic_link == '':
+                    pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
+                else:
+                    router.websocket_send(message_to_feagi)
                 sleep(feagi_settings['burst_duration'])
             previous_frame_data = temporary_previous.copy()
             start_timer = 0
