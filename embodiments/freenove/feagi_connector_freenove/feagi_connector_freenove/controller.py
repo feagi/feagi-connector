@@ -24,6 +24,7 @@ ir_data = deque()
 ultrasonic_data = deque()
 feagi_dict = deque()
 feagi_settings = dict()
+raw_frame_internal = {'0': []}
 
 
 class LED:
@@ -396,20 +397,28 @@ class Battery:
         return Power
 
 
-def process_video(default_capabilities, capabilities, cam, previous_frame_data, rgb):
+def process_video(default_capabilities, cam):
     while True:
         if default_capabilities['camera']['disabled'] is not True:
             ret, raw_frame = cam.read()
+            raw_frame_internal['0'] = raw_frame
+        sleep(0.001)
+
+
+def vision_calculation(default_capabilities, previous_frame_data, rgb, capabilities):
+    while True:
+        if raw_frame_internal['0'] != []:
+            raw_frame = raw_frame_internal['0']
             if len(default_capabilities['camera']['blink']) > 0:
                 raw_frame = default_capabilities['camera']['blink']
             # Post image into vision
             previous_frame_data, rgb, default_capabilities = \
                 retina.process_visual_stimuli(raw_frame, default_capabilities,
-                                                    previous_frame_data,
-                                                    rgb,
-                                                    capabilities)
+                                              previous_frame_data,
+                                              rgb, capabilities)
             default_capabilities['camera']['blink'] = []
-        sleep(0.01)
+            # Wrapping camera data into a frame for FEAGI
+        sleep(0.001)
 
 
 def action(obtained_data, led_tracking_list, feagi_settings, capabilities, rolling_window, motor,
@@ -475,7 +484,7 @@ def start_ultrasonic(feagi_settings):
 
 
 
-def main(feagi_auth_url, feagi_settings, agent_settings, capabilities):
+def main(feagi_auth_url, feagi_settings, agent_settings, capabilities, magic_link=''):
     GPIO.cleanup()
     # # FEAGI REACHABLE CHECKER # #
     print("retrying...")
@@ -503,7 +512,7 @@ def main(feagi_auth_url, feagi_settings, agent_settings, capabilities):
     # - - - - - - - - - - - - - - - - - - #
     feagi_settings, runtime_data, api_address, feagi_ipu_channel, feagi_opu_channel = \
         FEAGI.connect_to_feagi(feagi_settings, runtime_data, agent_settings, capabilities,
-                               __version__)
+                               __version__, magic_link=magic_link)
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -515,8 +524,6 @@ def main(feagi_auth_url, feagi_settings, agent_settings, capabilities):
 
     # --- Variables ---
     rolling_window_len = capabilities['motor']['rolling_window_len']
-    motor_count = capabilities['motor']['count']
-    msg_counter = 0
     led_flag = False
     rgb = dict()
     rgb['camera'] = dict()
@@ -547,15 +554,16 @@ def main(feagi_auth_url, feagi_settings, agent_settings, capabilities):
     # overwrite manual
     camera_data = {"vision": {}}
     default_capabilities = pns.create_runtime_default_list(default_capabilities, capabilities)
-    threading.Thread(target=pns.feagi_listener, args=(feagi_opu_channel,), daemon=True).start()
+    threading.Thread(target=process_video, args=(default_capabilities, cam), daemon=True).start()
+    # threading.Thread(target=vision_calculation, args=(default_capabilities, previous_frame_data,
+    #                                                   rgb, capabilities), daemon=True).start()
 
-    # router.websocket_client_initalize('ip', '9053')
+    # router.websocket_client_initalize('192.168.50.218', '9053')
     threading.Thread(target=retina.vision_progress,
                      args=(default_capabilities, feagi_opu_channel, api_address, feagi_settings,
                            camera_data['vision'],), daemon=True).start()
-    threading.Thread(target=process_video, args=(default_capabilities, capabilities, cam,
-                                                 previous_frame_data, rgb), daemon=True).start()
     # threading.Thread(target=router.websocket_recieve, daemon=True).start()
+    msg_counter = 0
     while True:
         try:
             message_from_feagi = pns.message_from_feagi
@@ -564,6 +572,21 @@ def main(feagi_auth_url, feagi_settings, agent_settings, capabilities):
                 obtained_signals = pns.obtain_opu_data(message_from_feagi)
                 action(obtained_signals, led_tracking_list, feagi_settings, capabilities,
                        rolling_window, motor, servo, led, runtime_data)
+
+            if raw_frame_internal['0'] != []:
+                raw_frame = raw_frame_internal['0']
+                if len(default_capabilities['camera']['blink']) > 0:
+                    raw_frame = default_capabilities['camera']['blink']
+                # Post image into vision
+                previous_frame_data, rgb, default_capabilities = \
+                    retina.process_visual_stimuli(raw_frame, default_capabilities,
+                                                  previous_frame_data,
+                                                  rgb, capabilities)
+                default_capabilities['camera']['blink'] = []
+                # Wrapping camera data into a frame for FEAGI
+                if rgb:
+                    message_to_feagi = pns.generate_feagi_data(rgb, msg_counter, datetime.now(),
+                                                               message_to_feagi)
             # add IR data into feagi data
             ir_list = ir_data[0] if ir_data else []
             message_to_feagi = sensors.add_infrared_to_feagi_data(ir_list, message_to_feagi,
@@ -579,13 +602,12 @@ def main(feagi_auth_url, feagi_settings, agent_settings, capabilities):
             # add battery data into feagi data
             message_to_feagi = sensors.add_battery_to_feagi_data(battery.battery_total(),
                                                                  message_to_feagi)
-            # Wrapping camera data into a frame for FEAGI
-            message_to_feagi = pns.generate_feagi_data(rgb, msg_counter, datetime.now(),
-                                                       message_to_feagi)
             sleep(feagi_settings['feagi_burst_speed'])
             # Send the data contains IR, Ultrasonic, and camera
-            pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
-            # router.websocket_send(message_to_feagi) # WS
+            if magic_link == '':
+                pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
+            else:
+                router.websocket_send(message_to_feagi)
             message_to_feagi.clear()
         except KeyboardInterrupt as ke:  # Keyboard error
             motor.stop()
