@@ -1,7 +1,9 @@
 # Connect with Cozmo
 There are two ways. The easiest and simplest way is to have your computer connect to Cozmo. Once 
 you lift cozmo's arm and put it back down, you should see the WiFi password displayed on the LCD. 
-Connect to Cozmo using the password on the LCD. Once you're connected to Cozmo, you can simply run the code `python3 controller.py`, and it will automatically connect to FEAGI.
+Connect to Cozmo using the password on the LCD. Once you're connected to Cozmo, you can simply 
+run the code `python3 controller.py`, and it will automatically connect to FEAGI as long as you 
+have FEAGI and godot-bridge running already. 
 
 Another method: This method works on Windows and Linux only. It's currently not supported by Mac 
 due to security reasons. Buy a WiFi dongle, then connect it to Cozmo. It will connect to the 

@@ -7,13 +7,22 @@ pip3/Python3 installed, follow these steps:
 
 1. Run the following command to set up for the first time:
 ```
-   python3 -m feagi_connector_freenove --ip <url/ip> --setup true
+   sudo python3 -m feagi_connector_freenove --ip <ip> --setup true
 ```
 If you have already run the setup, use this command instead:
 ```
-   python3 -m feagi_connector_freenove --ip <url/ip>
+   sudo python3 -m feagi_connector_freenove --ip <ip>
 ```
-Replace `<url/ip>` with your FEAGI's IP address.
+
+If you want to connect with NRS, use this command instead:
+```
+   sudo python3 -m feagi_connector_freenove --magic_link <insert magic link>
+```
+
+You can obtain the magic link from NRS.
+
+
+Replace `<ip>` with your FEAGI's IP address.
 
 The command should be executed within the terminal.
 
