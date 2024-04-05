@@ -1,5 +1,4 @@
 import os
-import cv2
 import json
 import time
 import requests
@@ -238,56 +237,9 @@ def action(obtained_signals):
 
 
 if __name__ == '__main__':
-    # NEW JSON UPDATE
-    f = open('configuration.json')
-    configuration = json.load(f)
-    feagi_settings =  configuration["feagi_settings"]
-    agent_settings = configuration['agent_settings']
-    capabilities = configuration['capabilities']
-    feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
-    feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
-    f.close()
-    message_to_feagi = {"data": {}}
-    # END JSON UPDATE
+    magic_link, feagi_settings, configuration, agent_settings, default_capabilities, \
+    message_to_feagi, capabilities = FEAGI.build_up_from_configuration()
 
-    # Check if feagi_connector has arg
-    parser = argparse.ArgumentParser(description='enable to use magic link')
-    parser.add_argument('-magic_link', '--magic_link', help='to use magic link', required=False)
-    parser.add_argument('-magic-link', '--magic-link', help='to use magic link', required=False)
-    parser.add_argument('-magic', '--magic', help='to use magic link', required=False)
-    parser.add_argument('-ip', '--ip', help='to use feagi_ip', required=False)
-    parser.add_argument('-port', '--port', help='to use feagi_port', required=False)
-    args = vars(parser.parse_args())
-    magic_link = ''
-    if feagi_settings['feagi_url'] or args['magic'] or args['magic_link']:
-        if args['magic'] or args['magic_link']:
-            for arg in args:
-                if args[arg] is not None:
-                    magic_link = args[arg]
-                    break
-            configuration['feagi_settings']['feagi_url'] = magic_link
-            with open('configuration.json', 'w') as f:
-                json.dump(configuration, f)
-        else:
-            magic_link = feagi_settings['feagi_url']
-        url_response = json.loads(requests.get(magic_link).text)
-        feagi_settings['feagi_dns'] = url_response['feagi_url']
-        feagi_settings['feagi_api_port'] = url_response['feagi_api_port']
-    else:
-        # # FEAGI REACHABLE CHECKER # #
-        feagi_flag = False
-        print("retrying...")
-        print("Waiting on FEAGI...")
-        if args['ip']:
-            feagi_settings['feagi_host'] = args['ip']
-        while not feagi_flag:
-            feagi_flag = FEAGI.is_FEAGI_reachable(
-                os.environ.get('FEAGI_HOST_INTERNAL', feagi_settings["feagi_host"]),
-                int(os.environ.get('FEAGI_OPU_PORT', "3000")))
-            time.sleep(2)
-
-    feagi_auth_url = feagi_settings.pop('feagi_auth_url', None)
-    print("FEAGI AUTH URL ------- ", feagi_auth_url)
     runtime_data = dict()
 
     # # # FEAGI registration # # # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -315,10 +267,7 @@ if __name__ == '__main__':
     print("Connected with Tello drone.")
     start_camera(tello)
 
-    default_capabilities = {}  # It will be generated in process_visual_stimuli. See the
     # overwrite manual
-    default_capabilities = pns.create_runtime_default_list(default_capabilities, capabilities)
-    threading.Thread(target=pns.feagi_listener, args=(feagi_opu_channel,), daemon=True).start()
     threading.Thread(target=retina.vision_progress, args=(
         default_capabilities, feagi_opu_channel, api_address, feagi_settings,
         camera_data['vision'],),
