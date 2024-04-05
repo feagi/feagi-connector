@@ -121,9 +121,6 @@ def action(obtained_data, arm):
 
 
 if __name__ == "__main__":
-    magic_link, feagi_settings, configuration, agent_settings, default_capabilities, \
-    message_to_feagi, capabilities = FEAGI.build_up_from_configuration()
-
     runtime_data = \
         {
             "current_burst_id": 0,
@@ -135,11 +132,19 @@ if __name__ == "__main__":
             'actual_encoder_position': {}
         }
 
+    config = FEAGI.build_up_from_configuration()
+    feagi_settings = config['feagi_settings'].copy()
+    agent_settings = config['agent_settings'].copy()
+    default_capabilities = config['default_capabilities'].copy()
+    message_to_feagi = config['message_to_feagi'].copy()
+    capabilities = config['capabilities'].copy()
+
     # # # FEAGI registration # # # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    # - - - - - - - - - - - - - - - - - - #
     feagi_settings, runtime_data, api_address, feagi_ipu_channel, feagi_opu_channel = \
         FEAGI.connect_to_feagi(feagi_settings, runtime_data, agent_settings, capabilities,
-                               __version__, magic_link=magic_link)
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+                               __version__)
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
     # MYCOBOT SECTION
@@ -169,7 +174,7 @@ if __name__ == "__main__":
 
             sleep(feagi_settings['feagi_burst_speed'])
             if message_to_feagi:
-                if magic_link == '':
+                if 'magic_link' not in feagi_settings:
                     pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
                 else:
                     router.websocket_send(message_to_feagi)

@@ -31,8 +31,6 @@ if __name__ == '__main__':
                                                   'tank, or hexapod',
                         required=True)
     args = vars(parser.parse_args())
-    magic_link = ''
-
 
     # NEW JSON UPDATE
     f = open('configuration.json')
@@ -73,14 +71,14 @@ if __name__ == '__main__':
         if args['magic'] or args['magic_link']:
             for arg in args:
                 if args[arg] is not None:
-                    magic_link = args[arg]
+                    feagi_settings['magic_link'] = args[arg]
                     break
-            configuration['feagi_settings']['feagi_url'] = magic_link
+            configuration['feagi_settings']['feagi_url'] = feagi_settings['magic_link']
             with open('configuration.json', 'w') as f:
                 json.dump(configuration, f)
         else:
-            magic_link = feagi_settings['feagi_url']
-        url_response = json.loads(requests.get(magic_link).text)
+            feagi_settings['magic_link'] = feagi_settings['feagi_url']
+        url_response = json.loads(requests.get(feagi_settings['magic_link']).text)
         feagi_settings['feagi_dns'] = url_response['feagi_url']
         feagi_settings['feagi_api_port'] = url_response['feagi_api_port']
     feagi_auth_url = feagi_settings.pop('feagi_auth_url', None)
@@ -90,7 +88,7 @@ if __name__ == '__main__':
             freenove_smartcar_controller.main(feagi_auth_url,
                                               feagi_settings,
                                               agent_settings,
-                                              capabilities, magic_link=magic_link)
+                                              capabilities)
             sleep(5)
         except Exception as e:
             print(f"Controller run failed", e)

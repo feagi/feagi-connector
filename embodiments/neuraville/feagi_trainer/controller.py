@@ -34,14 +34,18 @@ if __name__ == "__main__":
                     "feagi_state": None,
                     "feagi_network": None}
 
-    magic_link, feagi_settings, configuration, agent_settings, default_capabilities, \
-    message_to_feagi, capabilities = feagi.build_up_from_configuration()
+    config = feagi.build_up_from_configuration()
+    feagi_settings = config['feagi_settings'].copy()
+    agent_settings = config['agent_settings'].copy()
+    default_capabilities = config['default_capabilities'].copy()
+    message_to_feagi = config['message_to_feagi'].copy()
+    capabilities = config['capabilities'].copy()
 
     # # # FEAGI registration # # # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     # - - - - - - - - - - - - - - - - - - #
     feagi_settings, runtime_data, api_address, feagi_ipu_channel, feagi_opu_channel = \
         feagi.connect_to_feagi(feagi_settings, runtime_data, agent_settings, capabilities,
-                               __version__, magic_link=magic_link)
+                               __version__)
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     msg_counter = runtime_data["feagi_state"]['burst_counter']
     if not pns.full_list_dimension:
@@ -96,7 +100,7 @@ if __name__ == "__main__":
                                                                              success_rate)
                 else:
                     success_rate, success, total = 0, 0, 0
-                if magic_link == '':
+                if 'magic_link' not in feagi_settings:
                     pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
                 else:
                     router.websocket_send(message_to_feagi)
