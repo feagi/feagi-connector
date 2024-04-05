@@ -13,7 +13,6 @@ If you have already run the setup, use this command instead:
 ```
    sudo python3 -m feagi_connector_freenove --ip <ip>
 ```
-
 Replace `<ip>` with your FEAGI's IP address.
 
 The command should be executed within the terminal.
