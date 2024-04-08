@@ -1,7 +1,6 @@
 import os
 import json
 import time
-import requests
 import argparse
 import threading
 from djitellopy import Tello
