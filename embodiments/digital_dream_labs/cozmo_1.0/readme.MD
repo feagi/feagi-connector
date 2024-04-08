@@ -1,5 +1,6 @@
-# First time user only
-1) `git clone https://github.com/feagi/feagi.git`
+# How to connect FEAGI with Tello
+Assuming you already have playground up running.
+1) `git clone https://github.com/feagi/feagi-connector.git`
 2) `cd feagi/embodiments/digital_dream_labs/cozmo_1.0`
 3) `python3 -m venv venv`
 4) `source venv/bin/activate`
