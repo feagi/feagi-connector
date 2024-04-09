@@ -16,13 +16,9 @@ limitations under the License.
 ==============================================================================
 """
 
-import os
 import time
-import json
 import pycozmo
 import asyncio
-import argparse
-import requests
 import traceback
 import threading
 import numpy as np
@@ -267,65 +263,18 @@ def action(obtained_data, arms_angle, head_angle):
 
 
 if __name__ == '__main__':
-    # NEW JSON UPDATE
-    f = open('configuration.json')
-    configuration = json.load(f)
-    feagi_settings = configuration["feagi_settings"]
-    agent_settings = configuration['agent_settings']
-    capabilities = configuration['capabilities']
-    feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
-    feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
-    message_to_feagi = {"data": {}}
-    f.close()
-    # END JSON UPDATE
-
-    default_capabilities = {}  # It will be generated in process_visual_stimuli. See the
-    # overwrite manual
-    default_capabilities = pns.create_runtime_default_list(default_capabilities, capabilities)
-
-    # Check if feagi_connector has arg
-    parser = argparse.ArgumentParser(description='enable to use magic link')
-    parser.add_argument('-magic_link', '--magic_link', help='to use magic link', required=False)
-    parser.add_argument('-magic-link', '--magic-link', help='to use magic link', required=False)
-    parser.add_argument('-magic', '--magic', help='to use magic link', required=False)
-    parser.add_argument('-ip', '--ip', help='to use feagi_ip', required=False)
-    parser.add_argument('-port', '--port', help='to use feagi_port', required=False)
-    args = vars(parser.parse_args())
-    magic_link = ''
-    if feagi_settings['feagi_url'] or args['magic'] or args['magic_link']:
-        if args['magic'] or args['magic_link']:
-            for arg in args:
-                if args[arg] is not None:
-                    magic_link = args[arg]
-                    break
-            configuration['feagi_settings']['feagi_url'] = magic_link
-            with open('configuration.json', 'w') as f:
-                json.dump(configuration, f)
-        else:
-            magic_link = feagi_settings['feagi_url']
-        url_response = json.loads(requests.get(magic_link).text)
-        feagi_settings['feagi_dns'] = url_response['feagi_url']
-        feagi_settings['feagi_api_port'] = url_response['feagi_api_port']
-    else:
-        # # FEAGI REACHABLE CHECKER # #
-        feagi_flag = False
-        print("retrying...")
-        print("Waiting on FEAGI...")
-        if args['ip']:
-            feagi_settings['feagi_host'] = args['ip']
-        while not feagi_flag:
-            feagi_flag = FEAGI.is_FEAGI_reachable(
-                os.environ.get('FEAGI_HOST_INTERNAL', feagi_settings["feagi_host"]),
-                int(os.environ.get('FEAGI_OPU_PORT', "3000")))
-            sleep(2)
-
-    # # FEAGI REACHABLE CHECKER COMPLETED # #
+    config = FEAGI.build_up_from_configuration()
+    feagi_settings = config['feagi_settings'].copy()
+    agent_settings = config['agent_settings'].copy()
+    default_capabilities = config['default_capabilities'].copy()
+    message_to_feagi = config['message_to_feagi'].copy()
+    capabilities = config['capabilities'].copy()
 
     # # # FEAGI registration # # # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     # - - - - - - - - - - - - - - - - - - #
     feagi_settings, runtime_data, api_address, feagi_ipu_channel, feagi_opu_channel = \
         FEAGI.connect_to_feagi(feagi_settings, runtime_data, agent_settings, capabilities,
-                               __version__, magic_link=magic_link)
+                               __version__)
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     face_selected = deque()
     eye_one_location = deque()
@@ -437,7 +386,7 @@ if __name__ == '__main__':
                                                              message_to_feagi)
             message_to_feagi = sensors.add_battery_to_feagi_data(battery, message_to_feagi)
             sleep(feagi_settings['feagi_burst_speed'])  # bottleneck
-            if magic_link == '':
+            if 'magic_link' not in feagi_settings:
                 pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
             else:
                 router.websocket_send(message_to_feagi)
