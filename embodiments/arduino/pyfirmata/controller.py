@@ -19,7 +19,6 @@ import time
 import pyfirmata
 import threading
 from time import sleep
-from configuration import *
 from collections import deque
 from feagi_connector import router
 from feagi_connector import sensors
@@ -35,8 +34,6 @@ pin_board = dict()
 analog_pin_board = dict()
 pin_mode = dict()
 rolling_window = {}
-rolling_window_len = capabilities['motor']['rolling_window_len']
-motor_count = capabilities['motor']['count']
 output_track = list()
 input_track = list()
 
@@ -137,6 +134,8 @@ if __name__ == "__main__":
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     # Specify the serial port where your Arduino is connected (e.g., 'COM3' on Windows or
     # '/dev/ttyUSB0' on Linux)
+    rolling_window_len = capabilities['motor']['rolling_window_len']
+    motor_count = capabilities['motor']['count']
     feagi_settings['feagi_burst_speed'] = float(runtime_data["feagi_state"]['burst_duration'])
     threading.Thread(target=pns.feagi_listener, args=(feagi_opu_channel,), daemon=True).start()
     port = capabilities['arduino']['port']  # Don't change this
