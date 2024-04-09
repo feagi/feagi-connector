@@ -126,6 +126,7 @@ def feagi_listener(feagi_opu_channel):
         if data is not None:
             pns.message_from_feagi = data
         sleep(0.001)  # hardcoded and max second that it can run up to
+        # print("inside router: ", pns.message_from_feagi['opu_data']['o__gaz'])
 
 
 def send_feagi(message_to_feagi, feagi_ipu_channel, agent_settings):
@@ -183,7 +184,7 @@ def feagi_settings_from_composer(feagi_auth_url, feagi_settings):
 
 
 def register_with_feagi(feagi_auth_url, feagi_settings, agent_settings, agent_capabilities,
-                        controller_version, agent_version, magic_link=''):
+                        controller_version, agent_version):
     """
     To trade information between FEAGI and Controller
 
@@ -206,7 +207,7 @@ def register_with_feagi(feagi_auth_url, feagi_settings, agent_settings, agent_ca
 
             network_output = requests.get(feagi_url + network_endpoint).json()
             # print(f"network_output ---- {network_output}")
-            if magic_link == '':
+            if 'magic_link' not in feagi_settings:
                 feagi_settings['feagi_opu_port'] = network_output['feagi_opu_port']
             if feagi_settings:
                 print("Data from FEAGI::", feagi_settings)
@@ -238,7 +239,7 @@ def register_with_feagi(feagi_auth_url, feagi_settings, agent_settings, agent_ca
             # traceback.print_exc()
         sleep(2)
 
-    if magic_link == '':
+    if 'magic_link' not in feagi_settings:
         # feagi_settings['agent_state']['agent_ip'] = "127.0.0.1"
         print(f"Final Feagi Settings ---- {feagi_settings}")
         feagi_ip = feagi_settings['feagi_host']
