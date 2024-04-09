@@ -7,13 +7,13 @@ pip3/Python3 installed, follow these steps:
 
 1. Run the following command to set up for the first time:
 ```
-   python3 -m feagi_connector_freenove --ip <url/ip> --setup true
+   sudo python3 -m feagi_connector_freenove --ip <ip> --setup true
 ```
 If you have already run the setup, use this command instead:
 ```
-   python3 -m feagi_connector_freenove --ip <url/ip>
+   sudo python3 -m feagi_connector_freenove --ip <ip>
 ```
-Replace `<url/ip>` with your FEAGI's IP address.
+Replace `<ip>` with your FEAGI's IP address.
 
 The command should be executed within the terminal.
 
@@ -92,4 +92,5 @@ At first, it may be a little slow because it is checking for all the necessary p
 These are the requirements which will be updated over time. The script will use this requirement to scan.
 
 Here: [requirements.txt](https://github.com/feagi/feagi/blob/staging/peripherals/feagi_connector_freenove/feagi_connector_freenove/requirements.txt)
+
 

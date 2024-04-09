@@ -484,7 +484,7 @@ def start_ultrasonic(feagi_settings):
 
 
 
-def main(feagi_auth_url, feagi_settings, agent_settings, capabilities, magic_link=''):
+def main(feagi_auth_url, feagi_settings, agent_settings, capabilities):
     GPIO.cleanup()
     # # FEAGI REACHABLE CHECKER # #
     print("retrying...")
@@ -512,7 +512,7 @@ def main(feagi_auth_url, feagi_settings, agent_settings, capabilities, magic_lin
     # - - - - - - - - - - - - - - - - - - #
     feagi_settings, runtime_data, api_address, feagi_ipu_channel, feagi_opu_channel = \
         FEAGI.connect_to_feagi(feagi_settings, runtime_data, agent_settings, capabilities,
-                               __version__, magic_link=magic_link)
+                               __version__)
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -604,7 +604,7 @@ def main(feagi_auth_url, feagi_settings, agent_settings, capabilities, magic_lin
                                                                  message_to_feagi)
             sleep(feagi_settings['feagi_burst_speed'])
             # Send the data contains IR, Ultrasonic, and camera
-            if magic_link == '':
+            if 'magic_link' not in feagi_settings:
                 pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
             else:
                 router.websocket_send(message_to_feagi)
