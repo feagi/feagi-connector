@@ -13,15 +13,6 @@ If you have already run the setup, use this command instead:
 ```
    sudo python3 -m feagi_connector_freenove --ip <ip>
 ```
-
-If you want to connect with NRS, use this command instead:
-```
-   sudo python3 -m feagi_connector_freenove --magic_link <insert magic link>
-```
-
-You can obtain the magic link from NRS.
-
-
 Replace `<ip>` with your FEAGI's IP address.
 
 The command should be executed within the terminal.
@@ -101,4 +92,5 @@ At first, it may be a little slow because it is checking for all the necessary p
 These are the requirements which will be updated over time. The script will use this requirement to scan.
 
 Here: [requirements.txt](https://github.com/feagi/feagi/blob/staging/peripherals/feagi_connector_freenove/feagi_connector_freenove/requirements.txt)
+
 
