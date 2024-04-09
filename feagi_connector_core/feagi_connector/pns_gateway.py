@@ -402,8 +402,8 @@ def create_runtime_default_list(list, capabilities):
                 "threshold_name": 0,  # Binary_threshold as a default
                 "mirror": True,  # flip the image
                 "blink": [],  # cv2 ndarray raw data of an image. Controlled by blink OPU in genome
-                "gaze_control": {0: 1, 1: 1},  # Controlled by gaze_control in genome
-                "pupil_control": {0: 99, 1: 99},  # Controlled by pupil_control in genome
+                "gaze_control": {'0': 1, '1': 1},  # Controlled by gaze_control in genome
+                "pupil_control": {'0': 99, '1': 99},  # Controlled by pupil_control in genome
                 "vision_range": [1, 99],  # min, max
                 "size_list": [],  # To get the size in real time based on genome's change/update
                 "enhancement": {},  # Enable ov_enh OPU on inside the genome

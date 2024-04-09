@@ -24,8 +24,12 @@ if __name__ == '__main__':
                         required=False)
     parser.add_argument('-http_type', '--http_type', help='https:// or http://',
                         required=False)
-    parser.add_argument('-url', '--url', help='full url',
-                        required=False)
+    parser.add_argument('-magic_link', '--magic_link', help='to use magic link', required=False)
+    parser.add_argument('-magic-link', '--magic-link', help='to use magic link', required=False)
+    parser.add_argument('-magic', '--magic', help='to use magic link', required=False)
+    parser.add_argument('-model', '--model', help='add `-model` and put type: 4wd, dog, '
+                                                  'tank, or hexapod',
+                        required=True)
     args = vars(parser.parse_args())
 
     # NEW JSON UPDATE
@@ -51,9 +55,32 @@ if __name__ == '__main__':
         agent_settings["agent_data_port"] = args['zmq_port']
     if args['api_port']:
         feagi_settings["feagi_api_port"] = args['api_port']
-    from feagi_connector_freenove import controller as freenove_smartcar_controller
-    if args['url']:
-        feagi_settings['feagi_dns'] = args['url']
+    if args['model']:
+        if args['model'] == '4wd':
+            from feagi_connector_freenove import controller as freenove_smartcar_controller
+        if args['model'] == 'dog':
+            pass # Hasn't implemented yet
+            print("NOT IMPLEMENTED YET")
+        if args['model'] == 'tank':
+            pass  # Hasn't implemented yet
+            print("NOT IMPLEMENTED YET")
+        if args['model'] == 'hexapod':
+            pass  # Hasn't implemented yet
+            print("NOT IMPLEMENTED YET")
+    if feagi_settings['feagi_url'] or args['magic'] or args['magic_link']:
+        if args['magic'] or args['magic_link']:
+            for arg in args:
+                if args[arg] is not None:
+                    feagi_settings['magic_link'] = args[arg]
+                    break
+            configuration['feagi_settings']['feagi_url'] = feagi_settings['magic_link']
+            with open('configuration.json', 'w') as f:
+                json.dump(configuration, f)
+        else:
+            feagi_settings['magic_link'] = feagi_settings['feagi_url']
+        url_response = json.loads(requests.get(feagi_settings['magic_link']).text)
+        feagi_settings['feagi_dns'] = url_response['feagi_url']
+        feagi_settings['feagi_api_port'] = url_response['feagi_api_port']
     feagi_auth_url = feagi_settings.pop('feagi_auth_url', None)
     print("FEAGI AUTH URL ------- ", feagi_auth_url)
     while True:

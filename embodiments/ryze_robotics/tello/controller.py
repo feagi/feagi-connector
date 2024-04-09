@@ -1,12 +1,12 @@
 import os
-import cv2
 import json
 import time
-import requests
+import argparse
 import threading
 from djitellopy import Tello
 from datetime import datetime
 from version import __version__
+from feagi_connector import router
 from feagi_connector import retina
 from feagi_connector import sensors
 from feagi_connector import actuators
@@ -236,21 +236,13 @@ def action(obtained_signals):
 
 
 if __name__ == '__main__':
-    # NEW JSON UPDATE
-    f = open('configuration.json')
-    configuration = json.load(f)
-    feagi_settings =  configuration["feagi_settings"]
-    agent_settings = configuration['agent_settings']
-    capabilities = configuration['capabilities']
-    feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
-    feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
-    f.close()
-    message_to_feagi = {"data": {}}
-    # END JSON UPDATE
-
-    feagi_auth_url = feagi_settings.pop('feagi_auth_url', None)
-    print("FEAGI AUTH URL ------- ", feagi_auth_url)
     runtime_data = dict()
+    config = FEAGI.build_up_from_configuration()
+    feagi_settings = config['feagi_settings'].copy()
+    agent_settings = config['agent_settings'].copy()
+    default_capabilities = config['default_capabilities'].copy()
+    message_to_feagi = config['message_to_feagi'].copy()
+    capabilities = config['capabilities'].copy()
 
     # # # FEAGI registration # # # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     # - - - - - - - - - - - - - - - - - - #
@@ -277,14 +269,8 @@ if __name__ == '__main__':
     print("Connected with Tello drone.")
     start_camera(tello)
 
-    default_capabilities = {}  # It will be generated in process_visual_stimuli. See the
     # overwrite manual
-    default_capabilities = pns.create_runtime_default_list(default_capabilities, capabilities)
-    threading.Thread(target=pns.feagi_listener, args=(feagi_opu_channel,), daemon=True).start()
-    threading.Thread(target=retina.vision_progress, args=(
-        default_capabilities, feagi_opu_channel, api_address, feagi_settings,
-        camera_data['vision'],),
-                     daemon=True).start()
+    threading.Thread(target=retina.vision_progress, args=(default_capabilities, feagi_opu_channel, api_address, feagi_settings, camera_data['vision'],), daemon=True).start()
 
     while True:
         try:
@@ -325,7 +311,10 @@ if __name__ == '__main__':
             message_to_feagi = sensors.add_ultrasonic_to_feagi_data(sonar, message_to_feagi)
 
             # Sending data to FEAGI
-            pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
+            if 'magic_link' not in feagi_settings:
+                pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
+            else:
+                router.websocket_send(message_to_feagi)
             message_to_feagi.clear()
             time.sleep(feagi_settings['feagi_burst_speed'])
         except KeyboardInterrupt as ke:

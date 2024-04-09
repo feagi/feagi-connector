@@ -1,10 +1,15 @@
+import os
+import json
+import socket
+import argparse
+import requests
+import threading
 import traceback
+from time import sleep
 from feagi_connector import router
 from feagi_connector import pns_gateway as pns
 from feagi_connector.version import __version__
-from time import sleep
-import requests
-import socket
+
 
 
 def pub_initializer(ipu_address, bind=True):
@@ -333,22 +338,34 @@ def connect_to_feagi(feagi_settings, runtime_data, agent_settings, capabilities,
     agent_data_port = str(runtime_data["feagi_state"]['agent_state']['agent_data_port'])
     print("** **", runtime_data["feagi_state"])
     feagi_settings['feagi_burst_speed'] = float(runtime_data["feagi_state"]['burst_duration'])
-    if bind_flag:
-        ipu_channel_address = "tcp://*:" + agent_data_port # This is for godot to work due to
-        # bind unable to use the dns.
+    if 'magic_link' not in feagi_settings:
+        if bind_flag:
+            ipu_channel_address = "tcp://*:" + agent_data_port  # This is for godot to work due to
+            # bind unable to use the dns.
+        else:
+            ipu_channel_address = feagi_outbound(feagi_settings['feagi_host'], agent_data_port)
+
+        print("IPU_channel_address=", ipu_channel_address)
+        opu_channel_address = feagi_outbound(feagi_settings['feagi_host'],
+                                             runtime_data["feagi_state"]['feagi_opu_port'])
+
+        # ip = '172.28.0.2'
+        # opu_channel_address = 'tcp://' + str(ip) + ':3000'
+        # ipu_channel_address = 'tcp://' + str(ip) + ':3000'
+        feagi_ipu_channel = pub_initializer(ipu_channel_address, bind=bind_flag)
+        feagi_opu_channel = sub_initializer(opu_address=opu_channel_address)
+        router.global_feagi_opu_channel = feagi_opu_channel
+        threading.Thread(target=pns.feagi_listener, args=(feagi_opu_channel,), daemon=True).start()
     else:
-        ipu_channel_address = feagi_outbound(feagi_settings['feagi_host'], agent_data_port)
+        feagi_ipu_channel = None
+        feagi_opu_channel = None
+        print("websocket testing")
+        websocket_url = feagi_settings['feagi_dns'].replace("https", "wss") + str("/p9053")
+        print(websocket_url)
+        router.websocket_client_initalize('192.168.50.192', '9053', dns=websocket_url)
+        threading.Thread(target=router.websocket_recieve, daemon=True).start()
 
-    print("IPU_channel_address=", ipu_channel_address)
-    opu_channel_address = feagi_outbound(feagi_settings['feagi_host'],
-                                         runtime_data["feagi_state"]['feagi_opu_port'])
 
-    # ip = '172.28.0.2'
-    # opu_channel_address = 'tcp://' + str(ip) + ':3000'
-    # ipu_channel_address = 'tcp://' + str(ip) + ':3000'
-    feagi_ipu_channel = pub_initializer(ipu_channel_address, bind=bind_flag)
-    feagi_opu_channel = sub_initializer(opu_address=opu_channel_address)
-    router.global_feagi_opu_channel = feagi_opu_channel
     return feagi_settings, runtime_data, api_address, feagi_ipu_channel, feagi_opu_channel
 
 
@@ -376,3 +393,68 @@ def mctl_neuron_update(feagi_power, id):
         return feagi_power / 100.0
     else:
         return feagi_power / z_depth
+
+def configuration_load(path='./'):
+    # NEW JSON UPDATE
+    f = open(path + 'configuration.json')
+    configuration = json.load(f)
+    feagi_settings = configuration["feagi_settings"]
+    agent_settings = configuration['agent_settings']
+    capabilities = configuration['capabilities']
+    feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
+    feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
+    message_to_feagi = {"data": {}}
+    f.close()
+    return feagi_settings, agent_settings, capabilities, message_to_feagi, configuration
+    # END JSON UPDATE
+
+def reading_parameters_to_confirm_communication(feagi_settings, configuration, path="."):
+    # Check if feagi_connector has arg
+    parser = argparse.ArgumentParser(description='enable to use magic link')
+    parser.add_argument('-magic_link', '--magic_link', help='to use magic link', required=False)
+    parser.add_argument('-magic-link', '--magic-link', help='to use magic link', required=False)
+    parser.add_argument('-magic', '--magic', help='to use magic link', required=False)
+    parser.add_argument('-ip', '--ip', help='to use feagi_ip', required=False)
+    parser.add_argument('-port', '--port', help='to use feagi_port', required=False)
+    args = vars(parser.parse_args())
+    if feagi_settings['feagi_url'] or args['magic'] or args['magic_link']:
+        if args['magic'] or args['magic_link']:
+            for arg in args:
+                if args[arg] is not None:
+                    feagi_settings['magic_link'] = args[arg]
+                    break
+            configuration['feagi_settings']['feagi_url'] = feagi_settings['magic_link']
+            with open(path+'configuration.json', 'w') as f:
+                json.dump(configuration, f)
+        else:
+            feagi_settings['magic_link'] = feagi_settings['feagi_url']
+        url_response = json.loads(requests.get(feagi_settings['magic_link']).text)
+        feagi_settings['feagi_dns'] = url_response['feagi_url']
+        feagi_settings['feagi_api_port'] = url_response['feagi_api_port']
+    else:
+        # # FEAGI REACHABLE CHECKER # #
+        feagi_flag = False
+        print("retrying...")
+        print("Waiting on FEAGI...")
+        if args['ip']:
+            feagi_settings['feagi_host'] = args['ip']
+        while not feagi_flag:
+            feagi_flag = is_FEAGI_reachable(os.environ.get('FEAGI_HOST_INTERNAL', feagi_settings["feagi_host"]),int(os.environ.get('FEAGI_OPU_PORT', "3000")))
+            sleep(2)
+    return feagi_settings, configuration
+
+def build_up_from_configuration(path="./"):
+    feagi_settings, agent_settings, capabilities, message_to_feagi, configuration = configuration_load(path)
+    default_capabilities = {}  # It will be generated in process_visual_stimuli. See the
+    # overwrite manual
+    default_capabilities = pns.create_runtime_default_list(default_capabilities, capabilities)
+
+    feagi_settings, configuration = reading_parameters_to_confirm_communication(feagi_settings, configuration,path)
+    return {
+        "feagi_settings": feagi_settings,
+        "agent_settings": agent_settings,
+        "default_capabilities": default_capabilities,
+        "message_to_feagi": message_to_feagi,
+        "capabilities": capabilities
+    }
+
