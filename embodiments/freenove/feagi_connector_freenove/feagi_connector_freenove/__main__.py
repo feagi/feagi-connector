@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 import os
-import sys
 import json
 import requests
 import argparse
 import traceback
-import sysconfig
 import subprocess
 from time import sleep
 import feagi_connector_freenove
@@ -33,7 +31,8 @@ if __name__ == '__main__':
     args = vars(parser.parse_args())
 
     # NEW JSON UPDATE
-    f = open('configuration.json')
+    current_path = feagi_connector_freenove.__path__
+    f = open(str(current_path[0]) + '/configuration.json')
     configuration = json.load(f)
     feagi_settings =  configuration["feagi_settings"]
     agent_settings = configuration['agent_settings']
@@ -48,7 +47,6 @@ if __name__ == '__main__':
     if args['ip']:
         feagi_settings["feagi_host"] = args['ip']
     if args['setup']:
-        current_path = feagi_connector_freenove.__path__
         new_path = current_path[0] + "/setup.sh " + current_path[0]
         subprocess.run([new_path, "arguments"], shell=True)
     if args['zmq_port']:
