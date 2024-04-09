@@ -15,20 +15,19 @@ limitations under the License.
 ==============================================================================
 """
 
-from time import sleep
 import time
-import threading
-
 import pyfirmata
-
+import threading
+from time import sleep
 from configuration import *
 from collections import deque
-from feagi_connector import feagi_interface as feagi
+from feagi_connector import router
+from feagi_connector import sensors
+from feagi_connector import actuators
+from pyfirmata import Arduino, SERVO, util
 from feagi_connector import pns_gateway as pns
 from feagi_connector.version import __version__
-from feagi_connector import actuators
-from feagi_connector import sensors
-from pyfirmata import Arduino, SERVO, util
+from feagi_connector import feagi_interface as feagi
 
 servo_status = dict()
 motor_status = dict()
@@ -114,17 +113,6 @@ def action(obtained_data):
                 print("pin: ", id, " is not configured. Select another pin please.")
 
 if __name__ == "__main__":
-    # # FEAGI REACHABLE CHECKER # #
-    print("retrying...")
-    print("Waiting on FEAGI...")
-    # while not feagi_flag:
-    #     print("ip: ", os.environ.get('FEAGI_HOST_INTERNAL', feagi_settings["feagi_host"]))
-    #     print("here: ", int(os.environ.get('FEAGI_OPU_PORT', "30000")))
-    #     feagi_flag = feagi.is_FEAGI_reachable(
-    #         os.environ.get('FEAGI_HOST_INTERNAL', feagi_settings["feagi_host"]),
-    #         int(os.environ.get('FEAGI_OPU_PORT', "30000")))
-    #     sleep(2)
-
     runtime_data = {
         "current_burst_id": 0,
         "feagi_state": None,
@@ -134,7 +122,12 @@ if __name__ == "__main__":
         'motor_status': {},
         'servo_status': {}
     }
-    # # FEAGI REACHABLE CHECKER COMPLETED # #
+    config = feagi.build_up_from_configuration()
+    feagi_settings = config['feagi_settings'].copy()
+    agent_settings = config['agent_settings'].copy()
+    default_capabilities = config['default_capabilities'].copy()
+    message_to_feagi = config['message_to_feagi'].copy()
+    capabilities = config['capabilities'].copy()
 
     # # # FEAGI registration # # # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     # - - - - - - - - - - - - - - - - - - #
@@ -176,5 +169,8 @@ if __name__ == "__main__":
                     create_generic_input_dict['i_gpio'][location_string] = 100
             message_to_feagi = sensors.add_generic_input_to_feagi_data(
                 create_generic_input_dict, message_to_feagi)
-            pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
+            if 'magic_link' not in feagi_settings:
+                pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
+            else:
+                router.websocket_send(message_to_feagi)
         sleep(feagi_settings['feagi_burst_speed'])
