@@ -14,15 +14,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================
 """
-from time import sleep
 import threading
-from configuration import *
+from time import sleep
+import raspberry_PI_library as rpi
+from feagi_connector import router
 from feagi_connector import sensors
-from feagi_connector import feagi_interface as feagi
+from feagi_connector import actuators
 from feagi_connector import pns_gateway as pns
 from feagi_connector.version import __version__
-from feagi_connector import actuators
-import raspberry_PI_library as rpi
+from feagi_connector import feagi_interface as feagi
 
 
 def action(obtained_data):
@@ -46,17 +46,22 @@ if __name__ == "__main__":
         'motor_status': {},
         'servo_status': {}
     }
+    config = FEAGI.build_up_from_configuration()
+    feagi_settings = config['feagi_settings'].copy()
+    agent_settings = config['agent_settings'].copy()
+    default_capabilities = config['default_capabilities'].copy()
+    message_to_feagi = config['message_to_feagi'].copy()
+    capabilities = config['capabilities'].copy()
 
     # # # FEAGI registration # # # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     # - - - - - - - - - - - - - - - - - - #
     feagi_settings, runtime_data, api_address, feagi_ipu_channel, feagi_opu_channel = \
-        feagi.connect_to_feagi(feagi_settings, runtime_data, agent_settings, capabilities,
+        FEAGI.connect_to_feagi(feagi_settings, runtime_data, agent_settings, capabilities,
                                __version__)
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     feagi_settings['feagi_burst_speed'] = float(runtime_data["feagi_state"]['burst_duration'])
-    threading.Thread(target=pns.feagi_listener, args=(feagi_opu_channel,), daemon=True).start()
 
-    rpi.configured_board_by_config(capabilities) # pass your config setting to this
+    rpi.configured_board_by_config(capabilities)  # pass your config setting to this
 
     while True:
         try:
@@ -70,7 +75,10 @@ if __name__ == "__main__":
             generic_input_dict = dict()
             generic_input_dict['i_gpio'] = rpi.gather_all_input_data()
             message_to_feagi = sensors.add_generic_input_to_feagi_data(generic_input_dict, message_to_feagi)
-            pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
+            if 'magic_link' not in feagi_settings:
+                pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
+            else:
+                router.websocket_send(message_to_feagi)
             sleep(feagi_settings['feagi_burst_speed'])
         except KeyboardInterrupt:
             rpi.clear_gpio()
