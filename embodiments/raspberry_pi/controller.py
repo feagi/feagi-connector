@@ -27,7 +27,6 @@ from feagi_connector import feagi_interface as feagi
 
 def action(obtained_data):
     recieve_gpio_data = actuators.get_gpio_data(obtained_data)
-    print("here: ", recieve_gpio_data)
     if recieve_gpio_data:
         for i in recieve_gpio_data:
             rpi.power_pin(i)

@@ -133,7 +133,6 @@ if __name__ == "__main__":
     # list_all_analog_pins(board) # Temporarily pause analog section
     sleep(2)
     list_all_pins(board)
-    print(pin_board)
 
     while True:
         message_from_feagi = pns.message_from_feagi
