@@ -27,6 +27,7 @@ from feagi_connector import feagi_interface as feagi
 
 def action(obtained_data):
     recieve_gpio_data = actuators.get_gpio_data(obtained_data)
+    print("here: ", recieve_gpio_data)
     if recieve_gpio_data:
         for i in recieve_gpio_data:
             rpi.power_pin(i)
@@ -46,7 +47,7 @@ if __name__ == "__main__":
         'motor_status': {},
         'servo_status': {}
     }
-    config = FEAGI.build_up_from_configuration()
+    config = feagi.build_up_from_configuration()
     feagi_settings = config['feagi_settings'].copy()
     agent_settings = config['agent_settings'].copy()
     default_capabilities = config['default_capabilities'].copy()
@@ -56,7 +57,7 @@ if __name__ == "__main__":
     # # # FEAGI registration # # # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     # - - - - - - - - - - - - - - - - - - #
     feagi_settings, runtime_data, api_address, feagi_ipu_channel, feagi_opu_channel = \
-        FEAGI.connect_to_feagi(feagi_settings, runtime_data, agent_settings, capabilities,
+        feagi.connect_to_feagi(feagi_settings, runtime_data, agent_settings, capabilities,
                                __version__)
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     feagi_settings['feagi_burst_speed'] = float(runtime_data["feagi_state"]['burst_duration'])
