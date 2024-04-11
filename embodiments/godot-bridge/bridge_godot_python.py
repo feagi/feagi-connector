@@ -58,6 +58,7 @@ def main(feagi_settings, runtime_data, capabilities):
                                __version__, True)
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
     godot_list = {}  # initialized the list from Godot
+    current_dimension = pns.full_list_dimension
 
     threading.Thread(target=pns.feagi_listener, args=(feagi_opu_channel,), daemon=True).start()
 
@@ -70,8 +71,10 @@ def main(feagi_settings, runtime_data, capabilities):
             if one_frame["genome_changed"] != previous_genome_timestamp:
                 previous_genome_timestamp = one_frame["genome_changed"]
                 if one_frame["genome_changed"] is not None:
-                    print("updated time")
-                    send_to_BV_queue.append("updated")
+                    if current_dimension != pns.full_list_dimension:
+                        current_dimension = pns.full_list_dimension
+                        print("updated time")
+                        send_to_BV_queue.append("updated")
             runtime_data["stimulation_period"] = one_frame['burst_frequency']
 
             # processed_one_frame is the data from godot. It break down due to absolutely and
