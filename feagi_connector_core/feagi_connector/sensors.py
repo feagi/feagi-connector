@@ -57,3 +57,15 @@ def add_sound_to_feagi_data(hear_list, message_to_feagi):
 
 def add_generic_input_to_feagi_data(generic_list, message_to_feaggi):
     return pns.append_sensory_data_for_feagi('generic_ipu', generic_list, message_to_feaggi)
+
+
+def add_agent_status(status, message_to_feagi, agent_settings):
+    if "data" not in message_to_feagi:
+        message_to_feagi["data"] = {}
+    if "sensory_data" not in message_to_feagi["data"]:
+        message_to_feagi["data"]["sensory_data"] = {}
+    if status:
+        message_to_feagi["data"]["sensory_data"]['connected_agents'] = [agent_settings['agent_id']]
+    else:
+        message_to_feagi["data"]["sensory_data"]['connected_agents'] = []
+    return message_to_feagi
