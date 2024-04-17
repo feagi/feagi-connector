@@ -28,6 +28,7 @@ from collections import deque
 from datetime import datetime
 from version import __version__
 from feagi_connector import retina
+from feagi_connector import sensors
 from feagi_connector import pns_gateway as pns
 from feagi_connector import feagi_interface as feagi
 
@@ -35,6 +36,8 @@ rgb_array = {}
 ws = deque()
 ws_operation = deque()
 webcam_size = {'size': []}
+connected_agents = dict()  # Initalize
+connected_agents['0'] = False  # By default, it is not connected by client's websocket
 
 
 async def bridge_to_godot(runtime_data):
@@ -61,6 +64,7 @@ async def bridge_to_godot(runtime_data):
 def bridge_operation(runtime_data):
     asyncio.run(bridge_to_godot(runtime_data))
 
+
 def utc_time():
     current_time = datetime.utcnow()
     return current_time
@@ -71,8 +75,10 @@ async def echo(websocket):
     The function echoes the data it receives from other connected websockets
     and sends the data from FEAGI to the connected websockets.
     """
+    global connected_agents
     ws.append({"newRefreshRate": 60})
     async for message in websocket:
+        connected_agents['0'] = True  # Since this section gets data from client, its marked as true
         if not ws_operation:
             ws_operation.append(websocket)
         else:
@@ -80,7 +86,7 @@ async def echo(websocket):
         test = message
         rgb_array['current'] = list(lz4.frame.decompress(test))
         webcam_size['size'] = []
-
+    connected_agents['0'] = False  # Once client disconnects, mark it as false
 
 
 async def main():
@@ -105,7 +111,7 @@ if __name__ == "__main__":
     # NEW JSON UPDATE
     f = open('configuration.json')
     configuration = json.load(f)
-    feagi_settings =  configuration["feagi_settings"]
+    feagi_settings = configuration["feagi_settings"]
     agent_settings = configuration['agent_settings']
     capabilities = configuration['capabilities']
     feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
@@ -130,7 +136,8 @@ if __name__ == "__main__":
         print("Waiting on FEAGI...")
         while not feagi_flag:
             feagi_flag = feagi.is_FEAGI_reachable(os.environ.get('FEAGI_HOST_INTERNAL',
-                                                                 "127.0.0.1"), int(os.environ.get('FEAGI_OPU_PORT', "3000")))
+                                                                 "127.0.0.1"),
+                                                  int(os.environ.get('FEAGI_OPU_PORT', "3000")))
             sleep(2)
         print("DONE")
         previous_data_frame = {}
@@ -165,17 +172,20 @@ if __name__ == "__main__":
                             raw_frame = default_capabilities['camera']['blink']
                     previous_frame_data, rgb, default_capabilities = \
                         retina.process_visual_stimuli(
-                        raw_frame,
-                        default_capabilities,
-                        previous_frame_data,
-                        rgb, capabilities)
+                            raw_frame,
+                            default_capabilities,
+                            previous_frame_data,
+                            rgb, capabilities)
                     default_capabilities['camera']['blink'] = []
                     message_to_feagi = pns.generate_feagi_data(rgb, msg_counter, datetime.now(),
                                                                message_to_feagi)
                     # if previous_burst != feagi_settings['feagi_burst_speed']:
                     #     ws.append({"newRefreshRate": feagi_settings['feagi_burst_speed']})
                     #     previous_burst = feagi_settings['feagi_burst_speed']
-                    pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
+                message_to_feagi = sensors.add_agent_status(connected_agents['0'],
+                                                            message_to_feagi,
+                                                            agent_settings)
+                pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
                 sleep(feagi_settings['feagi_burst_speed'])  # bottleneck
                 message_to_feagi.clear()
                 if 'camera' in rgb:

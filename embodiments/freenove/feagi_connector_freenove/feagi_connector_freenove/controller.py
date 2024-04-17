@@ -573,7 +573,7 @@ def main(feagi_auth_url, feagi_settings, agent_settings, capabilities):
                 action(obtained_signals, led_tracking_list, feagi_settings, capabilities,
                        rolling_window, motor, servo, led, runtime_data)
 
-            if raw_frame_internal['0'] != []:
+            if raw_frame_internal['0'] is not []:
                 raw_frame = raw_frame_internal['0']
                 if len(default_capabilities['camera']['blink']) > 0:
                     raw_frame = default_capabilities['camera']['blink']

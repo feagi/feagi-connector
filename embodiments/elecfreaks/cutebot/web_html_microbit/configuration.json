@@ -9,7 +9,7 @@
     },
     "agent_settings": {
         "agent_data_port": 10009,
-        "agent_id": "cutebot",
+        "agent_id": "bluetoorh_ctrl",
         "agent_type": "embodiment",
         "compression": true,
         "godot_websocket_ip": "0.0.0.0",
