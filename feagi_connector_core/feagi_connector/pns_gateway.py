@@ -169,12 +169,12 @@ def gaze_control_update(message_from_feagi, capabilities):
     if 'o__gaz' in message_from_feagi["opu_data"]:
         for data_point in message_from_feagi["opu_data"]['o__gaz']:
             device_id = data_point.split('-')[0]
-            if int(device_id) in [0, 1]:
+            if str(device_id) in ['0', '1']:
                 feagi_aptr = (int(data_point.split('-')[-1]))
                 aptr_cortical_size = full_list_dimension['o__gaz']['cortical_dimensions'][2] - 1
                 max_range = capabilities['camera']['vision_range'][1]
                 min_range = capabilities['camera']['vision_range'][0]
-                capabilities['camera']["gaze_control"][int(device_id)] = int(
+                capabilities['camera']["gaze_control"][str(device_id)] = int(
                     ((feagi_aptr / aptr_cortical_size) * (max_range - min_range)) + min_range)
             # Comment new method out
             # processed_data_point = feagi.block_to_array(data_point)
@@ -193,12 +193,12 @@ def pupil_control_update(message_from_feagi, capabilities):
     if 'o__pup' in message_from_feagi["opu_data"]:
         for data_point in message_from_feagi["opu_data"]['o__pup']:
             device_id = data_point.split('-')[0]
-            if int(device_id) in [0, 1]:
+            if str(device_id) in ['0', '1']:
                 feagi_aptr = (int(data_point.split('-')[-1]))
                 aptr_cortical_size = full_list_dimension['o__pup']['cortical_dimensions'][2] - 1
                 max_range = capabilities['camera']['vision_range'][1]
                 min_range = capabilities['camera']['vision_range'][0]
-                capabilities['camera']["pupil_control"][int(device_id)] = int(((feagi_aptr /
+                capabilities['camera']["pupil_control"][str(device_id)] = int(((feagi_aptr /
                                                                                 aptr_cortical_size) * (
                                                                                        max_range - min_range)) + min_range)
         # comment new method out
