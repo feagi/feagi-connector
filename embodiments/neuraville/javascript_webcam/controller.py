@@ -182,10 +182,10 @@ if __name__ == "__main__":
                     # if previous_burst != feagi_settings['feagi_burst_speed']:
                     #     ws.append({"newRefreshRate": feagi_settings['feagi_burst_speed']})
                     #     previous_burst = feagi_settings['feagi_burst_speed']
-                    message_to_feagi = sensors.add_agent_status(connected_agents['0'],
-                                                                message_to_feagi,
-                                                                agent_settings)
-                    pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
+                message_to_feagi = sensors.add_agent_status(connected_agents['0'],
+                                                            message_to_feagi,
+                                                            agent_settings)
+                pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
                 sleep(feagi_settings['feagi_burst_speed'])  # bottleneck
                 message_to_feagi.clear()
                 if 'camera' in rgb:
