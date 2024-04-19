@@ -63,6 +63,7 @@ def main(feagi_settings, runtime_data, capabilities):
 
     # This does not use PNS's websocket starter due to fundamental design differences between the
     # bridge and controllers.
+    current_genome_number = 0
     while True:
         one_frame = pns.message_from_feagi
         if one_frame != {}:
@@ -70,8 +71,13 @@ def main(feagi_settings, runtime_data, capabilities):
             if one_frame["genome_changed"] != previous_genome_timestamp:
                 previous_genome_timestamp = one_frame["genome_changed"]
                 if one_frame["genome_changed"] is not None:
-                    print("updated time")
-                    send_to_BV_queue.append("updated")
+                    if one_frame["genome_num"] != current_genome_number:
+                        print("updated time")
+                        if send_to_BV_queue:
+                            send_to_BV_queue[0] = "update"
+                        else:
+                            send_to_BV_queue.append("updated")
+                        current_genome_number = one_frame["genome_num"]
             runtime_data["stimulation_period"] = one_frame['burst_frequency']
 
             # processed_one_frame is the data from godot. It break down due to absolutely and
