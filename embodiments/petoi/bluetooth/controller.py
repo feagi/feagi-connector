@@ -226,7 +226,7 @@ if __name__ == "__main__":
             message_to_feagi['timestamp'] = datetime.now()
             message_to_feagi['counter'] = msg_counter
             sleep(feagi_settings['feagi_burst_speed'])
-            pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
+            pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings, feagi_settings)
             message_to_feagi.clear()
         except Exception as e:
             print("ERROR: ", e)
