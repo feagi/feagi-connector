@@ -311,10 +311,7 @@ if __name__ == '__main__':
             message_to_feagi = sensors.add_ultrasonic_to_feagi_data(sonar, message_to_feagi)
 
             # Sending data to FEAGI
-            if 'magic_link' not in feagi_settings:
-                pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
-            else:
-                router.websocket_send(message_to_feagi)
+            pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings, feagi_settings)
             message_to_feagi.clear()
             time.sleep(feagi_settings['feagi_burst_speed'])
         except KeyboardInterrupt as ke:

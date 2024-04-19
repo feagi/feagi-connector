@@ -73,11 +73,14 @@ def signals_from_feagi(feagi_opu_channel):
     return router.fetch_feagi(feagi_opu_channel)
 
 
-def signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings):
+def signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings, feagi_settings):
     """
     Sends data to FEAGI through the router.py
     """
-    router.send_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
+    if 'magic_link' not in feagi_settings:
+        router.send_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
+    else:
+        router.websocket_send(message_to_feagi)
 
 
 def grab_geometry():
