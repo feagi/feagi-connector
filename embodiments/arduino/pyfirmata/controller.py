@@ -71,7 +71,6 @@ def action(obtained_data):
                     set_pin_mode(pin_board[int(id)], 0, id)
                     input_track.append(id)
     if recieve_gpio_data:
-        print(recieve_gpio_data)
         for i in recieve_gpio_data:
             if i in pin_mode:
                 if pin_mode[int(i)] != 1:
