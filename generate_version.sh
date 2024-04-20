@@ -8,7 +8,7 @@ line_number="1"
 git status
 git fetch
 current_tag_version=$(git tag | sort -V | tail -n 1)
-echo "HERE: $current_tag_version"
+echo "Current version: $current_tag_version"
 if [ -z "$current_tag_version" ]; then
     current_tag_version="---"
 fi
