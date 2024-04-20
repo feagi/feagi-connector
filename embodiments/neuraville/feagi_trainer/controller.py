@@ -100,10 +100,7 @@ if __name__ == "__main__":
                                                                              success_rate)
                 else:
                     success_rate, success, total = 0, 0, 0
-                if 'magic_link' not in feagi_settings:
-                    pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
-                else:
-                    router.websocket_send(message_to_feagi)
+                pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings, feagi_settings)
                 sleep(feagi_settings['burst_duration'])
             previous_frame_data = temporary_previous.copy()
             start_timer = 0

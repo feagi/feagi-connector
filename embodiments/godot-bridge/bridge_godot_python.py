@@ -111,7 +111,7 @@ def main(feagi_settings, runtime_data, capabilities):
             print("raw data from godot:", godot_list)
             print(">>> > > > >> > converted data:", converted_data)
             if converted_data != {}:
-                pns.signals_to_feagi(converted_data, feagi_ipu_channel, agent_settings)
+                pns.signals_to_feagi(converted_data, feagi_ipu_channel, agent_settings, feagi_settings)
         sleep(runtime_data["stimulation_period"])
         godot_list = {}
 

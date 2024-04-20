@@ -28,6 +28,7 @@ import zmq.asyncio
 
 genome_tracker = 0
 previous_genome_timestamp = 0
+current_dimension_list = {}
 
 
 def get_device_of_vision(device):
@@ -324,14 +325,17 @@ def change_detector(previous, current, capabilities, compare_image, cortical_nam
 
 
 def get_full_dimension_of_cortical_area(cortical_name):
-    return pns.resize_list[cortical_name][0] * pns.resize_list[cortical_name][1] * \
-           pns.resize_list[cortical_name][2]
+    global current_dimension_list
+    return current_dimension_list[cortical_name][0] * current_dimension_list[cortical_name][1] * \
+           current_dimension_list[cortical_name][2]
 
 def process_visual_stimuli(raw_frame, capabilities,
                                  previous_frame_data,
                                  rgb, actual_capabilities, compare_image=True):
+    global current_dimension_list
     capabilities = pns.create_runtime_default_list(capabilities, actual_capabilities)
     if pns.resize_list:
+        current_dimension_list = pns.resize_list
         if capabilities["camera"]["mirror"]:
             raw_frame = cv2.flip(raw_frame, 1)
         region_coordinates = vision_region_coordinates(frame_width=raw_frame.shape[1],
@@ -341,13 +345,13 @@ def process_visual_stimuli(raw_frame, capabilities,
                                                        y1=abs(capabilities['camera']['gaze_control']['1']),
                                                        y2=abs(capabilities['camera']['pupil_control']['1']),
                                                        camera_index=capabilities['camera']['index'],
-                                                       size_list=pns.resize_list)
+                                                       size_list=current_dimension_list)
         segmented_frame_data = split_vision_regions(coordinates=region_coordinates,
                                                     raw_frame_data=raw_frame)
         compressed_data = dict()
         for cortical in segmented_frame_data:
             compressed_data[cortical] = effect(downsize_regions(segmented_frame_data[cortical],
-                                                                pns.resize_list[cortical]), capabilities)
+                                                                current_dimension_list[cortical]), capabilities)
         vision_dict = dict()
 
         # for segment in compressed_data:
@@ -355,18 +359,30 @@ def process_visual_stimuli(raw_frame, capabilities,
         if cv2.waitKey(30) & 0xFF == ord('q'):
             pass
         for get_region in compressed_data:
-            if pns.resize_list[get_region][2] == 3:
+            if current_dimension_list[get_region][2] == 3:
                 if previous_frame_data != {}:
-                    vision_dict[get_region] = change_detector(
-                        previous_frame_data[get_region],
-                        compressed_data[get_region],
-                        capabilities, compare_image, get_region)
+                    if get_region in previous_frame_data:
+                        vision_dict[get_region] = change_detector(
+                            previous_frame_data[get_region],
+                            compressed_data[get_region],
+                            capabilities, compare_image, get_region)
+                    else:
+                        vision_dict[get_region] = change_detector(
+                            np.zeros((3, 3, 3)),
+                            compressed_data[get_region],
+                            capabilities, compare_image, get_region)
             else:
                 if previous_frame_data != {}:
-                    vision_dict[get_region] = change_detector_grayscale(
-                        previous_frame_data[get_region],
-                        compressed_data[get_region],
-                        capabilities, compare_image, get_region)
+                    if get_region in previous_frame_data:
+                        vision_dict[get_region] = change_detector_grayscale(
+                            previous_frame_data[get_region],
+                            compressed_data[get_region],
+                            capabilities, compare_image, get_region)
+                    else:
+                        vision_dict[get_region] = change_detector_grayscale(
+                            np.zeros((3, 3, 3)),
+                            compressed_data[get_region],
+                            capabilities, compare_image, get_region)
         previous_frame_data = compressed_data
         rgb['camera'] = vision_dict
         return previous_frame_data, rgb, capabilities

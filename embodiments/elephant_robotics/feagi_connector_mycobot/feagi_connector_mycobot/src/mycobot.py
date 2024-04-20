@@ -419,7 +419,7 @@ while keyboard_flag:
         # SENDING MESSAGE TO FEAGI SECTION # #
         message_to_feagi['timestamp'] = datetime.now()
         message_to_feagi['counter'] = msg_counter
-        pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
+        pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings, feagi_settings)
         message_to_feagi.clear()
 
         # Doing the misc background work (check on sync setting #

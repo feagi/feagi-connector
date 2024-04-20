@@ -11,20 +11,11 @@
         "agent_data_port": 10007,
         "agent_id": "pyfirmata",
         "agent_type": "embodiment",
-        "compression": "true"
+        "compression": true
     },
     "capabilities": {
         "arduino": {
-            "port": "/dev/ttyUSB0"
-        },
-        "motor": {
-            "type": "opu",
-            "disabled": "False",
-            "count": 24,
-            "rolling_window_len": 1,
-            "power_amount": 100
+            "port": "/dev/ttyACM0"
         }
-
     }
 }
-
