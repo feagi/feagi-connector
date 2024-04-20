@@ -103,7 +103,7 @@ if __name__ == "__main__":
                 message_to_feagi = sensors.add_agent_status(connected_agents['0'], message_to_feagi,
                                                             agent_settings)
                 sleep(feagi_settings['feagi_burst_speed'])  # bottleneck
-                pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
+                pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings, feagi_settings)
                 message_to_feagi.clear()
             except Exception as e:
                 # pass

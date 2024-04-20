@@ -41,11 +41,12 @@ def generate_feagi_data(rgb, msg_counter, date, message_to_feagi):
     the provided message.
     """
     try:
-        if "data" not in message_to_feagi:
-            message_to_feagi["data"] = dict()
-        if "sensory_data" not in message_to_feagi["data"]:
-            message_to_feagi["data"]["sensory_data"] = dict()
-        message_to_feagi["data"]["sensory_data"]['camera'] = rgb['camera']
+        if rgb:
+            if "data" not in message_to_feagi:
+                message_to_feagi["data"] = dict()
+            if "sensory_data" not in message_to_feagi["data"]:
+                message_to_feagi["data"]["sensory_data"] = dict()
+            message_to_feagi["data"]["sensory_data"]['camera'] = rgb['camera']
     except Exception as e:
         print("ERROR: ", e)
     message_to_feagi['timestamp'] = date
@@ -73,11 +74,14 @@ def signals_from_feagi(feagi_opu_channel):
     return router.fetch_feagi(feagi_opu_channel)
 
 
-def signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings):
+def signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings, feagi_settings):
     """
     Sends data to FEAGI through the router.py
     """
-    router.send_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
+    if 'magic_link' not in feagi_settings:
+        router.send_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
+    else:
+        router.websocket_send(message_to_feagi)
 
 
 def grab_geometry():
@@ -269,6 +273,7 @@ def check_genome_status(message_from_feagi, capabilities):
             previous_genome_timestamp = message_from_feagi["genome_changed"]
         current_tracker = obtain_genome_number(genome_tracker, message_from_feagi)
         if len(resize_list) == 0:
+            response = full_list_dimension
             resize_list = retina.obtain_cortical_vision_size(capabilities['camera']["index"],
                                                              response)
         if genome_tracker != current_tracker:

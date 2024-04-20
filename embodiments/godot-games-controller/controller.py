@@ -241,7 +241,7 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, mes
         message_to_feagi = sensors.add_agent_status(connected_agents['0'], message_to_feagi,
                                                          agent_settings)
         sleep(feagi_settings['feagi_burst_speed'])
-        pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
+        pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings, feagi_settings)
         message_to_feagi.clear()
         gyro['gyro'].clear()
 

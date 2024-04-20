@@ -139,7 +139,7 @@ with stream:
             message_to_feagi['counter'] = msg_counter
             sleep(feagi_settings['feagi_burst_speed'])
             print(message_to_feagi)
-            pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
+            pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings, feagi_settings)
             message_to_feagi.clear()
 
     except KeyboardInterrupt:
