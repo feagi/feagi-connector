@@ -16,7 +16,6 @@ limitations under the License.
 """
 from time import sleep
 import raspberry_PI_library as rpi
-from feagi_connector import router
 from feagi_connector import sensors
 from feagi_connector import actuators
 from feagi_connector import pns_gateway as pns
@@ -34,8 +33,6 @@ def action(obtained_data):
 
 
 if __name__ == "__main__":
-    print("Waiting on FEAGI...")
-
     runtime_data = {
         "current_burst_id": 0,
         "feagi_state": None,
