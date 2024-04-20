@@ -41,11 +41,12 @@ def generate_feagi_data(rgb, msg_counter, date, message_to_feagi):
     the provided message.
     """
     try:
-        if "data" not in message_to_feagi:
-            message_to_feagi["data"] = dict()
-        if "sensory_data" not in message_to_feagi["data"]:
-            message_to_feagi["data"]["sensory_data"] = dict()
-        message_to_feagi["data"]["sensory_data"]['camera'] = rgb['camera']
+        if rgb:
+            if "data" not in message_to_feagi:
+                message_to_feagi["data"] = dict()
+            if "sensory_data" not in message_to_feagi["data"]:
+                message_to_feagi["data"]["sensory_data"] = dict()
+            message_to_feagi["data"]["sensory_data"]['camera'] = rgb['camera']
     except Exception as e:
         print("ERROR: ", e)
     message_to_feagi['timestamp'] = date
@@ -272,6 +273,7 @@ def check_genome_status(message_from_feagi, capabilities):
             previous_genome_timestamp = message_from_feagi["genome_changed"]
         current_tracker = obtain_genome_number(genome_tracker, message_from_feagi)
         if len(resize_list) == 0:
+            response = full_list_dimension
             resize_list = retina.obtain_cortical_vision_size(capabilities['camera']["index"],
                                                              response)
         if genome_tracker != current_tracker:
