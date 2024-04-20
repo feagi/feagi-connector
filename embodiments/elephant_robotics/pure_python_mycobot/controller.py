@@ -173,11 +173,7 @@ if __name__ == "__main__":
                 print("error: ", e)
 
             sleep(feagi_settings['feagi_burst_speed'])
-            if message_to_feagi:
-                if 'magic_link' not in feagi_settings:
-                    pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
-                else:
-                    router.websocket_send(message_to_feagi)
+            pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings, feagi_settings)
             message_to_feagi.clear()
         except KeyboardInterrupt as ke:  # Keyboard error
             arm.release_all_servos()

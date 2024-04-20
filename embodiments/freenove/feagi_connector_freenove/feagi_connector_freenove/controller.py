@@ -604,10 +604,7 @@ def main(feagi_auth_url, feagi_settings, agent_settings, capabilities):
                                                                  message_to_feagi)
             sleep(feagi_settings['feagi_burst_speed'])
             # Send the data contains IR, Ultrasonic, and camera
-            if 'magic_link' not in feagi_settings:
-                pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
-            else:
-                router.websocket_send(message_to_feagi)
+            pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings, feagi_settings)
             message_to_feagi.clear()
         except KeyboardInterrupt as ke:  # Keyboard error
             motor.stop()
