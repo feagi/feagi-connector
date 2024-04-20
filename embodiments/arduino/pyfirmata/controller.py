@@ -15,11 +15,8 @@ limitations under the License.
 ==============================================================================
 """
 
-import time
 import pyfirmata
-import threading
 from time import sleep
-from collections import deque
 from feagi_connector import router
 from feagi_connector import sensors
 from feagi_connector import actuators
@@ -109,16 +106,9 @@ def action(obtained_data):
             else:
                 print("pin: ", id, " is not configured. Select another pin please.")
 
+
 if __name__ == "__main__":
-    runtime_data = {
-        "current_burst_id": 0,
-        "feagi_state": None,
-        "cortical_list": (),
-        "battery_charge_level": 1,
-        "host_network": {},
-        'motor_status': {},
-        'servo_status': {}
-    }
+    runtime_data = dict()
     config = feagi.build_up_from_configuration()
     feagi_settings = config['feagi_settings'].copy()
     agent_settings = config['agent_settings'].copy()
@@ -134,20 +124,14 @@ if __name__ == "__main__":
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     # Specify the serial port where your Arduino is connected (e.g., 'COM3' on Windows or
     # '/dev/ttyUSB0' on Linux)
-    rolling_window_len = capabilities['motor']['rolling_window_len']
-    motor_count = capabilities['motor']['count']
     feagi_settings['feagi_burst_speed'] = float(runtime_data["feagi_state"]['burst_duration'])
-    threading.Thread(target=pns.feagi_listener, args=(feagi_opu_channel,), daemon=True).start()
     port = capabilities['arduino']['port']  # Don't change this
     board = Arduino(port)
     it = util.Iterator(board)  # for Analog or Input
     it.start()
     # list_all_analog_pins(board) # Temporarily pause analog section
-    time.sleep(5)
+    sleep(2)
     list_all_pins(board)
-    # Initialize rolling window for each motor
-    for motor_id in range(motor_count):
-        rolling_window[motor_id] = deque([0] * rolling_window_len)
 
     while True:
         message_from_feagi = pns.message_from_feagi
@@ -166,10 +150,7 @@ if __name__ == "__main__":
                 if obtain_data:
                     location_string = str(pin) + "-0-0"
                     create_generic_input_dict['i_gpio'][location_string] = 100
-            message_to_feagi = sensors.add_generic_input_to_feagi_data(
-                create_generic_input_dict, message_to_feagi)
-            if 'magic_link' not in feagi_settings:
-                pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
-            else:
-                router.websocket_send(message_to_feagi)
+            message_to_feagi = sensors.add_generic_input_to_feagi_data(create_generic_input_dict,
+                                                                       message_to_feagi)
+        pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings, feagi_settings)
         sleep(feagi_settings['feagi_burst_speed'])
