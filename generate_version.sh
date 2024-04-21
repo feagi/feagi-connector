@@ -5,6 +5,7 @@ file_path="version.py"
 line_number="1"
 
 # Get current git tag from release in the repo
+echo "getting a version"
 git status
 git fetch
 current_tag_version=$(git tag | sort -V | tail -n 1)
