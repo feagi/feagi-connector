@@ -6,6 +6,7 @@ line_number="1"
 
 # Get current git tag from release in the repo
 echo "getting a version"
+git tag -d $(git tag) # erase the local
 git status
 git fetch
 current_tag_version=$(git tag | sort -V | tail -n 1)
