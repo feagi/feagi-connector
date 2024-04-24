@@ -337,7 +337,6 @@ if __name__ == "__main__":
             message_to_feagi = sensors.add_agent_status(connected_agents['0'],
                                                         message_to_feagi,
                                                         agent_settings)
-            print(message_to_feagi)
             sleep(feagi_settings['feagi_burst_speed'])
             pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings, feagi_settings)
             message_to_feagi.clear()
