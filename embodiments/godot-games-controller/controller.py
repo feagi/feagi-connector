@@ -157,8 +157,7 @@ def action(obtained_data):
         WS_STRING['motion_control'] = {}
         for data_point in obtained_data['motion_control']:
             if data_point in ["move_left", "move_right", "move_up", "move_down"]:
-                WS_STRING['motion_control'][str(data_point)] = obtained_data['motion_control'][
-                                                                   data_point] * 100
+                WS_STRING['motion_control'][str(data_point)] = obtained_data['motion_control'][data_point]
     if 'motor' in obtained_data:
         WS_STRING['motor'] = {}
         for data_point in obtained_data['motor']:
