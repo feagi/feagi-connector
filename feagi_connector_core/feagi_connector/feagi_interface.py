@@ -226,21 +226,21 @@ def opu_processor(data):
                         device_power = opu_data['o_misc'][data_point]
                         processed_opu_data['misc'][device_id] = device_power
             if "o_mctl" in pns.full_list_dimension:
-                if 'o_mctl' in opu_data:
-                    if opu_data['o_mctl']:
+                if pns.full_list_dimension['o_mctl']['cortical_dimensions'][2] == 1:
+                    if 'o_mctl' in opu_data:
                         for data_point in opu_data['o_mctl']:
                             processed_data_point = block_to_array(data_point)
-                            device_id = processed_data_point[0]
-                            device_power = opu_data['o_mctl'][data_point]
-                            selected = processed_data_point[2]
-                            if processed_data_point[2] / \
-                                    pns.full_list_dimension['o_mctl']['cortical_dimensions'][
-                                        2] == 0:
-                                device_power = mctl_neuron_update(device_power, selected)
-                            else:
-                                device_power = mctl_neuron_update(processed_data_point[2], selected)
+                            device_power = opu_data['o_mctl'][data_point] / 100.0
                             device_id = build_up_from_mctl(processed_data_point)
-                            if device_id is not None:
+                            processed_opu_data['motion_control'][device_id] = device_power
+                else:
+                    if 'o_mctl' in opu_data:
+                        if opu_data['o_mctl']:
+                            for data_point in opu_data['o_mctl']:
+                                processed_data_point = block_to_array(data_point)
+                                device_power = processed_data_point[2] / \
+                                               float(pns.full_list_dimension['o_mctl']['cortical_dimensions'][2])
+                                device_id = build_up_from_mctl(processed_data_point)
                                 processed_opu_data['motion_control'][device_id] = device_power
             if 'o__led' in opu_data:
                 if opu_data['o__led']:
@@ -386,13 +386,6 @@ def build_up_from_mctl(id):
     # Get the action from the dictionary, return None if not found
     return action_map.get((id[0], id[1]))
 
-
-def mctl_neuron_update(feagi_power, id):
-    z_depth = pns.full_list_dimension['o_mctl']['cortical_dimensions'][2]
-    if id / z_depth == 0:
-        return feagi_power / 100.0
-    else:
-        return feagi_power / z_depth
 
 def configuration_load(path='./'):
     # NEW JSON UPDATE
