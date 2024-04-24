@@ -41,11 +41,12 @@ def generate_feagi_data(rgb, msg_counter, date, message_to_feagi):
     the provided message.
     """
     try:
-        if "data" not in message_to_feagi:
-            message_to_feagi["data"] = dict()
-        if "sensory_data" not in message_to_feagi["data"]:
-            message_to_feagi["data"]["sensory_data"] = dict()
-        message_to_feagi["data"]["sensory_data"]['camera'] = rgb['camera']
+        if rgb:
+            if "data" not in message_to_feagi:
+                message_to_feagi["data"] = dict()
+            if "sensory_data" not in message_to_feagi["data"]:
+                message_to_feagi["data"]["sensory_data"] = dict()
+            message_to_feagi["data"]["sensory_data"]['camera'] = rgb['camera']
     except Exception as e:
         print("ERROR: ", e)
     message_to_feagi['timestamp'] = date
@@ -73,11 +74,14 @@ def signals_from_feagi(feagi_opu_channel):
     return router.fetch_feagi(feagi_opu_channel)
 
 
-def signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings):
+def signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings, feagi_settings):
     """
     Sends data to FEAGI through the router.py
     """
-    router.send_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
+    if 'magic_link' not in feagi_settings:
+        router.send_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
+    else:
+        router.websocket_send(message_to_feagi)
 
 
 def grab_geometry():
@@ -169,12 +173,12 @@ def gaze_control_update(message_from_feagi, capabilities):
     if 'o__gaz' in message_from_feagi["opu_data"]:
         for data_point in message_from_feagi["opu_data"]['o__gaz']:
             device_id = data_point.split('-')[0]
-            if int(device_id) in [0, 1]:
+            if str(device_id) in ['0', '1']:
                 feagi_aptr = (int(data_point.split('-')[-1]))
                 aptr_cortical_size = full_list_dimension['o__gaz']['cortical_dimensions'][2] - 1
                 max_range = capabilities['camera']['vision_range'][1]
                 min_range = capabilities['camera']['vision_range'][0]
-                capabilities['camera']["gaze_control"][int(device_id)] = int(
+                capabilities['camera']["gaze_control"][str(device_id)] = int(
                     ((feagi_aptr / aptr_cortical_size) * (max_range - min_range)) + min_range)
             # Comment new method out
             # processed_data_point = feagi.block_to_array(data_point)
@@ -193,12 +197,12 @@ def pupil_control_update(message_from_feagi, capabilities):
     if 'o__pup' in message_from_feagi["opu_data"]:
         for data_point in message_from_feagi["opu_data"]['o__pup']:
             device_id = data_point.split('-')[0]
-            if int(device_id) in [0, 1]:
+            if str(device_id) in ['0', '1']:
                 feagi_aptr = (int(data_point.split('-')[-1]))
                 aptr_cortical_size = full_list_dimension['o__pup']['cortical_dimensions'][2] - 1
                 max_range = capabilities['camera']['vision_range'][1]
                 min_range = capabilities['camera']['vision_range'][0]
-                capabilities['camera']["pupil_control"][int(device_id)] = int(((feagi_aptr /
+                capabilities['camera']["pupil_control"][str(device_id)] = int(((feagi_aptr /
                                                                                 aptr_cortical_size) * (
                                                                                        max_range - min_range)) + min_range)
         # comment new method out
@@ -269,6 +273,7 @@ def check_genome_status(message_from_feagi, capabilities):
             previous_genome_timestamp = message_from_feagi["genome_changed"]
         current_tracker = obtain_genome_number(genome_tracker, message_from_feagi)
         if len(resize_list) == 0:
+            response = full_list_dimension
             resize_list = retina.obtain_cortical_vision_size(capabilities['camera']["index"],
                                                              response)
         if genome_tracker != current_tracker:

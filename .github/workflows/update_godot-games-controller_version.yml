@@ -1,4 +1,4 @@
-name: Update NRS version
+name: Update Godot Game Controller versions
 
 on:
   workflow_dispatch:
@@ -6,20 +6,15 @@ on:
     branches:
       - "staging"
     paths:
-      - '!embodiments/elecfreaks/cutebot/web_html_microbit/version.py'
-      - 'embodiments/elecfreaks/cutebot/web_html_microbit/**'
-      - '!embodiments/neuraville/javascript_webcam/version.py'
-      - 'embodiments/neuraville/javascript_webcam/**'
-      - '!embodiments/neuraville/feagi_trainer/version.py'
-      - 'embodiments/neuraville/feagi_trainer/**'
-      - '!embodiments/embodiments/godot-games-controller/version.py'
-      - 'embodiments/embodiments/godot-games-controller/**'
+      - '!embodiments/godot-games-controller/version.py'
+      - 'embodiments/godot-games-controller/**'
       - 'generate_version.sh'
 
+
 jobs:
-  bluetooth_ctrl_version:
+  microbit_version:
     runs-on: ubuntu-latest
-    if: github.repository == 'neuraville/feagi-connector'
+    if: github.repository == 'feagi/feagi-connector'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -33,25 +28,11 @@ jobs:
           git config --global --add safe.directory /__w/brain-visualizer/brain-visualizer
           echo "set vars"
           git checkout -b temp
-
-      - name: Update bluetooth ctrl version
+      - name: Update Dockerfile
         run: |
           export FEAGI_PATH=$(pwd)
-          cd embodiments/elecfreaks/cutebot/web_html_microbit/
+          cd embodiments/godot-games-controller/
           bash $FEAGI_PATH/generate_version.sh
-
-      - name: Update version of media capture
-        run: |
-          export FEAGI_PATH=$(pwd)
-          cd embodiments/neuraville/javascript_webcam/
-          bash $FEAGI_PATH/generate_version.sh
-
-      - name: Update version of godot-games
-        run: |
-          export FEAGI_PATH=$(pwd)
-          cd embodiments/embodiments/godot-games-controller/
-          bash $FEAGI_PATH/generate_version.sh
-
       - name: Push version changes
         run: |
           if git ls-remote --heads origin pre-release | grep -q 'pre-release'; then
@@ -60,7 +41,7 @@ jobs:
             echo "pre-release branch does not exist on remote repository. Continuing with the workflow."
           fi
           git add .
-          git commit -m "Updated Version for NRS"
+          git commit -m "Updated godot games Version"
           echo "committed"
           if git ls-remote --heads origin pre-release | grep -q 'pre-release'; then
             git pull origin pre-release

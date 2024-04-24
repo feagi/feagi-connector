@@ -35,6 +35,8 @@ previous_data = ""
 servo_status = {}
 gyro = {}
 current_device = {}
+connected_agents = dict()  # Initalize
+connected_agents['0'] = False  # By default, it is not connected by client's websocket
 
 
 async def bridge_to_godot():
@@ -148,6 +150,7 @@ async def echo(websocket, path):
     current_device['name'] = device
     full_data = ''
     async for message in websocket:
+        connected_agents['0'] = True  # Since this section gets data from client, its marked as true
         if not ws_operation:
             ws_operation.append(websocket)
         else:
@@ -160,6 +163,7 @@ async def echo(websocket, path):
         elif device == "generic":
             print("generic")
             pass  # Needs to figure how to address this
+    connected_agents['0'] = False  # Once client disconnects, mark it as false
 
 
 async def main():
@@ -330,8 +334,11 @@ if __name__ == "__main__":
 
             message_to_feagi['timestamp'] = datetime.now()
             message_to_feagi['counter'] = msg_counter
+            message_to_feagi = sensors.add_agent_status(connected_agents['0'],
+                                                        message_to_feagi,
+                                                        agent_settings)
             sleep(feagi_settings['feagi_burst_speed'])
-            pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
+            pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings, feagi_settings)
             message_to_feagi.clear()
         except Exception as e:
             print("ERROR: ", e)

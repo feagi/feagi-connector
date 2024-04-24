@@ -28,11 +28,14 @@ from collections import deque
 from datetime import datetime
 from version import __version__
 from feagi_connector import retina
+from feagi_connector import sensors
 from feagi_connector import pns_gateway as pns
 from feagi_connector import feagi_interface as feagi
 
 ws = deque()
 ws_operation = deque()
+connected_agents = dict() # Initalize
+connected_agents['0'] = False  # By default, it is not connected by client's websocket
 
 
 async def echo(websocket):
@@ -42,11 +45,13 @@ async def echo(websocket):
     """
     global message_to_feagi
     async for message in websocket:
+        connected_agents['0'] = True # Since this section gets data from client, its marked as true
         if not ws_operation:
             ws_operation.append(websocket)
         else:
             ws_operation[0] = websocket
         message_to_feagi = pickle.loads(message)
+    connected_agents['0'] = False  # Once client disconnects, mark it as false
 
 
 if __name__ == "__main__":
@@ -95,8 +100,10 @@ if __name__ == "__main__":
                 if message_from_feagi:
                     ws.append(pickle.dumps(message_from_feagi))
                     feagi_settings['feagi_burst_speed'] = message_from_feagi['burst_frequency']
+                message_to_feagi = sensors.add_agent_status(connected_agents['0'], message_to_feagi,
+                                                            agent_settings)
                 sleep(feagi_settings['feagi_burst_speed'])  # bottleneck
-                pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
+                pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings, feagi_settings)
                 message_to_feagi.clear()
             except Exception as e:
                 # pass

@@ -36,6 +36,8 @@ old_data = 0
 runtime_data = {"cortical_data": {}, "current_burst_id": None, "stimulation_period": 0.01,
                 "feagi_state": None, "feagi_network": None, 'accelerator': {}}
 camera_data = {"vision": None}
+connected_agents = dict() # Initalize
+connected_agents['0'] = False  # By default, it is not connected by client's websocket
 
 
 async def echo(websocket):
@@ -45,6 +47,7 @@ async def echo(websocket):
     """
     async for message in websocket:
         global old_data
+        connected_agents['0'] = True # Since this section gets data from client, its marked as true
         if not ws_operation:
             ws_operation.append(websocket)
         else:
@@ -58,6 +61,7 @@ async def echo(websocket):
             pass
             # print("ERROR!: ", error)
             # traceback.print_exc()
+    connected_agents['0'] = False # Once client disconnects, mark it as false
 
 
 def godot_to_feagi():
@@ -153,12 +157,12 @@ def action(obtained_data):
         WS_STRING['motion_control'] = {}
         for data_point in obtained_data['motion_control']:
             if data_point in ["move_left", "move_right", "move_up", "move_down"]:
-                WS_STRING['motion_control'][str(data_point)] = obtained_data['motion_control'][
-                                                                   data_point] * 100
+                WS_STRING['motion_control'][str(data_point)] = obtained_data['motion_control'][data_point]
+                print(WS_STRING)
     if 'motor' in obtained_data:
         WS_STRING['motor'] = {}
         for data_point in obtained_data['motor']:
-            WS_STRING['motor'][str(data_point)] = obtained_data['motor'][data_point] - 5
+            WS_STRING['motor'][str(data_point)] = obtained_data['motor'][data_point]
     if 'misc' in obtained_data:
         WS_STRING['misc'] = {}
         for data_point in obtained_data['misc']:
@@ -234,11 +238,12 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, mes
             message_to_feagi["data"]["sensory_data"]['accelerator'] = {}
         # End accelerator section
         message_to_feagi = sensors.add_gyro_to_feagi_data(gyro['gyro'], message_to_feagi)
-        gyro['gyro'].clear()
-
+        message_to_feagi = sensors.add_agent_status(connected_agents['0'], message_to_feagi,
+                                                         agent_settings)
         sleep(feagi_settings['feagi_burst_speed'])
-        pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
+        pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings, feagi_settings)
         message_to_feagi.clear()
+        gyro['gyro'].clear()
 
 
 if __name__ == '__main__':
