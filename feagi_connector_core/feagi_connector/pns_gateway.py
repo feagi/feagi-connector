@@ -106,6 +106,7 @@ def obtain_opu_data(message_from_feagi):
             for x in opu_data[i]:
                 if i not in opu_signal_dict:
                     opu_signal_dict[i] = {}
+                print("here: ", opu_data)
                 opu_signal_dict[i][x] = opu_data[i][x]
     return opu_signal_dict
 
