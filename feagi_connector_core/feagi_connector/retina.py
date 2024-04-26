@@ -340,10 +340,10 @@ def process_visual_stimuli(raw_frame, capabilities,
             raw_frame = cv2.flip(raw_frame, 1)
         region_coordinates = vision_region_coordinates(frame_width=raw_frame.shape[1],
                                                        frame_height=raw_frame.shape[0],
-                                                       x1=abs(capabilities['camera']['gaze_control']['0']),
-                                                       x2=abs(capabilities['camera']['pupil_control']['0']),
-                                                       y1=abs(capabilities['camera']['gaze_control']['1']),
-                                                       y2=abs(capabilities['camera']['pupil_control']['1']),
+                                                       x1=abs(capabilities['camera']['eccentricity_control']['0']),
+                                                       x2=abs(capabilities['camera']['modulation_control']['0']),
+                                                       y1=abs(capabilities['camera']['eccentricity_control']['1']),
+                                                       y2=abs(capabilities['camera']['modulation_control']['1']),
                                                        camera_index=capabilities['camera']['index'],
                                                        size_list=current_dimension_list)
         segmented_frame_data = split_vision_regions(coordinates=region_coordinates,
@@ -430,8 +430,8 @@ def vision_progress(capabilities, feagi_opu_channel, api_address, feagi_settings
             pns.check_genome_status(message_from_feagi, capabilities)
             capabilities = pns.obtain_blink_data(raw_frame, message_from_feagi, capabilities)
             capabilities = pns.monitor_switch(message_from_feagi, capabilities)
-            capabilities = pns.gaze_control_update(message_from_feagi, capabilities)
-            capabilities = pns.pupil_control_update(message_from_feagi, capabilities)
+            capabilities = pns.eccentricity_control_update(message_from_feagi, capabilities)
+            capabilities = pns.modulation_control_update(message_from_feagi, capabilities)
             feagi_settings['feagi_burst_speed'] = pns.check_refresh_rate(message_from_feagi,
                                                                          feagi_settings[
                                                                              'feagi_burst_speed'])
