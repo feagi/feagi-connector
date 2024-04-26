@@ -166,7 +166,7 @@ def monitor_switch(message_from_feagi, capabilities):
     return capabilities
 
 
-def gaze_control_update(message_from_feagi, capabilities):
+def eccentricity_control_update(message_from_feagi, capabilities):
     """
     Update the gaze from the gaze opu cortical area
     """
@@ -178,7 +178,7 @@ def gaze_control_update(message_from_feagi, capabilities):
                 aptr_cortical_size = full_list_dimension['ov_ecc']['cortical_dimensions'][2] - 1
                 max_range = capabilities['camera']['vision_range'][1]
                 min_range = capabilities['camera']['vision_range'][0]
-                capabilities['camera']["gaze_control"][str(device_id)] = int(
+                capabilities['camera']["eccentricity_control"][str(device_id)] = int(
                     ((feagi_aptr / aptr_cortical_size) * (max_range - min_range)) + min_range)
             # Comment new method out
             # processed_data_point = feagi.block_to_array(data_point)
@@ -186,11 +186,11 @@ def gaze_control_update(message_from_feagi, capabilities):
             # device_power = message_from_feagi["opu_data"]['ov_ecc'][data_point]
             # if device_power == 100:
             #     device_power -= 1
-            # capabilities['camera']['gaze_control'][device_id] = device_power
+            # capabilities['camera']['eccentricity_control'][device_id] = device_power
     return capabilities
 
 
-def pupil_control_update(message_from_feagi, capabilities):
+def modulation_control_update(message_from_feagi, capabilities):
     """
     Update pupil size from the pupil opu cortical area
     """
@@ -202,7 +202,7 @@ def pupil_control_update(message_from_feagi, capabilities):
                 aptr_cortical_size = full_list_dimension['ov_mod']['cortical_dimensions'][2] - 1
                 max_range = capabilities['camera']['vision_range'][1]
                 min_range = capabilities['camera']['vision_range'][0]
-                capabilities['camera']["pupil_control"][str(device_id)] = int(((feagi_aptr /
+                capabilities['camera']["modulation_control"][str(device_id)] = int(((feagi_aptr /
                                                                                 aptr_cortical_size) * (
                                                                                        max_range - min_range)) + min_range)
         # comment new method out
@@ -212,7 +212,7 @@ def pupil_control_update(message_from_feagi, capabilities):
         #     device_power = message_from_feagi["opu_data"]['ov_mod'][data_point]
         #     if device_power == 100:
         #         device_power -= 1
-        #     capabilities['camera']['pupil_control'][device_id] = device_power
+        #     capabilities['camera']['modulation_control'][device_id] = device_power
     return capabilities
 
 
@@ -388,8 +388,8 @@ def create_runtime_default_list(list, capabilities):
         "threshold_name"  # Binary_threshold as a default
         "mirror" # flip the image
         "blink" # cv2 ndarray raw data of an image. Controlled by blink OPU in genome
-        "gaze_control" # Controlled by gaze_control in genome
-        "pupil_control" # Controlled by pupil_control in genome
+        "eccentricity_control" # Controlled by eccentricity_control in genome
+        "modulation_control" # Controlled by modulation_control in genome
         "vision_range" # min, max
         "size_list" # To get the size in real time based on genome's change/update
         "enhancement" # Controlled by enhancement OPU on inside the genome
@@ -407,8 +407,8 @@ def create_runtime_default_list(list, capabilities):
                 "threshold_name": 0,  # Binary_threshold as a default
                 "mirror": True,  # flip the image
                 "blink": [],  # cv2 ndarray raw data of an image. Controlled by blink OPU in genome
-                "gaze_control": {'0': 1, '1': 1},  # Controlled by gaze_control in genome
-                "pupil_control": {'0': 99, '1': 99},  # Controlled by pupil_control in genome
+                "eccentricity_control": {'0': 1, '1': 1},  # Controlled by eccentricity_control in genome
+                "modulation_control": {'0': 99, '1': 99},  # Controlled by modulation_control in genome
                 "vision_range": [1, 99],  # min, max
                 "size_list": [],  # To get the size in real time based on genome's change/update
                 "enhancement": {},  # Enable ov_enh OPU on inside the genome
@@ -425,10 +425,10 @@ def camera_config_update(list, capabilities):
     Update the capabilities to overwrite the default generated capabilities.
     """
     if 'camera' in capabilities:
-        if 'gaze_control' in capabilities['camera']:
-            list['camera']['gaze_control'] = capabilities['camera']['gaze_control']
-        if 'pupil_control' in capabilities['camera']:
-            list['camera']['pupil_control'] = capabilities['camera']['pupil_control']
+        if 'eccentricity_control' in capabilities['camera']:
+            list['camera']['eccentricity_control'] = capabilities['camera']['eccentricity_control']
+        if 'modulation_control' in capabilities['camera']:
+            list['camera']['modulation_control'] = capabilities['camera']['modulation_control']
         if "enhancement" in capabilities['camera']:
             list['camera']['enhancement'] = capabilities['camera']['enhancement']
         if "mirror" in capabilities['camera']:
