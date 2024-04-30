@@ -216,8 +216,10 @@ def opu_processor(data):
             if 'o_init' in opu_data:
                 if opu_data['o_init']:
                     for data_point in opu_data['o_init']:
-                        position_index = data_point
-                        processed_opu_data['reset'] = position_index
+                        processed_data_point = block_to_array(data_point)
+                        device_id = processed_data_point[0]
+                        device_power = opu_data['o_init'][data_point]
+                        processed_opu_data['reset'][device_id] = device_power
             if 'o_misc' in opu_data:
                 if opu_data['o_misc']:
                     for data_point in opu_data['o_misc']:
