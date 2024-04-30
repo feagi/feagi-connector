@@ -12,7 +12,7 @@ on:
 
 
 jobs:
-  microbit_version:
+  bluetooth_version:
     runs-on: ubuntu-latest
     if: github.repository == 'feagi/feagi-connector'
     steps:

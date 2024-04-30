@@ -1,4 +1,4 @@
-name: Update Microbit Hub
+name: Update Bluetooth Hub
 
 on:
   workflow_dispatch:
@@ -6,8 +6,8 @@ on:
     branches:
       - "main"
     paths:
-      - '!embodiments/elecfreaks/cutebot/web_html_microbit/version.py'
-      - 'embodiments/elecfreaks/cutebot/web_html_microbit/**'
+      - '!embodiments/bluetooth_controller/version.py'
+      - 'embodiments/bluetooth_controller/**'
       - 'generate_version.sh'
 
 
@@ -22,7 +22,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Update Dockerfile
         run: |
-          cd embodiments/elecfreaks/cutebot/web_html_microbit/
+          cd embodiments/bluetooth_controller/
           if [ -f Dockerfile ]; then
               sed -e 's|COPY controller.py /root/|COPY controller.py /root/|' \
                   -e 's|COPY configuration.json /root/|COPY configuration.json /root/|' \
@@ -42,7 +42,7 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
-          context: embodiments/elecfreaks/cutebot/web_html_microbit
+          context: embodiments/bluetooth_controller
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: neuraville/microbit:latest
+          tags: neuraville/bluetooth_controller:latest

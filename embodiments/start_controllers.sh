@@ -9,7 +9,7 @@ cleanup() {
     fi
     if [[ ! -z "$PID2" ]]; then
         kill $PID2
-        echo "Microbit script terminated"
+        echo "Bluetooth script terminated"
     fi
         if [[ ! -z "$PID3" ]]; then
         kill $PID3
@@ -42,10 +42,10 @@ fi
 
 # Load microbit if BT_CONTROLLER_FLAG is true
 if [[ "$BT_CONTROLLER_FLAG" == "true" ]]; then
-    cd elecfreaks/cutebot/web_html_microbit/
+    cd bluetooth_controller/
     python3 controller.py &
     PID2=$!
-    echo "PID of the microbit: $PID2"
+    echo "PID of the Bluetooth CTRL: $PID2"
     cd /root/
 fi
 
