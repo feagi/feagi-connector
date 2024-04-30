@@ -46,4 +46,4 @@ jobs:
           context: embodiments/media_capture_controller
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: neuraville/Media_capture_controller:latest
+          tags: neuraville/media_capture_controller:latest
