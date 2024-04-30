@@ -40,7 +40,7 @@ jobs:
             echo "pre-release branch does not exist on remote repository. Continuing with the workflow."
           fi
           git add .
-          git commit -m "Updated Webcam Version"
+          git commit -m "Updated media capture Version"
           echo "committed"
           if git ls-remote --heads origin pre-release | grep -q 'pre-release'; then
             git pull origin pre-release
