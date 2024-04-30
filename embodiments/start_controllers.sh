@@ -5,7 +5,7 @@ cleanup() {
     echo "Terminating scripts"
     if [[ ! -z "$PID1" ]]; then
         kill $PID1
-        echo "Webcam script terminated"
+        echo "media capture script terminated"
     fi
     if [[ ! -z "$PID2" ]]; then
         kill $PID2
@@ -31,12 +31,12 @@ cd /root/godot-bridge/
 python3 bridge_godot_python.py &
 cd /root/
 
-# Load javascript webcam if WEBCAM_FLAG is true
+# Load javascript media capture if WEBCAM_FLAG is true
 if [[ "$WEBCAM_FLAG" == "true" ]]; then
-    cd neuraville/javascript_webcam/
+    cd media_capture_controller/
     python3 controller.py &
     PID1=$!
-    echo "PID of the webcam: $PID1"
+    echo "PID of the media capture: $PID1"
     cd /root/
 fi
 
