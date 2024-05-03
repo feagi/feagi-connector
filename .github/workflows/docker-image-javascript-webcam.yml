@@ -1,4 +1,4 @@
-name: Update Webcam Controller Hub
+name: Update Media Capture Controller Hub
 
 on:
   workflow_dispatch:
@@ -6,8 +6,8 @@ on:
     branches:
       - "main"
     paths:
-      - '!embodiments/neuraville/javascript_webcam/version.py'
-      - 'embodiments/neuraville/javascript_webcam/**'
+      - '!embodiments/media_capture_controller/version.py'
+      - 'embodiments/media_capture_controller/**'
       - 'generate_version.sh'
 
 
@@ -23,7 +23,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Update Dockerfile  and version
         run: |
-          cd embodiments/neuraville/javascript_webcam/
+          cd embodiments/media_capture_controller/
           if [ -f Dockerfile ]; then
               sed -e 's|COPY controller.py /root/|COPY controller.py /root/|' \
                   -e 's|COPY configuration.json /root/|COPY configuration.json /root/|' \
@@ -43,7 +43,7 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
-          context: embodiments/neuraville/javascript_webcam
+          context: embodiments/media_capture_controller
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: neuraville/webcam_controller:latest
+          tags: neuraville/media_capture_controller:latest

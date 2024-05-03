@@ -1,4 +1,4 @@
-name: Update Microbit versions
+name: Update Bluetooth versions
 
 on:
   workflow_dispatch:
@@ -6,13 +6,13 @@ on:
     branches:
       - "staging"
     paths:
-      - '!embodiments/elecfreaks/cutebot/web_html_microbit/version.py'
-      - 'embodiments/elecfreaks/cutebot/web_html_microbit/**'
+      - '!embodiments/bluetooth_controller/version.py'
+      - 'embodiments/bluetooth_controller/**'
       - 'generate_version.sh'
 
 
 jobs:
-  microbit_version:
+  bluetooth_version:
     runs-on: ubuntu-latest
     if: github.repository == 'feagi/feagi-connector'
     steps:
@@ -31,7 +31,7 @@ jobs:
       - name: Update Dockerfile
         run: |
           export FEAGI_PATH=$(pwd)
-          cd embodiments/elecfreaks/cutebot/web_html_microbit/
+          cd embodiments/bluetooth_controller/
           bash $FEAGI_PATH/generate_version.sh
       - name: Push version changes
         run: |
@@ -41,7 +41,7 @@ jobs:
             echo "pre-release branch does not exist on remote repository. Continuing with the workflow."
           fi
           git add .
-          git commit -m "Updated Microbit Version"
+          git commit -m "Updated Bluetooth Version"
           echo "committed"
           if git ls-remote --heads origin pre-release | grep -q 'pre-release'; then
             git pull origin pre-release

@@ -1,4 +1,4 @@
-name: Update Webcam versions
+name: Update media capture versions
 
 on:
   workflow_dispatch:
@@ -6,12 +6,12 @@ on:
     branches:
       - "staging"
     paths:
-      - '!embodiments/neuraville/javascript_webcam/version.py'
-      - 'embodiments/neuraville/javascript_webcam/**'
+      - '!embodiments/media_capture_controller/version.py'
+      - 'embodiments/media_capture_controller/**'
       - 'generate_version.sh'
 
 jobs:
-  javascript_webcam:
+  media_capture_controller:
     runs-on: ubuntu-latest
     if: github.repository == 'feagi/feagi-connector'
     steps:
@@ -30,7 +30,7 @@ jobs:
       - name: Update Dockerfile and version
         run: |
           export FEAGI_PATH=$(pwd)
-          cd embodiments/neuraville/javascript_webcam/
+          cd embodiments/media_capture_controller/
           bash $FEAGI_PATH/generate_version.sh
       - name: Push version changes
         run: |
@@ -40,7 +40,7 @@ jobs:
             echo "pre-release branch does not exist on remote repository. Continuing with the workflow."
           fi
           git add .
-          git commit -m "Updated Webcam Version"
+          git commit -m "Updated media capture Version"
           echo "committed"
           if git ls-remote --heads origin pre-release | grep -q 'pre-release'; then
             git pull origin pre-release
