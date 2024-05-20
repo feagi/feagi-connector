@@ -346,6 +346,9 @@ def process_visual_stimuli(raw_frame, capabilities,
                                                        y2=abs(capabilities['camera']['modulation_control']['1']),
                                                        camera_index=capabilities['camera']['index'],
                                                        size_list=current_dimension_list)
+        if not region_coordinates:
+          if not (capabilities['camera']['index'] + '_C') in current_dimension_list:
+            pns.resize_list.update(obtain_cortical_vision_size(capabilities['camera']['index'], pns.full_list_dimension))
         segmented_frame_data = split_vision_regions(coordinates=region_coordinates,
                                                     raw_frame_data=raw_frame)
         compressed_data = dict()
@@ -360,17 +363,17 @@ def process_visual_stimuli(raw_frame, capabilities,
             pass
         for get_region in compressed_data:
             if current_dimension_list[get_region][2] == 3:
-                if previous_frame_data != {}:
-                    if get_region in previous_frame_data:
-                        vision_dict[get_region] = change_detector(
-                            previous_frame_data[get_region],
-                            compressed_data[get_region],
-                            capabilities, compare_image, get_region)
-                    else:
-                        vision_dict[get_region] = change_detector(
-                            np.zeros((3, 3, 3)),
-                            compressed_data[get_region],
-                            capabilities, compare_image, get_region)
+              if previous_frame_data != {}:
+                  if get_region in previous_frame_data:
+                    vision_dict[get_region] = change_detector(
+                        previous_frame_data[get_region],
+                        compressed_data[get_region],
+                        capabilities, compare_image, get_region)
+                  else:
+                    vision_dict[get_region] = change_detector(
+                        np.zeros((3, 3, 3)),
+                        compressed_data[get_region],
+                        capabilities, compare_image, get_region)
             else:
                 if previous_frame_data != {}:
                     if get_region in previous_frame_data:
@@ -383,8 +386,14 @@ def process_visual_stimuli(raw_frame, capabilities,
                             np.zeros((3, 3, 3)),
                             compressed_data[get_region],
                             capabilities, compare_image, get_region)
-        previous_frame_data = compressed_data
-        rgb['camera'] = vision_dict
+        if previous_frame_data:
+          previous_frame_data.update(compressed_data)
+        else:
+          previous_frame_data = compressed_data
+        if 'camera' in rgb:
+          rgb['camera'].update(vision_dict)
+        else:
+          rgb['camera'] = vision_dict
         return previous_frame_data, rgb, capabilities
     return pns.resize_list, pns.resize_list, capabilities  # sending empty dict
 
@@ -408,13 +417,6 @@ def obtain_cortical_vision_size(camera_index, response):
 
 def drop_high_frequency_events(data):
     return np.count_nonzero(data)
-
-
-def update_size_list(capabilities):
-    response = pns.full_list_dimension
-    capabilities['camera']['size_list'] = \
-        obtain_cortical_vision_size(capabilities['camera']["index"], response)
-    return capabilities
 
 
 def vision_progress(capabilities, feagi_opu_channel, api_address, feagi_settings, raw_frame):
