@@ -206,19 +206,11 @@ def eccentricity_control_update(message_from_feagi, capabilities):
         for data_point in message_from_feagi["opu_data"]['ov_ecc']:
             device_id = data_point.split('-')[0]
             if str(device_id) in ['0', '1']:
-                feagi_aptr = (int(data_point.split('-')[-1]))
-                aptr_cortical_size = full_list_dimension['ov_ecc']['cortical_dimensions'][2] - 1
+                intensity_select = (int(data_point.split('-')[-1]))
+                max_depth_of_cortical = full_list_dimension['ov_ecc']['cortical_dimensions'][2] - 1
                 max_range = capabilities['camera']['vision_range'][1]
                 min_range = capabilities['camera']['vision_range'][0]
-                capabilities['camera']["eccentricity_control"][str(device_id)] = int(
-                    ((feagi_aptr / aptr_cortical_size) * (max_range - min_range)) + min_range)
-            # Comment new method out
-            # processed_data_point = feagi.block_to_array(data_point)
-            # device_id = processed_data_point[0]
-            # device_power = message_from_feagi["opu_data"]['ov_ecc'][data_point]
-            # if device_power == 100:
-            #     device_power -= 1
-            # capabilities['camera']['eccentricity_control'][device_id] = device_power
+                capabilities['camera']["eccentricity_control"][str(device_id)] = int(((intensity_select / max_depth_of_cortical) * (max_range - min_range)) + min_range)
     return capabilities
 
 
@@ -230,21 +222,11 @@ def modulation_control_update(message_from_feagi, capabilities):
         for data_point in message_from_feagi["opu_data"]['ov_mod']:
             device_id = data_point.split('-')[0]
             if str(device_id) in ['0', '1']:
-                feagi_aptr = (int(data_point.split('-')[-1]))
-                aptr_cortical_size = full_list_dimension['ov_mod']['cortical_dimensions'][2] - 1
+                intensity_select = (int(data_point.split('-')[-1]))
+                max_depth_of_cortical = full_list_dimension['ov_mod']['cortical_dimensions'][2] - 1
                 max_range = capabilities['camera']['vision_range'][1]
                 min_range = capabilities['camera']['vision_range'][0]
-                capabilities['camera']["modulation_control"][str(device_id)] = int(((feagi_aptr /
-                                                                                     aptr_cortical_size) * (
-                                                                                            max_range - min_range)) + min_range)
-        # comment new method out
-        # for data_point in message_from_feagi["opu_data"]['ov_mod']:
-        #     processed_data_point = feagi.block_to_array(data_point)
-        #     device_id = processed_data_point[0]
-        #     device_power = message_from_feagi["opu_data"]['ov_mod'][data_point]
-        #     if device_power == 100:
-        #         device_power -= 1
-        #     capabilities['camera']['modulation_control'][device_id] = device_power
+                capabilities['camera']["modulation_control"][str(device_id)] = int(((intensity_select / max_depth_of_cortical) * (max_range - min_range)) + min_range)
     return capabilities
 
 
@@ -343,17 +325,14 @@ def fetch_vision_turner(message_from_feagi, capabilities):
             if message_from_feagi["opu_data"]["ovtune"]:
                 for data_point in message_from_feagi["opu_data"]['ovtune']:
                     device_id = data_point.split('-')[0]
-                    feagi_aptr = (int(data_point.split('-')[-1]))
-                    aptr_cortical_size = full_list_dimension['ovtune']['cortical_dimensions'][2] - 1
+                    intensity_select = (int(data_point.split('-')[-1]))
+                    max_depth_of_cortical = full_list_dimension['ovtune']['cortical_dimensions'][2] - 1
                     max_range = capabilities['camera']["threshold_range"][1]
                     min_range = capabilities['camera']["threshold_range"][0]
                     if int(device_id) == 1:
-                        capabilities['camera']["percentage_to_allow_data"] = int(
-                            ((feagi_aptr / aptr_cortical_size) * (10 - 1)) + 1) / 10
+                        capabilities['camera']["percentage_to_allow_data"] = int(((intensity_select / max_depth_of_cortical) * (10 - 1)) + 1) / 10
                     else:
-                        capabilities['camera']["threshold_default"][int(device_id)] = int(((
-                                                                                                   feagi_aptr / aptr_cortical_size) * (
-                                                                                                   max_range - min_range)) + min_range)
+                        capabilities['camera']["threshold_default"][int(device_id)] = int(((intensity_select / max_depth_of_cortical) * (max_range - min_range)) + min_range)
     return capabilities
 
 
@@ -383,31 +362,25 @@ def fetch_enhancement_data(message_from_feagi, capabilities):
                 for data_point in message_from_feagi["opu_data"]['ov_enh']:
                     device_id = int(data_point.split('-')[0])
                     if device_id == 1:
-                        feagi_aptr = (int(data_point.split('-')[-1]))
-                        aptr_cortical_size = full_list_dimension['ov_enh']['cortical_dimensions'][
+                        intensity_select = (int(data_point.split('-')[-1]))
+                        max_depth_of_cortical = full_list_dimension['ov_enh']['cortical_dimensions'][
                                                  2] - 1
                         max_range = 1.4
                         min_range = 0.5
-                        capabilities['camera']["enhancement"][int(device_id)] = float(((feagi_aptr
-                                                                                        / aptr_cortical_size) * (
-                                                                                               max_range - min_range)) + min_range)
+                        capabilities['camera']["enhancement"][int(device_id)] = float(((intensity_select / max_depth_of_cortical) * (max_range - min_range)) + min_range)
                     if device_id == 2:
-                        feagi_aptr = (int(data_point.split('-')[-1]))
-                        aptr_cortical_size = full_list_dimension['ov_enh']['cortical_dimensions'][
+                        intensity_select = (int(data_point.split('-')[-1]))
+                        max_depth_of_cortical = full_list_dimension['ov_enh']['cortical_dimensions'][
                                                  2] - 1
                         max_range = 2.0
                         min_range = 0.8
-                        capabilities['camera']["enhancement"][int(device_id)] = float(((feagi_aptr
-                                                                                        / aptr_cortical_size) * (
-                                                                                               max_range - min_range)) + min_range)
+                        capabilities['camera']["enhancement"][int(device_id)] = float(((intensity_select/ max_depth_of_cortical) * (max_range - min_range)) + min_range)
                     if device_id == 0:
-                        feagi_aptr = (int(data_point.split('-')[-1]))
-                        aptr_cortical_size = full_list_dimension['ov_enh']['cortical_dimensions'][2]
+                        intensity_select = (int(data_point.split('-')[-1]))
+                        max_depth_of_cortical = full_list_dimension['ov_enh']['cortical_dimensions'][2]
                         max_range = 100
                         min_range = -100
-                        capabilities['camera']["enhancement"][int(device_id)] = float(((feagi_aptr
-                                                                                        / aptr_cortical_size) * (
-                                                                                               max_range - min_range)) + min_range)
+                        capabilities['camera']["enhancement"][int(device_id)] = float(((intensity_select/ max_depth_of_cortical) * (max_range - min_range)) + min_range)
     return capabilities
 
 
