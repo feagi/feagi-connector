@@ -287,12 +287,12 @@ def opu_processor(data):
                         device_id = data_point[0]
                         device_power = data_point[2]
                         processed_opu_data['vision_acuity'][device_id] = device_power
-            if 'o_gpio' in opu_data:
-                if opu_data['o_gpio']:
-                    for data_point in opu_data['o_gpio']:
+            if 'odgpio' in opu_data:
+                if opu_data['odgpio']:
+                    for data_point in opu_data['odgpio']:
                         processed_data_point = block_to_array(data_point)
                         device_id = processed_data_point[0]
-                        device_power = opu_data['o_gpio'][data_point]
+                        device_power = opu_data['odgpio'][data_point]
                         processed_opu_data['gpio'][device_id] = device_power
             if 'oigpio' in opu_data:
                 if opu_data['oigpio']:
