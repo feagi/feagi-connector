@@ -91,6 +91,38 @@ def grab_geometry():
     return router.fetch_geometry()
 
 
+def fetch_servo_position_size_and_return_percentage(capabilities, current_position, servo_id,
+                                                    flip=False):
+    if full_list_dimension:
+        if 'i_spos' in full_list_dimension:
+            max_input = full_list_dimension['i_spos']['cortical_dimensions'][2]
+            min_output = capabilities['servo']['servo_range'][str(servo_id)][0]
+            max_output = capabilities['servo']['servo_range'][str(servo_id)][1]
+            total_range = max_output - min_output
+            encoder_position = (current_position / total_range) * max_input
+            if flip:
+                data = str(servo_id) + '-0-' + str(int(round(max_input / 2) + encoder_position))
+            else:
+                data = str(servo_id) + '-0-' + str(int(round(max_input / 2) - encoder_position))
+            return data
+    return None  # Just return none to confirm that it's unable to fetch genome information
+
+
+def fetch_servo_motion_sensor_size_and_return_percentage(current_speed, servo_id, max_speed):
+    if full_list_dimension:
+        if 'i_smot' in full_list_dimension:
+            max_input = full_list_dimension['i_smot']['cortical_dimensions'][2]
+            min_output = 0
+            total_range = max_speed - min_output
+            encoder_position = ((current_speed / total_range) * max_input)
+            if encoder_position < 0:
+                data = str(servo_id + 1) + '-0-' + str(int(abs(encoder_position)))
+            else:
+                data = str(servo_id) + '-0-' + str(int(abs(encoder_position)))
+            return data
+    return None  # Just return none to confirm that it's unable to fetch genome information
+
+
 def obtain_opu_data(message_from_feagi):
     """
     It retrieves raw data from FEAGI and then passes the data to the opu_processor, located in
@@ -203,8 +235,8 @@ def modulation_control_update(message_from_feagi, capabilities):
                 max_range = capabilities['camera']['vision_range'][1]
                 min_range = capabilities['camera']['vision_range'][0]
                 capabilities['camera']["modulation_control"][str(device_id)] = int(((feagi_aptr /
-                                                                                aptr_cortical_size) * (
-                                                                                       max_range - min_range)) + min_range)
+                                                                                     aptr_cortical_size) * (
+                                                                                            max_range - min_range)) + min_range)
         # comment new method out
         # for data_point in message_from_feagi["opu_data"]['ov_mod']:
         #     processed_data_point = feagi.block_to_array(data_point)
@@ -316,9 +348,12 @@ def fetch_vision_turner(message_from_feagi, capabilities):
                     max_range = capabilities['camera']["threshold_range"][1]
                     min_range = capabilities['camera']["threshold_range"][0]
                     if int(device_id) == 1:
-                        capabilities['camera']["percentage_to_allow_data"] = int(((feagi_aptr /aptr_cortical_size) * (10 - 1)) + 1) / 10
+                        capabilities['camera']["percentage_to_allow_data"] = int(
+                            ((feagi_aptr / aptr_cortical_size) * (10 - 1)) + 1) / 10
                     else:
-                        capabilities['camera']["threshold_default"][int(device_id)] = int(((feagi_aptr / aptr_cortical_size) * (max_range - min_range)) + min_range)
+                        capabilities['camera']["threshold_default"][int(device_id)] = int(((
+                                                                                                   feagi_aptr / aptr_cortical_size) * (
+                                                                                                   max_range - min_range)) + min_range)
     return capabilities
 
 
@@ -329,6 +364,7 @@ def fetch_threshold_type(message_from_feagi, capabilities):
                 device_id = int(data_point.split('-')[0])
                 capabilities['camera']["threshold_type"][int(device_id)] = True
     return capabilities
+
 
 def fetch_mirror_opu(message_from_feagi, capabilities):
     if "ovflph" in message_from_feagi["opu_data"]:
@@ -407,12 +443,14 @@ def create_runtime_default_list(list, capabilities):
                 "threshold_name": 0,  # Binary_threshold as a default
                 "mirror": True,  # flip the image
                 "blink": [],  # cv2 ndarray raw data of an image. Controlled by blink OPU in genome
-                "eccentricity_control": {'0': 1, '1': 1},  # Controlled by eccentricity_control in genome
-                "modulation_control": {'0': 99, '1': 99},  # Controlled by modulation_control in genome
+                "eccentricity_control": {'0': 1, '1': 1},
+                # Controlled by eccentricity_control in genome
+                "modulation_control": {'0': 99, '1': 99},
+                # Controlled by modulation_control in genome
                 "vision_range": [1, 99],  # min, max
                 "size_list": [],  # To get the size in real time based on genome's change/update
                 "enhancement": {},  # Enable ov_enh OPU on inside the genome
-                "percentage_to_allow_data" : 0.5 # this will be percentage for the full data.
+                "percentage_to_allow_data": 0.5  # this will be percentage for the full data.
                 # Currently set to 0.5 to allow data go through otherwise discard it fully.
             }
         }
@@ -436,7 +474,8 @@ def camera_config_update(list, capabilities):
         if "threshold_default" in capabilities['camera']:
             list['camera']['threshold_default'] = capabilities['camera']['threshold_default']
         if "percentage_to_allow_data" in capabilities['camera']:
-            list['camera']['percentage_to_allow_data'] = capabilities['camera']['percentage_to_allow_data']
+            list['camera']['percentage_to_allow_data'] = capabilities['camera'][
+                'percentage_to_allow_data']
 
 
 def feagi_listener(feagi_opu_channel):
