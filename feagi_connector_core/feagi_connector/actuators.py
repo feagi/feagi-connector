@@ -181,3 +181,10 @@ def check_convert_gpio_to_input(obtained_data):
         for data_point in obtained_data['gpio_input']:
             input_gpio_data[data_point] = obtained_data['gpio_input'][data_point]
     return input_gpio_data
+
+
+def get_position_data(power, capabilities, device_id):
+    max_input = pns.full_list_dimension['o_spos']['cortical_dimensions'][2]
+    min_output = capabilities['servo']['servo_range'][str(device_id)][0]
+    max_output = capabilities['servo']['servo_range'][str(device_id)][1]
+    return (power / max_input) * (max_output - min_output) + min_output
