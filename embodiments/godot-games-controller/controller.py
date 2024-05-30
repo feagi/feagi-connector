@@ -119,6 +119,7 @@ async def bridge_to_godot():
                             ws.clear()
                             ws.append(stored_value)
                     await ws_operation[0].send(str(ws[0]))
+                    print(ws)
                     ws.pop()
                 if "stimulation_period" in runtime_data:
                     sleep(runtime_data["stimulation_period"])
@@ -176,11 +177,11 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, mes
     feagi_flag = False
     print("retrying...")
     print("Waiting on FEAGI...")
-    while not feagi_flag:
-        feagi_flag = feagi.is_FEAGI_reachable(
-            os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1"),
-            int(os.environ.get('FEAGI_OPU_PORT', "3000")))
-        sleep(2)
+    # while not feagi_flag:
+    #     feagi_flag = feagi.is_FEAGI_reachable(
+    #         os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1"),
+    #         int(os.environ.get('FEAGI_OPU_PORT', "3000")))
+    #     sleep(2)
 
     # # # FEAGI registration # # # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     # - - - - - - - - - - - - - - - - - - #
@@ -196,7 +197,6 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, mes
     default_capabilities = {}  # It will be generated in process_visual_stimuli. See the
     # overwrite manual
     default_capabilities = pns.create_runtime_default_list(default_capabilities, capabilities)
-    threading.Thread(target=pns.feagi_listener, args=(feagi_opu_channel,), daemon=True).start()
     threading.Thread(target=retina.vision_progress,
                      args=(default_capabilities, feagi_opu_channel, api_address, feagi_settings,
                            camera_data['vision'],), daemon=True).start()
@@ -247,18 +247,12 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, mes
 
 
 if __name__ == '__main__':
-    # NEW JSON UPDATE
-    f = open('configuration.json')
-    configuration = json.load(f)
-    feagi_settings =  configuration["feagi_settings"]
-    agent_settings = configuration['agent_settings']
-    capabilities = configuration['capabilities']
-    feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
-    feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
-    agent_settings['godot_websocket_port'] = os.environ.get('WS_GODOT_GENERIC_PORT', "9055")
-    f.close()
-    message_to_feagi = {"data": {}}
-    # END JSON UPDATE
+    config = feagi.build_up_from_configuration()
+    feagi_settings = config['feagi_settings'].copy()
+    agent_settings = config['agent_settings'].copy()
+    default_capabilities = config['default_capabilities'].copy()
+    message_to_feagi = config['message_to_feagi'].copy()
+    capabilities = config['capabilities'].copy()
 
 
     ws_operation = deque()
