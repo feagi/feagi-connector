@@ -67,3 +67,14 @@ def add_agent_status(status, message_to_feagi, agent_settings):
     else:
         message_to_feagi["data"]['connected_agents'] = []
     return message_to_feagi
+
+
+def convert_sensor_to_ipu_data(min_output, max_output, raw_data, pin_number):
+    if pns.full_list_dimension:
+        if 'iagpio' in pns.full_list_dimension:
+            max_input = pns.full_list_dimension['iagpio']['cortical_dimensions'][2] - 1
+            total_range = max_output - min_output
+            encoder_position = (raw_data / total_range) * max_input
+            data = str(pin_number) + '-0-' + str(int(round(encoder_position)))
+            return data
+    return None
