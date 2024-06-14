@@ -28,6 +28,7 @@ from feagi_connector import actuators
 from feagi_connector import feagi_interface as feagi
 import os
 import json
+import numpy
 
 ws = deque()
 ws_operation = deque()
@@ -37,6 +38,7 @@ gyro = {}
 current_device = {}
 connected_agents = dict()  # Initalize
 connected_agents['0'] = False  # By default, it is not connected by client's websocket
+muse_data = {}
 
 
 async def bridge_to_godot():
@@ -160,10 +162,16 @@ async def echo(websocket, path):
             microbit_listen(message)
         elif device == "petoi":
             full_data = petoi_listen(message, full_data)  # Needs to add
+        elif device == "muse":
+            muse_listen(message)
         elif device == "generic":
             print("generic")
             pass  # Needs to figure how to address this
+        else:
+            print("unknown device")
+            print("message: ", message)
     connected_agents['0'] = False  # Once client disconnects, mark it as false
+    muse_data.clear()
 
 
 async def main():
@@ -182,6 +190,18 @@ def websocket_operation():
     """
     asyncio.run(main())
 
+
+def muse_listen(obtained_data):
+    dict_from_muse = json.loads(obtained_data)
+    if dict_from_muse['type'] not in muse_data:
+        muse_data[dict_from_muse['type']] = {}
+    if dict_from_muse['type'] == 'eeg':
+        muse_data['eeg'][dict_from_muse['data']['electrode']] = dict_from_muse['data']['samples']
+    if dict_from_muse['type'] == 'acceleration':
+        for i in range(len(dict_from_muse['data']['samples'])):
+            muse_data['acceleration'][i] = dict_from_muse['data']['samples'][i]
+    if dict_from_muse['type'] == 'telemetry':
+        muse_data['telemetry']['battery'] = dict_from_muse['data']['batteryLevel']
 
 def petoi_action(obtained_data):
     servo_data = actuators.get_servo_data(obtained_data, True)
@@ -303,6 +323,15 @@ if __name__ == "__main__":
     # Initialize rolling window for each motor
     for motor_id in range(motor_count):
         rolling_window[motor_id] = deque([0] * rolling_window_len)
+
+    max_value = []
+    min_value = []
+
+    acceleration_max_value = []
+    acceleration_min_value = []
+    for i in range(4):
+        max_value.append(0)
+        min_value.append(0)
     while True:
         try:
             message_from_feagi = pns.message_from_feagi
@@ -331,6 +360,48 @@ if __name__ == "__main__":
                                                                  message_to_feagi)
             if gyro:
                 message_to_feagi = sensors.add_gyro_to_feagi_data(gyro['gyro'], message_to_feagi)
+
+            if muse_data:
+                if 'eeg' in muse_data:
+                    convert_eeg_to_ipu = dict()
+                    create_analog_data_list = dict()
+                    create_analog_data_list['i__bci'] = dict()
+                    for number in muse_data['eeg']:
+                        channel = number
+                        convert_eeg_to_ipu[channel] = muse_data['eeg'][number][len(muse_data['eeg'][number])-1]
+                        convert_to_numpy = numpy.array(muse_data['eeg'][number])
+                        if convert_to_numpy.max() > max_value[channel]:
+                            max_value[channel] = convert_to_numpy.max()
+                        if convert_to_numpy.min() < min_value[channel]:
+                            min_value[channel] = convert_to_numpy.min()
+                        position_of_analog = str(channel) + "-0-0"
+                        create_analog_data_list['i__bci'][position_of_analog] = convert_eeg_to_ipu[channel] + 1000.0
+                    message_to_feagi = sensors.add_generic_input_to_feagi_data(create_analog_data_list,
+                                                                               message_to_feagi)
+                acceleration_from_muse = dict()
+                if 'acceleration' in muse_data:
+                    counter = 0
+                    for i in range(len(muse_data['acceleration'])):
+                        for x in muse_data['acceleration'][i]:
+                            increment = counter
+                            acceleration_from_muse[increment] = muse_data['acceleration'][i][x]
+                            if increment < len(acceleration_max_value):
+                                if not acceleration_max_value[increment]:
+                                    acceleration_max_value.append(muse_data['acceleration'][i][x])
+                                    acceleration_min_value.append(muse_data['acceleration'][i][x])
+                            else:
+                                acceleration_max_value.append(muse_data['acceleration'][i][x])
+                                acceleration_min_value.append(muse_data['acceleration'][i][x])
+                            if muse_data['acceleration'][i][x] > acceleration_max_value[increment]:
+                                acceleration_max_value[increment] = muse_data['acceleration'][i][x]
+                            if muse_data['acceleration'][i][x] > acceleration_min_value[increment]:
+                                acceleration_min_value[increment] = muse_data['acceleration'][i][x]
+                            counter += 1
+                    message_to_feagi = sensors.add_acc_to_feagi_data(acceleration_from_muse,
+                                                                     message_to_feagi)
+                # if 'telemetry' in muse_data:
+
+                    
 
             message_to_feagi['timestamp'] = datetime.now()
             message_to_feagi['counter'] = msg_counter
