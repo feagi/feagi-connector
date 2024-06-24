@@ -20,7 +20,6 @@ from datetime import datetime
 from time import sleep
 import traceback
 import websockets
-from urllib.parse import urlparse, parse_qs
 from version import __version__
 from feagi_connector import pns_gateway as pns
 from feagi_connector import sensors as sensors
@@ -146,32 +145,34 @@ async def echo(websocket, path):
     The function echoes the data it receives from other connected websockets
     and sends the data from FEAGI to the connected websockets.
     """
-    # ws.append("G")
-    query_params = parse_qs(urlparse(path).query)
-    device = query_params.get('device', [None])[0]  # Default to None if 'device' is not provided
-    current_device['name'] = device
+    current_device['name'] = []
     full_data = ''
     async for message in websocket:
-        connected_agents['0'] = True  # Since this section gets data from client, its marked as true
-        if not ws_operation:
-            ws_operation.append(websocket)
-        else:
-            ws_operation[0] = websocket
+        data_from_bluetooth = json.loads(message)
+        for device_name in data_from_bluetooth:
+            connected_agents['0'] = True  # Since this section gets data from client, its marked as true
+            if device_name not in current_device['name']:
+                current_device['name'].append(device_name)
+            if not ws_operation:
+                ws_operation.append(websocket)
+            else:
+                ws_operation[0] = websocket
 
-        if device == "microbit":
-            microbit_listen(message)
-        elif device == "petoi":
-            full_data = petoi_listen(message, full_data)  # Needs to add
-        elif device == "muse":
-            muse_listen(message)
-        elif device == "generic":
-            print("generic")
-            pass  # Needs to figure how to address this
-        else:
-            print("unknown device")
-            print("message: ", message)
+            if device_name == "microbit":
+                microbit_listen(data_from_bluetooth['microbit']['data'])
+            elif device_name == "petoi":
+                full_data = petoi_listen(data_from_bluetooth['petoi'], full_data)  # Needs to add
+            elif device_name == "muse":
+                muse_listen(data_from_bluetooth['muse'])
+            elif device_name == "generic":
+                print("generic")
+                pass  # Needs to figure how to address this
+            else:
+                print("unknown device")
+                print("message: ", data_from_bluetooth)
     connected_agents['0'] = False  # Once client disconnects, mark it as false
     muse_data.clear()
+    current_device['name'].clear()
 
 
 async def main():
@@ -192,7 +193,7 @@ def websocket_operation():
 
 
 def muse_listen(obtained_data):
-    dict_from_muse = json.loads(obtained_data)
+    dict_from_muse = obtained_data
     if dict_from_muse['type'] not in muse_data:
         muse_data[dict_from_muse['type']] = {}
     if dict_from_muse['type'] == 'eeg':
@@ -343,9 +344,9 @@ if __name__ == "__main__":
                                                                                  'feagi_burst_speed'])
                 obtained_signals = pns.obtain_opu_data(message_from_feagi)
                 if 'name' in current_device:
-                    if current_device['name'] == "microbit":
+                    if "microbit" in current_device['name']:
                         microbit_action(obtained_signals)
-                    elif current_device['name'] == "petoi":
+                    elif "petoi" in current_device['name']:
                         petoi_action(obtained_signals)
             # OPU section ENDS
             if microbit_data['ultrasonic']:
