@@ -119,15 +119,15 @@ def microbit_listen(message):
     else:
         ir_list.append(1)
     try:
-        x_acc = int(message[2:6]) - 1000
-        y_acc = int(message[6:10]) - 1000
-        z_acc = int(message[10:14]) - 1000
+        x_acc = int(message[2:6])
+        y_acc = int(message[6:10])
+        z_acc = int(message[10:14])
         ultrasonic = float(message[14:16])
         sound_level = int(message[16:18])
         # Store values in dictionary
         microbit_data['ir'] = ir_list
         microbit_data['ultrasonic'] = ultrasonic / 25
-        microbit_data['accelerator'] = {"0": x_acc, "1": y_acc, "2": z_acc}
+        microbit_data['acceleration'] = {0: x_acc, 1: y_acc, 2: z_acc}
         microbit_data['sound_level'] = {sound_level}
         return
     except Exception as Error_case:
@@ -204,6 +204,7 @@ def muse_listen(obtained_data):
     if dict_from_muse['type'] == 'telemetry':
         muse_data['telemetry']['battery'] = dict_from_muse['data']['batteryLevel']
 
+
 def petoi_action(obtained_data):
     servo_data = actuators.get_servo_data(obtained_data, True)
     WS_STRING = ""
@@ -277,7 +278,7 @@ if __name__ == "__main__":
     # NEW JSON UPDATE
     f = open('configuration.json')
     configuration = json.load(f)
-    feagi_settings =  configuration["feagi_settings"]
+    feagi_settings = configuration["feagi_settings"]
     agent_settings = configuration['agent_settings']
     capabilities = configuration['capabilities']
     feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
@@ -287,8 +288,7 @@ if __name__ == "__main__":
     message_to_feagi = {"data": {}}
     # END JSON UPDATE
 
-
-    microbit_data = {'ir': [], 'ultrasonic': {}, 'accelerator': {}, 'sound_level': {}}
+    microbit_data = {'ir': [], 'ultrasonic': {}, 'acceleration': {}, 'sound_level': {}}
     threading.Thread(target=websocket_operation, daemon=True).start()
     # threading.Thread(target=bridge_to_godot, daemon=True).start()
     threading.Thread(target=bridge_operation, daemon=True).start()
@@ -316,7 +316,7 @@ if __name__ == "__main__":
     threading.Thread(target=pns.feagi_listener, args=(feagi_opu_channel,), daemon=True).start()
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     msg_counter = runtime_data["feagi_state"]['burst_counter']
-    runtime_data['accelerator'] = {}
+    runtime_data['acceleration'] = {}
     rolling_window = {}
     rolling_window_len = capabilities['motor']['rolling_window_len']
     motor_count = capabilities['motor']['count']
@@ -325,11 +325,17 @@ if __name__ == "__main__":
     for motor_id in range(motor_count):
         rolling_window[motor_id] = deque([0] * rolling_window_len)
 
+    # Muse's EEG values range
     max_value = []
     min_value = []
 
+    # Muse's acceleration value range
     acceleration_max_value = []
     acceleration_min_value = []
+
+    # Microbit acceleration values
+    microbit_acceleration_max_value = []
+    microbit_acceleration_min_value = []
     for i in range(4):
         max_value.append(0)
         min_value.append(0)
@@ -349,16 +355,35 @@ if __name__ == "__main__":
                     elif "petoi" in current_device['name']:
                         petoi_action(obtained_signals)
             # OPU section ENDS
-            if microbit_data['ultrasonic']:
-                message_to_feagi = sensors.add_ultrasonic_to_feagi_data(microbit_data['ultrasonic'],
-                                                                        message_to_feagi)
+            # if microbit_data['ultrasonic']:
+            #     message_to_feagi = sensors.add_ultrasonic_to_feagi_data(microbit_data['ultrasonic'],
+            #                                                             message_to_feagi)
             if microbit_data['ir']:
                 message_to_feagi = sensors.add_infrared_to_feagi_data(microbit_data['ir'],
                                                                       message_to_feagi,
                                                                       capabilities)
-            if microbit_data['accelerator']:
-                message_to_feagi = sensors.add_acc_to_feagi_data(microbit_data['accelerator'],
+            if microbit_data['acceleration']:
+                create_acceleration_data_list_microbit = dict()
+                create_acceleration_data_list_microbit['i__acc'] = dict()
+                for device_id in capabilities['acceleration']['microbit']:
+                    microbit_acceleration_max_value, microbit_acceleration_min_value = (
+                        sensors.measuring_max_and_min_range(microbit_data['acceleration'][device_id],
+                                                            device_id,
+                                                            microbit_acceleration_max_value,
+                                                            microbit_acceleration_min_value))
+                    try:
+                        position_of_analog = sensors.convert_sensor_to_ipu_data(microbit_acceleration_min_value[device_id],
+                                                                                microbit_acceleration_max_value[device_id],
+                                                                                microbit_data['acceleration'][device_id],
+                                                                                device_id,
+                                                                                cortical_id='i__acc',
+                                                                                symmetric=True)
+                        create_acceleration_data_list_microbit['i__acc'][position_of_analog] = 100
+                    except:
+                        pass
+                message_to_feagi = sensors.add_generic_input_to_feagi_data(create_acceleration_data_list_microbit,
                                                                  message_to_feagi)
+
             if gyro:
                 message_to_feagi = sensors.add_gyro_to_feagi_data(gyro['gyro'], message_to_feagi)
 
@@ -369,7 +394,7 @@ if __name__ == "__main__":
                     create_analog_data_list['i__bci'] = dict()
                     for number in muse_data['eeg']:
                         channel = number
-                        convert_eeg_to_ipu[channel] = muse_data['eeg'][number][len(muse_data['eeg'][number])-1]
+                        convert_eeg_to_ipu[channel] = muse_data['eeg'][number][len(muse_data['eeg'][number]) - 1]
                         convert_to_numpy = numpy.array(muse_data['eeg'][number])
                         if convert_to_numpy.max() > max_value[channel]:
                             max_value[channel] = convert_to_numpy.max()
@@ -382,27 +407,43 @@ if __name__ == "__main__":
                 acceleration_from_muse = dict()
                 if 'acceleration' in muse_data:
                     counter = 0
+                    create_acceleration_data_list = dict()
+                    create_acceleration_data_list['i__acc'] = dict()
                     for i in range(len(muse_data['acceleration'])):
                         for x in muse_data['acceleration'][i]:
                             increment = counter
                             acceleration_from_muse[increment] = muse_data['acceleration'][i][x]
-                            if increment < len(acceleration_max_value):
-                                if not acceleration_max_value[increment]:
-                                    acceleration_max_value.append(muse_data['acceleration'][i][x])
-                                    acceleration_min_value.append(muse_data['acceleration'][i][x])
-                            else:
-                                acceleration_max_value.append(muse_data['acceleration'][i][x])
-                                acceleration_min_value.append(muse_data['acceleration'][i][x])
-                            if muse_data['acceleration'][i][x] > acceleration_max_value[increment]:
-                                acceleration_max_value[increment] = muse_data['acceleration'][i][x]
-                            if muse_data['acceleration'][i][x] > acceleration_min_value[increment]:
-                                acceleration_min_value[increment] = muse_data['acceleration'][i][x]
-                            counter += 1
-                    message_to_feagi = sensors.add_acc_to_feagi_data(acceleration_from_muse,
+                            acceleration_max_value, acceleration_min_value = (
+                                sensors.measuring_max_and_min_range(muse_data['acceleration'][i][x],
+                                                                    increment,
+                                                                    acceleration_max_value,
+                                                                    acceleration_min_value))
+                            try:
+                                position_of_analog = sensors.convert_sensor_to_ipu_data(acceleration_min_value[increment],
+                                                                                        acceleration_max_value[increment],
+                                                                                        muse_data['acceleration'][i][x],
+                                                                                        increment + 3, cortical_id='i__acc',
+                                                                                        symmetric=True)
+                                create_acceleration_data_list['i__acc'][position_of_analog] = 100
+                                counter += 1
+                            except Exception as error:
+                                position_of_analog = None
+                                counter += 1
+                    message_to_feagi = sensors.add_generic_input_to_feagi_data(create_acceleration_data_list,
                                                                      message_to_feagi)
                 # if 'telemetry' in muse_data:
+                #     battery = dict()
+                #     battery['i__bat'] = dict()
+                #     convert_battery_to_IPU = sensors.convert_sensor_to_ipu_data(0,
+                #                                                             100,
+                #                                                             muse_data['telemetry']['battery'],
+                #                                                             0, cortical_id='i__bat')
+                #     print("convert_battery_to_IPU: ", convert_battery_to_IPU, " and type: ", type(convert_battery_to_IPU))
+                #     battery['i__bat'][convert_battery_to_IPU] = 100
+                #     message_to_feagi = sensors.add_generic_input_to_feagi_data(convert_battery_to_IPU,
+                #                                                                message_to_feagi)
 
-                    
+
 
             message_to_feagi['timestamp'] = datetime.now()
             message_to_feagi['counter'] = msg_counter
