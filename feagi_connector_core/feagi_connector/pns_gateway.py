@@ -466,3 +466,7 @@ def start_websocket_in_threads(function, ip, port, ws_operation, ws, feagi_setti
                      daemon=True).start()
     threading.Thread(target=router.bridge_operation, args=(ws_operation, ws, feagi_setting),
                      daemon=True).start()
+
+
+def get_map_value(val, min1, max1, min2, max2):
+    return feagi.map_value(val, min1, max1, min2, max2)
