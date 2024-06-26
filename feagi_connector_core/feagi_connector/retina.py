@@ -297,7 +297,7 @@ def change_detector(previous, current, capabilities, compare_image, cortical_nam
             # thresholded = effect(thresholded, capabilities)
           else:
             difference = current
-            thresholded = cv2.threshold(difference, 1, 255, cv2.THRESH_TOZERO)[1]
+            thresholded = cv2.threshold(difference, 0, 255, cv2.THRESH_TOZERO)[1]
           # thresholded = effect(thresholded, capabilities)
           # cv2.imshow("difference", difference)
           # Convert to boolean array for significant changes
@@ -419,7 +419,7 @@ def drop_high_frequency_events(data):
     return np.count_nonzero(data)
 
 
-def vision_progress(capabilities, feagi_opu_channel, api_address, feagi_settings, raw_frame):
+def vision_progress(capabilities, feagi_settings, raw_frame):
     global genome_tracker, previous_genome_timestamp
     while True:
         message_from_feagi = pns.message_from_feagi
@@ -430,7 +430,10 @@ def vision_progress(capabilities, feagi_opu_channel, api_address, feagi_settings
             capabilities = pns.fetch_mirror_opu(message_from_feagi, capabilities)
             # Update resize if genome has been changed:
             pns.check_genome_status(message_from_feagi, capabilities)
-            capabilities = pns.obtain_blink_data(raw_frame, message_from_feagi, capabilities)
+            if isinstance(raw_frame, dict):
+                capabilities = pns.obtain_blink_data(raw_frame['vision'], message_from_feagi, capabilities)
+            else:
+                capabilities = pns.obtain_blink_data(raw_frame, message_from_feagi, capabilities)
             capabilities = pns.monitor_switch(message_from_feagi, capabilities)
             capabilities = pns.eccentricity_control_update(message_from_feagi, capabilities)
             capabilities = pns.modulation_control_update(message_from_feagi, capabilities)
