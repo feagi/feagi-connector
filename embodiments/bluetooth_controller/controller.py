@@ -336,6 +336,10 @@ if __name__ == "__main__":
     # Microbit acceleration values
     microbit_acceleration_max_value = []
     microbit_acceleration_min_value = []
+
+    # Microbit Ultrasonic values
+    microbit_ultrasonic_max_value = []
+    microbit_ultrasonic_min_value = []
     for i in range(4):
         max_value.append(0)
         min_value.append(0)
@@ -355,14 +359,35 @@ if __name__ == "__main__":
                     elif "petoi" in current_device['name']:
                         petoi_action(obtained_signals)
             # OPU section ENDS
-            # if microbit_data['ultrasonic']:
-            #     message_to_feagi = sensors.add_ultrasonic_to_feagi_data(microbit_data['ultrasonic'],
-            #                                                             message_to_feagi)
-            if microbit_data['ir']:
-                message_to_feagi = sensors.add_infrared_to_feagi_data(microbit_data['ir'],
-                                                                      message_to_feagi,
-                                                                      capabilities)
+            if microbit_data['ultrasonic']:
+                ultrasonic_data = {'i__pro': {}}
+                microbit_ultrasonic_max_value, microbit_ultrasonic_min_value = \
+                    sensors.measuring_max_and_min_range(microbit_data['ultrasonic'],
+                                                        0,
+                                                        microbit_ultrasonic_max_value,
+                                                        microbit_ultrasonic_min_value)
+                position = sensors.convert_sensor_to_ipu_data(microbit_ultrasonic_min_value[0],
+                                                              microbit_ultrasonic_max_value[0],
+                                                              microbit_data['ultrasonic'], 0,
+                                                              cortical_id='i__pro')
+                ultrasonic_data['i__pro'][position] = 100
+                message_to_feagi = sensors.add_generic_input_to_feagi_data(ultrasonic_data,
+                                                                        message_to_feagi)
+
             if microbit_data['acceleration']:
+                # The IR will need to turn the inverse IR on if it doesn't detect. This would confuse humans when cutebot
+                # is not on. So the solution is to put this under the acceleration.
+                # It is under acceleration because without acceleration, the micro:bit is not on.
+                # This leverages the advantage to detect if it is still on.
+                ir_active, inverse_ir_active = sensors.convert_ir_to_ipu_data(microbit_data['ir'],
+                                                                              capabilities['infrared']['count'])
+                message_to_feagi = sensors.add_generic_input_to_feagi_data(ir_active,
+                                                                           message_to_feagi)
+                message_to_feagi = sensors.add_generic_input_to_feagi_data(inverse_ir_active,
+                                                                           message_to_feagi)
+                # End of IR section
+
+                # Section of acceleration
                 create_acceleration_data_list_microbit = dict()
                 create_acceleration_data_list_microbit['i__acc'] = dict()
                 for device_id in capabilities['acceleration']['microbit']:
