@@ -99,3 +99,15 @@ def measuring_max_and_min_range(current_data, device_id, max_value_list, min_val
     if current_data < min_value_list[device_id]:
         min_value_list[device_id] = current_data
     return max_value_list, min_value_list
+
+
+def convert_ir_to_ipu_data(obtain_ir_list_from_robot, count):
+  active_ir_indexes = {'i__inf': {}}
+  inverse_ir_indexes = {'i_iinf': {}}
+  for index in range(count):
+    position = f"{index}-0-0"
+    if index in obtain_ir_list_from_robot:
+      active_ir_indexes['i__inf'][position] = 100
+    else:
+      inverse_ir_indexes['i_iinf'][position] = 100
+  return active_ir_indexes, inverse_ir_indexes
