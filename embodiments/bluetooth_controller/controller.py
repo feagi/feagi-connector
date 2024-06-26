@@ -396,7 +396,7 @@ if __name__ == "__main__":
                 # Section of acceleration
                 create_acceleration_data_list_microbit = dict()
                 create_acceleration_data_list_microbit['i__acc'] = dict()
-                for device_id in capabilities['acceleration']['microbit']:
+                for device_id in range(capabilities['acceleration']['microbit'][0], capabilities['acceleration']['microbit'][1]):
                     microbit_acceleration_max_value, microbit_acceleration_min_value = (
                         sensors.measuring_max_and_min_range(microbit_data['acceleration'][device_id],
                                                             device_id,
