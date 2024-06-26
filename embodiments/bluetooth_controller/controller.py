@@ -456,17 +456,16 @@ if __name__ == "__main__":
                                 counter += 1
                     message_to_feagi = sensors.add_generic_input_to_feagi_data(create_acceleration_data_list,
                                                                      message_to_feagi)
-                # if 'telemetry' in muse_data:
-                #     battery = dict()
-                #     battery['i__bat'] = dict()
-                #     convert_battery_to_IPU = sensors.convert_sensor_to_ipu_data(0,
-                #                                                             100,
-                #                                                             muse_data['telemetry']['battery'],
-                #                                                             0, cortical_id='i__bat')
-                #     print("convert_battery_to_IPU: ", convert_battery_to_IPU, " and type: ", type(convert_battery_to_IPU))
-                #     battery['i__bat'][convert_battery_to_IPU] = 100
-                #     message_to_feagi = sensors.add_generic_input_to_feagi_data(convert_battery_to_IPU,
-                #                                                                message_to_feagi)
+                if 'telemetry' in muse_data:
+                    battery = dict()
+                    battery['i__bat'] = dict()
+                    convert_battery_to_IPU = sensors.convert_sensor_to_ipu_data(0,
+                                                                            100,
+                                                                            muse_data['telemetry']['battery'],
+                                                                            0, cortical_id='i__bat')
+                    print("convert_battery_to_IPU: ", convert_battery_to_IPU, " and type: ", type(convert_battery_to_IPU))
+                    battery['i__bat'][convert_battery_to_IPU] = 100
+                    message_to_feagi = sensors.add_generic_input_to_feagi_data(battery, message_to_feagi)
 
 
 
