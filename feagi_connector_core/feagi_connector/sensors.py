@@ -69,12 +69,45 @@ def add_agent_status(status, message_to_feagi, agent_settings):
     return message_to_feagi
 
 
-def convert_sensor_to_ipu_data(min_output, max_output, raw_data, pin_number):
+def convert_sensor_to_ipu_data(min_output, max_output, raw_data, device_id, cortical_id='iaqpio', symmetric=False):
     if pns.full_list_dimension:
-        if 'iagpio' in pns.full_list_dimension:
-            max_input = pns.full_list_dimension['iagpio']['cortical_dimensions'][2] - 1
+        if cortical_id in pns.full_list_dimension:
+            max_input = pns.full_list_dimension[cortical_id]['cortical_dimensions'][2] - 1
             total_range = max_output - min_output
-            encoder_position = (raw_data / total_range) * max_input
-            data = str(pin_number) + '-0-' + str(int(round(encoder_position)))
+            if not symmetric:
+                current_position = (raw_data / total_range) * max_input
+            else:
+                current_position = pns.get_map_value(raw_data, min_output, max_output, 0, max_input)
+            data = str(device_id) + '-0-' + str(int(round(current_position)))
             return data
     return None
+
+def measuring_max_and_min_range(current_data, device_id, max_value_list, min_value_list):
+    """
+    This function is useful if you don't know the range of maximum and minimum values for a sensor.
+    It will measure and update the maximum and minimum values over time.
+    """
+    if device_id < len(max_value_list):
+        if not max_value_list[device_id]:
+            max_value_list.append(1)
+            min_value_list.append(0)
+    else:
+        max_value_list.append(1)
+        min_value_list.append(0)
+    if current_data > max_value_list[device_id]:
+        max_value_list[device_id] = current_data
+    if current_data < min_value_list[device_id]:
+        min_value_list[device_id] = current_data
+    return max_value_list, min_value_list
+
+
+def convert_ir_to_ipu_data(obtain_ir_list_from_robot, count):
+  active_ir_indexes = {'i__inf': {}}
+  inverse_ir_indexes = {'i_iinf': {}}
+  for index in range(count):
+    position = f"{index}-0-0"
+    if index in obtain_ir_list_from_robot:
+      active_ir_indexes['i__inf'][position] = 100
+    else:
+      inverse_ir_indexes['i_iinf'][position] = 100
+  return active_ir_indexes, inverse_ir_indexes

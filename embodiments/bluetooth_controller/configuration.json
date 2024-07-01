@@ -31,6 +31,10 @@
             "cortical_mapping": "i__inf",
             "topic_identifier": "IR",
             "power_amount": 10
+        },
+        "acceleration": {
+            "microbit": [0,3],
+            "muse": [3,13]
         }
 }
 }
