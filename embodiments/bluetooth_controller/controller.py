@@ -173,6 +173,12 @@ async def echo(websocket, path):
     connected_agents['0'] = False  # Once client disconnects, mark it as false
     muse_data.clear()
     current_device['name'].clear()
+    for i in microbit_data:
+        if isinstance(microbit_data[i], dict):
+            microbit_data[i].clear()
+        else:
+            microbit_data[i] = None
+
 
 
 async def main():
@@ -390,7 +396,7 @@ if __name__ == "__main__":
                 # Section of acceleration
                 create_acceleration_data_list_microbit = dict()
                 create_acceleration_data_list_microbit['i__acc'] = dict()
-                for device_id in capabilities['acceleration']['microbit']:
+                for device_id in range(capabilities['acceleration']['microbit'][0], capabilities['acceleration']['microbit'][1]):
                     microbit_acceleration_max_value, microbit_acceleration_min_value = (
                         sensors.measuring_max_and_min_range(microbit_data['acceleration'][device_id],
                                                             device_id,
@@ -456,17 +462,15 @@ if __name__ == "__main__":
                                 counter += 1
                     message_to_feagi = sensors.add_generic_input_to_feagi_data(create_acceleration_data_list,
                                                                      message_to_feagi)
-                # if 'telemetry' in muse_data:
-                #     battery = dict()
-                #     battery['i__bat'] = dict()
-                #     convert_battery_to_IPU = sensors.convert_sensor_to_ipu_data(0,
-                #                                                             100,
-                #                                                             muse_data['telemetry']['battery'],
-                #                                                             0, cortical_id='i__bat')
-                #     print("convert_battery_to_IPU: ", convert_battery_to_IPU, " and type: ", type(convert_battery_to_IPU))
-                #     battery['i__bat'][convert_battery_to_IPU] = 100
-                #     message_to_feagi = sensors.add_generic_input_to_feagi_data(convert_battery_to_IPU,
-                #                                                                message_to_feagi)
+                if 'telemetry' in muse_data:
+                    battery = dict()
+                    battery['i__bat'] = dict()
+                    convert_battery_to_IPU = sensors.convert_sensor_to_ipu_data(0,
+                                                                            100,
+                                                                            muse_data['telemetry']['battery'],
+                                                                            0, cortical_id='i__bat')
+                    battery['i__bat'][convert_battery_to_IPU] = 100
+                    message_to_feagi = sensors.add_generic_input_to_feagi_data(battery, message_to_feagi)
 
 
 
