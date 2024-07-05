@@ -15,6 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================
 """
+import traceback
 
 from feagi_connector import pns_gateway as pns
 
@@ -82,6 +83,7 @@ def convert_sensor_to_ipu_data(min_output, max_output, raw_data, device_id, cort
             return data
     return None
 
+
 def measuring_max_and_min_range(current_data, device_id, max_value_list, min_value_list):
     """
     This function is useful if you don't know the range of maximum and minimum values for a sensor.
@@ -101,13 +103,65 @@ def measuring_max_and_min_range(current_data, device_id, max_value_list, min_val
     return max_value_list, min_value_list
 
 
-def convert_ir_to_ipu_data(obtain_ir_list_from_robot, count):
-  active_ir_indexes = {'i__inf': {}}
-  inverse_ir_indexes = {'i_iinf': {}}
-  for index in range(count):
-    position = f"{index}-0-0"
-    if index in obtain_ir_list_from_robot:
-      active_ir_indexes['i__inf'][position] = 100
+def convert_ir_to_ipu_data(obtain_ir_list_from_robot, count, message_to_feagi):
+    """
+    The data from obtain_ir_list_from_robot should look something like this: [0, 1, 2], as it indicates
+    which sensors are on. This will be followed by i_iinf to see which sensors are not on, using the IR count in your
+    configuration.json
+    """
+    active_ir_indexes = {'i__inf': {}}
+    inverse_ir_indexes = {'i_iinf': {}}
+    for index in range(count):
+        position = f"{index}-0-0"
+        if index in obtain_ir_list_from_robot:
+            active_ir_indexes['i__inf'][position] = 100
+        else:
+            inverse_ir_indexes['i_iinf'][position] = 100
+    message_to_feagi = add_generic_input_to_feagi_data(active_ir_indexes, message_to_feagi)
+    message_to_feagi = add_generic_input_to_feagi_data(inverse_ir_indexes, message_to_feagi)
+    return message_to_feagi
+
+
+def create_data_for_feagi(cortical_id='', robot_data=[], maximum_range=[], minimum_range=[], enable_symmetric=False, coumns=[], message_to_feagi={}, has_range=False):
+
+    create_data_list = dict()
+    create_data_list[cortical_id] = dict()
+    start_point = coumns[0]
+
+    for device_id in range(coumns[0], coumns[1]):
+        increment = device_id - start_point
+        if not has_range:
+            maximum_range, minimum_range = (measuring_max_and_min_range(robot_data[increment],
+                                                                        increment,
+                                                                        maximum_range,
+                                                                        minimum_range))
+        try:
+            position_of_analog = convert_sensor_to_ipu_data(
+                minimum_range[increment],
+                maximum_range[increment],
+                robot_data[increment],
+                device_id,
+                cortical_id=cortical_id,
+                symmetric=enable_symmetric)
+            create_data_list[cortical_id][position_of_analog] = 100
+        except Exception as e:
+            pass
+    if create_data_list[cortical_id]:
+        message_to_feagi = add_generic_input_to_feagi_data(create_data_list, message_to_feagi)
+        return message_to_feagi, maximum_range, minimum_range
     else:
-      inverse_ir_indexes['i_iinf'][position] = 100
-  return active_ir_indexes, inverse_ir_indexes
+        return message_to_feagi, maximum_range, minimum_range
+
+
+def convert_xyz_to_012(old_dictionary_data):
+    """
+    This will convert from {{'x': 0, 'y': 24, 'z':32}{'x':3, 'y':39, 'z':2}} to {0:0, 1:24, 2:32, 3:3, 4:39, 5:2}}
+    """
+    new_dictionary_data = dict()
+    increment = 0
+    for key in old_dictionary_data:
+        for nested_key in old_dictionary_data[key]:
+            new_dictionary_data[increment] = old_dictionary_data[key][nested_key]
+            increment += 1
+    return new_dictionary_data
+
