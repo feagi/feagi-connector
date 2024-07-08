@@ -218,8 +218,7 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, mes
                 default_capabilities,
                 previous_frame_data,
                 rgb, capabilities)
-            message_to_feagi = pns.generate_feagi_data(rgb, msg_counter, datetime.now(),
-                                                       message_to_feagi)
+            message_to_feagi = pns.generate_feagi_data(rgb, message_to_feagi)
 
         # Add accelerator section
         try:

@@ -178,8 +178,7 @@ if __name__ == "__main__":
                             previous_frame_data,
                             rgb, capabilities)
                     default_capabilities['camera']['blink'] = []
-                    message_to_feagi = pns.generate_feagi_data(rgb, msg_counter, datetime.now(),
-                                                               message_to_feagi)
+                    message_to_feagi = pns.generate_feagi_data(rgb, message_to_feagi)
                     # if previous_burst != feagi_settings['feagi_burst_speed']:
                     #     ws.append({"newRefreshRate": feagi_settings['feagi_burst_speed']})
                     #     previous_burst = feagi_settings['feagi_burst_speed']
