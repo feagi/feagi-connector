@@ -91,8 +91,6 @@ def signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings, feagi_
     else:
         router.websocket_send(message_to_feagi)
     router.msg_counter += 1
-    print(message_to_feagi)
-
 
 def grab_geometry():
     """
@@ -292,14 +290,12 @@ def check_genome_status(message_from_feagi, capabilities):
         if genome_changed != previous_genome_timestamp:
             full_list_dimension = fetch_full_dimensions()
             response = full_list_dimension
-            resize_list = retina.obtain_cortical_vision_size(capabilities['camera']["index"],
-                                                             response)
+            resize_list = retina.obtain_cortical_vision_size(capabilities['camera']["index"], response)
             previous_genome_timestamp = message_from_feagi["genome_changed"]
         current_tracker = obtain_genome_number(genome_tracker, message_from_feagi)
         if len(resize_list) == 0:
             response = full_list_dimension
-            resize_list = retina.obtain_cortical_vision_size(capabilities['camera']["index"],
-                                                             response)
+            resize_list = retina.obtain_cortical_vision_size(capabilities['camera']["index"], response)
         if genome_tracker != current_tracker:
             full_list_dimension = fetch_full_dimensions()
             genome_tracker = current_tracker
