@@ -16,12 +16,11 @@ limitations under the License.
 ==============================================================================
 """
 import zmq
-import json
+import time
 import socket
 import pickle
 import asyncio
 import requests
-import threading
 import lz4.frame
 import traceback
 import websockets
@@ -34,6 +33,7 @@ global_feagi_opu_channel = ''  # Updated by feagi.connect_to_feagi()
 global_api_address = ''  # Updated by feagi.connect_to_feagi
 global_websocket_address = ''  # Just a full address stored
 websocket = ''  # It will be an object to store
+msg_counter = 0 # for SeqID in feagi data aka message_to_feagi
 
 
 def app_host_info():
