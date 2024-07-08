@@ -33,7 +33,12 @@
             },
             "threshold_default": [0, 255],
             "percentage_to_allow_data": 1.0
-        }
+        },
+        "gyro": {
+                "gyro_columns": [0, 3],
+                "gyro_max_value_list": [],
+                "gyro_min_value_list": []
+            }
     }
 }
 

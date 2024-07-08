@@ -72,40 +72,45 @@ def godot_to_feagi():
                 zmq_queue.clear()
                 zmq_queue.append(stored_value)
             message = zmq_queue[0]
-            obtain_list = list(message)
+            obtain_list = zlib.decompress(message)
             if len(obtain_list) == 1:
                 zmq_queue.pop()
-                gyro['gyro']['0'] = obtain_list[0] - 90
-                gyro['gyro']['1'] = 0
-                gyro['gyro']['2'] = 0
+                print(obtain_list)
+                # gyro['gyro']['0'] = obtain_list[0] - 90
+                # gyro['gyro']['1'] = 0
+                # gyro['gyro']['2'] = 0
+        #     else:
+        #         message = zlib.decompress(message)
+        #         string_array = array.array('B', message)
+        #         try:
+        #             total = len(string_array) - (capabilities['camera']['current_select'][0][0] *
+        #                                          capabilities['camera']['current_select'][0][1] * 3)
+        #             last_eight_elements = list(string_array[len(string_array) - total:])
+        #             ascii_string = ''.join(chr(value) for value in last_eight_elements)
+        #             values = [float(val) for val in ascii_string.split("/")]
+        #             if acc:  # This is defined in main. It's a dict
+        #                 acc['accelerator'] = values
+        #             string_array = string_array[:-total]
+        #         except Exception as error:
+        #             acc['accelerator'].clear()
+        #         # Debug ends
+        #         # if len(string_array) == (capabilities['camera']['current_select'][0][0] * capabilities[
+        #         #     'camera']['current_select'][0][1] * 3):
+        #         new_cam = np.array(string_array)
+        #         new_cam = new_cam.astype(np.uint8)
+        #         if len(new_cam) == 49152:
+        #             image = new_cam.reshape(128, 128, 3)
+        #         if len(new_cam) == 3072:
+        #             image = new_cam.reshape(32, 32, 3)
+        #         if len(new_cam) == 1228800:
+        #             image = new_cam.reshape(640, 640, 3)
+        #         camera_data['vision'] = image
+        # if "stimulation_period" in runtime_data:
+        #     sleep(runtime_data["stimulation_period"])
             else:
-                message = zlib.decompress(message)
-                string_array = array.array('B', message)
-                try:
-                    total = len(string_array) - (capabilities['camera']['current_select'][0][0] *
-                                                 capabilities['camera']['current_select'][0][1] * 3)
-                    last_eight_elements = list(string_array[len(string_array) - total:])
-                    ascii_string = ''.join(chr(value) for value in last_eight_elements)
-                    values = [float(val) for val in ascii_string.split("/")]
-                    if acc:  # This is defined in main. It's a dict
-                        acc['accelerator'] = values
-                    string_array = string_array[:-total]
-                except Exception as error:
-                    acc['accelerator'].clear()
-                # Debug ends
-                # if len(string_array) == (capabilities['camera']['current_select'][0][0] * capabilities[
-                #     'camera']['current_select'][0][1] * 3):
-                new_cam = np.array(string_array)
-                new_cam = new_cam.astype(np.uint8)
-                if len(new_cam) == 49152:
-                    image = new_cam.reshape(128, 128, 3)
-                if len(new_cam) == 3072:
-                    image = new_cam.reshape(32, 32, 3)
-                if len(new_cam) == 1228800:
-                    image = new_cam.reshape(640, 640, 3)
-                camera_data['vision'] = image
-        if "stimulation_period" in runtime_data:
-            sleep(runtime_data["stimulation_period"])
+                new_data = json.loads(obtain_list)
+                if 'gyro' in new_data:
+                    gyro['gyro'] = new_data['gyro']
 
 
 async def bridge_to_godot():
@@ -198,8 +203,7 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, mes
     default_capabilities = pns.create_runtime_default_list(default_capabilities, capabilities)
     threading.Thread(target=pns.feagi_listener, args=(feagi_opu_channel,), daemon=True).start()
     threading.Thread(target=retina.vision_progress,
-                     args=(default_capabilities, feagi_opu_channel, api_address, feagi_settings,
-                           camera_data['vision'],), daemon=True).start()
+                     args=(default_capabilities, feagi_opu_channel, camera_data['vision'],), daemon=True).start()
     while True:
         # Decompression section starts
         message_from_feagi = pns.message_from_feagi
@@ -236,13 +240,24 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, mes
             print("ERROR: ", ERROR)
             message_to_feagi["data"]["sensory_data"]['accelerator'] = {}
         # End accelerator section
-        message_to_feagi = sensors.add_gyro_to_feagi_data(gyro['gyro'], message_to_feagi)
+        if 'gyro' in gyro:
+            if gyro['gyro']:
+                message_to_feagi, capabilities['gyro']['gyro_max_value_list'], \
+                    capabilities['gyro']['gyro_min_value_list'] = sensors.create_data_for_feagi(
+                    cortical_id='i__gyr',
+                    robot_data=gyro['gyro'],
+                    maximum_range=capabilities['gyro']['gyro_max_value_list'],
+                    minimum_range=capabilities['gyro']['gyro_min_value_list'],
+                    enable_symmetric=True,
+                    coumns=capabilities['gyro']['gyro_columns'],
+                    message_to_feagi=message_to_feagi)
+            print(message_to_feagi)
         message_to_feagi = sensors.add_agent_status(connected_agents['0'], message_to_feagi,
                                                          agent_settings)
-        sleep(feagi_settings['feagi_burst_speed'])
+        sleep(feagi_settings)
         pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings, feagi_settings)
         message_to_feagi.clear()
-        gyro['gyro'].clear()
+        gyro.clear()
 
 
 if __name__ == '__main__':
@@ -265,7 +280,7 @@ if __name__ == '__main__':
     gyro = {}
     capabilities['camera']['current_select'] = [[32, 32], []]
     acc['accelerator'] = {}
-    gyro['gyro'] = {}
+    # gyro['gyro'] = []
     threading.Thread(target=websocket_operation, daemon=True).start()
     threading.Thread(target=bridge_operation, daemon=True).start()
     threading.Thread(target=godot_to_feagi, daemon=True).start()
