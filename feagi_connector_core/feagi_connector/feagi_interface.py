@@ -399,6 +399,8 @@ def configuration_load(path='./'):
     feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
     feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
     message_to_feagi = {"data": {}}
+    if 'description' in configuration:
+        pns.ver = configuration['description']
     f.close()
     return feagi_settings, agent_settings, capabilities, message_to_feagi, configuration
     # END JSON UPDATE
