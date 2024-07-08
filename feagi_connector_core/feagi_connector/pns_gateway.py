@@ -16,13 +16,12 @@ limitations under the License.
 ==============================================================================
 """
 
-from feagi_connector import feagi_interface as feagi
-from feagi_connector import retina
-from feagi_connector import router
-from time import sleep
-import requests
-import threading
+import time
 import asyncio
+import threading
+from feagi_connector import router
+from feagi_connector import retina
+from feagi_connector import feagi_interface as feagi
 
 # Variable storage #
 raw_aptr = -1
@@ -33,9 +32,10 @@ previous_genome_timestamp = 0
 genome_tracker = 0
 message_from_feagi = {}
 refresh_rate = 0.01
+ver = "local"
 
 
-def generate_feagi_data(rgb, msg_counter, date, message_to_feagi):
+def generate_feagi_data(rgb, message_to_feagi):
     """
     This function generates data for Feagi by combining RGB values, message counter, and date into
     the provided message.
@@ -49,8 +49,6 @@ def generate_feagi_data(rgb, msg_counter, date, message_to_feagi):
             message_to_feagi["data"]["sensory_data"]['camera'] = rgb['camera']
     except Exception as e:
         print("ERROR: ", e)
-    message_to_feagi['timestamp'] = date
-    message_to_feagi['counter'] = msg_counter
     return message_to_feagi
 
 
@@ -85,10 +83,15 @@ def signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings, feagi_
     """
     Sends data to FEAGI through the router.py
     """
+    message_to_feagi['ver'] = ver
+    message_to_feagi['sent_by_rounter'] = time.time()
+    message_to_feagi['seqID'] = router.msg_counter
     if 'magic_link' not in feagi_settings:
         router.send_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
     else:
         router.websocket_send(message_to_feagi)
+    router.msg_counter += 1
+    print(message_to_feagi)
 
 
 def grab_geometry():
