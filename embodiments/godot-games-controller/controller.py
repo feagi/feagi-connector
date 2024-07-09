@@ -62,6 +62,7 @@ async def echo(websocket):
             # print("ERROR!: ", error)
             # traceback.print_exc()
     connected_agents['0'] = False # Once client disconnects, mark it as false
+    gyro.clear()
 
 
 def godot_to_feagi():
@@ -73,44 +74,27 @@ def godot_to_feagi():
                 zmq_queue.append(stored_value)
             message = zmq_queue[0]
             obtain_list = zlib.decompress(message)
-            if len(obtain_list) == 1:
-                zmq_queue.pop()
-                print(obtain_list)
-                # gyro['gyro']['0'] = obtain_list[0] - 90
-                # gyro['gyro']['1'] = 0
-                # gyro['gyro']['2'] = 0
-        #     else:
-        #         message = zlib.decompress(message)
-        #         string_array = array.array('B', message)
-        #         try:
-        #             total = len(string_array) - (capabilities['camera']['current_select'][0][0] *
-        #                                          capabilities['camera']['current_select'][0][1] * 3)
-        #             last_eight_elements = list(string_array[len(string_array) - total:])
-        #             ascii_string = ''.join(chr(value) for value in last_eight_elements)
-        #             values = [float(val) for val in ascii_string.split("/")]
-        #             if acc:  # This is defined in main. It's a dict
-        #                 acc['accelerator'] = values
-        #             string_array = string_array[:-total]
-        #         except Exception as error:
-        #             acc['accelerator'].clear()
-        #         # Debug ends
-        #         # if len(string_array) == (capabilities['camera']['current_select'][0][0] * capabilities[
-        #         #     'camera']['current_select'][0][1] * 3):
-        #         new_cam = np.array(string_array)
-        #         new_cam = new_cam.astype(np.uint8)
-        #         if len(new_cam) == 49152:
-        #             image = new_cam.reshape(128, 128, 3)
-        #         if len(new_cam) == 3072:
-        #             image = new_cam.reshape(32, 32, 3)
-        #         if len(new_cam) == 1228800:
-        #             image = new_cam.reshape(640, 640, 3)
-        #         camera_data['vision'] = image
-        # if "stimulation_period" in runtime_data:
-        #     sleep(runtime_data["stimulation_period"])
-            else:
-                new_data = json.loads(obtain_list)
-                if 'gyro' in new_data:
-                    gyro['gyro'] = new_data['gyro']
+            new_data = json.loads(obtain_list)
+            if 'gyro' in new_data:
+                gyro['gyro'] = new_data['gyro']
+            if 'vision' in new_data:
+                string_array = new_data['vision']
+                new_cam = np.array(string_array)
+                new_cam = new_cam.astype(np.uint8)
+                if len(new_cam) == 49152:
+                    image = new_cam.reshape(128, 128, 3)
+                if len(new_cam) == 3072:
+                    image = new_cam.reshape(32, 32, 3)
+                if len(new_cam) == 1228800:
+                    image = new_cam.reshape(640, 640, 3)
+                camera_data['vision'] = image
+            if 'acceleration' in new_data:
+                acc['accelerator'] = new_data['acceleration']
+            if 'proximity' in new_data:
+                prox['proximity'] = new_data['proximity']
+            zmq_queue.pop()
+        if "stimulation_period" in runtime_data:
+            sleep(runtime_data["stimulation_period"])
 
 
 async def bridge_to_godot():
@@ -177,7 +161,6 @@ def action(obtained_data):
 
 def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, message_to_feagi):
     global runtime_data
-    previous_data_frame = {}
     feagi_flag = False
     print("retrying...")
     print("Waiting on FEAGI...")
@@ -201,9 +184,7 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, mes
     default_capabilities = {}  # It will be generated in process_visual_stimuli. See the
     # overwrite manual
     default_capabilities = pns.create_runtime_default_list(default_capabilities, capabilities)
-    threading.Thread(target=pns.feagi_listener, args=(feagi_opu_channel,), daemon=True).start()
-    threading.Thread(target=retina.vision_progress,
-                     args=(default_capabilities, feagi_opu_channel, camera_data['vision'],), daemon=True).start()
+    threading.Thread(target=retina.vision_progress, args=(default_capabilities,feagi_settings, camera_data['vision'],), daemon=True).start()
     while True:
         # Decompression section starts
         message_from_feagi = pns.message_from_feagi
@@ -225,21 +206,18 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, mes
             message_to_feagi = pns.generate_feagi_data(rgb, message_to_feagi)
 
         # Add accelerator section
-        try:
+
+        if 'acceleration' in acc:
             if acc['accelerator']:
-                runtime_data['accelerator']['0'] = acc['accelerator'][0]
-                runtime_data['accelerator']['1'] = acc['accelerator'][1]
-                runtime_data['accelerator']['2'] = acc['accelerator'][2]
-                if "data" not in message_to_feagi:
-                    message_to_feagi["data"] = {}
-                if "sensory_data" not in message_to_feagi["data"]:
-                    message_to_feagi["data"]["sensory_data"] = {}
-                message_to_feagi["data"]["sensory_data"]['accelerator'] = runtime_data[
-                    'accelerator']
-        except Exception as ERROR:
-            print("ERROR: ", ERROR)
-            message_to_feagi["data"]["sensory_data"]['accelerator'] = {}
-        # End accelerator section
+                message_to_feagi, capabilities['acceleration']['acceleration_max_value_list'], \
+                capabilities['acceleration']['acceleration_min_value_list'] = sensors.create_data_for_feagi(
+                    cortical_id='i__acc',
+                    robot_data=acc['accelerator'],
+                    maximum_range=capabilities['acceleration']['acceleration_max_value_list'],
+                    minimum_range=capabilities['acceleration']['acceleration_min_value_list'],
+                    enable_symmetric=True,
+                    coumns=capabilities['acceleration']['acceleration_columns'],
+                    message_to_feagi=message_to_feagi)
         if 'gyro' in gyro:
             if gyro['gyro']:
                 message_to_feagi, capabilities['gyro']['gyro_max_value_list'], \
@@ -251,13 +229,22 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, mes
                     enable_symmetric=True,
                     coumns=capabilities['gyro']['gyro_columns'],
                     message_to_feagi=message_to_feagi)
-            print(message_to_feagi)
-        message_to_feagi = sensors.add_agent_status(connected_agents['0'], message_to_feagi,
-                                                         agent_settings)
-        sleep(feagi_settings)
+        if 'proximity' in prox:
+            if prox['proximity']:
+                message_to_feagi, capabilities['proximity']['proximity_max_value_list'], \
+                    capabilities['proximity']['proximity_min_value_list'] = sensors.create_data_for_feagi(
+                    cortical_id='i__pro',
+                    robot_data=prox['proximity'],
+                    maximum_range=capabilities['proximity']['proximity_max_value_list'],
+                    minimum_range=capabilities['proximity']['proximity_min_value_list'],
+                    enable_symmetric=True,
+                    coumns=capabilities['proximity']['proximity_columns'],
+                    message_to_feagi=message_to_feagi,
+                    has_range=True)
+        message_to_feagi = sensors.add_agent_status(connected_agents['0'], message_to_feagi, agent_settings)
         pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings, feagi_settings)
+        sleep(feagi_settings['feagi_burst_speed'])
         message_to_feagi.clear()
-        gyro.clear()
 
 
 if __name__ == '__main__':
@@ -278,8 +265,10 @@ if __name__ == '__main__':
     ws_operation = deque()
     acc = {}
     gyro = {}
+    prox = {}
     capabilities['camera']['current_select'] = [[32, 32], []]
     acc['accelerator'] = {}
+    prox['proximity'] = {}
     # gyro['gyro'] = []
     threading.Thread(target=websocket_operation, daemon=True).start()
     threading.Thread(target=bridge_operation, daemon=True).start()
