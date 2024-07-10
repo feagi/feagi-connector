@@ -123,13 +123,13 @@ def convert_ir_to_ipu_data(obtain_ir_list_from_robot, count, message_to_feagi):
     return message_to_feagi
 
 
-def create_data_for_feagi(cortical_id='', robot_data=[], maximum_range=[], minimum_range=[], enable_symmetric=False, coumns=[], message_to_feagi={}, has_range=False):
+def create_data_for_feagi(cortical_id='', robot_data=[], maximum_range=[], minimum_range=[], enable_symmetric=False, columns=[], message_to_feagi={}, has_range=False):
 
     create_data_list = dict()
     create_data_list[cortical_id] = dict()
-    start_point = coumns[0]
+    start_point = columns[0]
 
-    for device_id in range(coumns[0], coumns[1]):
+    for device_id in range(columns[0], columns[1]+1):
         increment = device_id - start_point
         if not has_range:
             maximum_range, minimum_range = (measuring_max_and_min_range(robot_data[increment],

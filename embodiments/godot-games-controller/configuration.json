@@ -35,17 +35,17 @@
             "percentage_to_allow_data": 1.0
         },
         "gyro": {
-                "gyro_columns": [0, 3],
+                "gyro_sub_channels": [0, 2],
                 "gyro_max_value_list": [],
                 "gyro_min_value_list": []
         },
         "acceleration": {
-                "acceleration_columns": [3, 6],
+                "acceleration_sub_channels": [0, 2],
                 "acceleration_max_value_list": [],
                 "acceleration_min_value_list": []
         },
         "proximity": {
-                "proximity_columns": [0, 3],
+                "proximity_sub_channels": [0, 2],
                 "proximity_max_value_list": [0.5, 0.5, 0.5],
                 "proximity_min_value_list": [-0.5, -0.5, -0.5]
         }

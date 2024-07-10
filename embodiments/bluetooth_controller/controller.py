@@ -359,14 +359,14 @@ if __name__ == "__main__":
                     elif "petoi" in current_device['name']:
                         petoi_action(obtained_signals)
             # OPU section ENDS
-            if microbit_data['ultrasonic']:
-                message_to_feagi, capabilities['ultrasonic']['microbit']['ultrasonic_max_distance'], capabilities['ultrasonic']['microbit']['ultrasonic_min_distance'] = sensors.create_data_for_feagi(cortical_id='i__pro',
-                                                                                                           robot_data=microbit_data['ultrasonic'],
-                                                                                                           maximum_range=capabilities['ultrasonic']['microbit']['ultrasonic_max_distance'],
-                                                                                                           minimum_range=capabilities['ultrasonic']['microbit']['ultrasonic_min_distance'],
-                                                                                                           enable_symmetric=False,
-                                                                                                           coumns=capabilities['ultrasonic']['microbit']['ultrasonic_coumns'],
-                                                                                                           message_to_feagi=message_to_feagi)
+            # if microbit_data['ultrasonic']:
+                # message_to_feagi, capabilities['ultrasonic']['microbit']['ultrasonic_max_distance'], capabilities['ultrasonic']['microbit']['ultrasonic_min_distance'] = sensors.create_data_for_feagi(cortical_id='i__pro',
+                #                                                                                            robot_data=microbit_data['ultrasonic'],
+                #                                                                                            maximum_range=capabilities['ultrasonic']['microbit']['ultrasonic_max_distance'],
+                #                                                                                            minimum_range=capabilities['ultrasonic']['microbit']['ultrasonic_min_distance'],
+                #                                                                                            enable_symmetric=False,
+                #                                                                                            columns=capabilities['ultrasonic']['microbit']['ultrasonic_sub_channels'],
+                #                                                                                            message_to_feagi=message_to_feagi)
 
             if microbit_data['acceleration']:
                 # The IR will need to turn the inverse IR on if it doesn't detect. This would confuse humans when
@@ -385,7 +385,7 @@ if __name__ == "__main__":
                                                                                                            maximum_range=capabilities['acceleration']['microbit']['acceleration_max_value_list'],
                                                                                                            minimum_range=capabilities['acceleration']['microbit']['acceleration_min_value_list'],
                                                                                                            enable_symmetric=True,
-                                                                                                           coumns=capabilities['acceleration']['microbit']['acceleration_columns'],
+                                                                                                           columns=capabilities['acceleration']['microbit']['acceleration_sub_channels'],
                                                                                                            message_to_feagi=message_to_feagi)
 
             if gyro:
@@ -399,7 +399,7 @@ if __name__ == "__main__":
                     #                                                                    maximum_range=capabilities['eeg']['muse']['bci_max_value_list'],
                     #                                                                    minimum_range=capabilities['eeg']['muse']['bci_min_value_list'],
                     #                                                                    enable_symmetric=True,
-                    #                                                                    coumns=capabilities['eeg']['muse']['bci_columns'],
+                    #                                                                    columns=capabilities['eeg']['muse']['bci_sub_channels'],
                     #                                                                    message_to_feagi=message_to_feagi)
                     convert_eeg_to_ipu = dict()
                     create_analog_data_list = dict()
@@ -423,7 +423,7 @@ if __name__ == "__main__":
                                                                                        maximum_range=capabilities['acceleration']['muse']['acceleration_max_value_list'],
                                                                                        minimum_range=capabilities['acceleration']['muse']['acceleration_min_value_list'],
                                                                                        enable_symmetric=True,
-                                                                                       coumns=capabilities['acceleration']['muse']['acceleration_columns'],
+                                                                                       columns=capabilities['acceleration']['muse']['acceleration_sub_channels'],
                                                                                        message_to_feagi=message_to_feagi)
                 if 'telemetry' in muse_data:
                     message_to_feagi, capabilities['battery']['muse']['battery_max_value_list'], \
@@ -432,7 +432,7 @@ if __name__ == "__main__":
                                                                                        maximum_range=capabilities['battery']['muse']['battery_max_value_list'],
                                                                                        minimum_range=capabilities['battery']['muse']['battery_min_value_list'],
                                                                                        enable_symmetric=False,
-                                                                                       coumns=capabilities['battery']['muse']['battery_coumns'],
+                                                                                       columns=capabilities['battery']['muse']['battery_sub_channels'],
                                                                                        message_to_feagi=message_to_feagi,
                                                                                        has_range=True)
 
