@@ -85,22 +85,22 @@ def convert_sensor_to_ipu_data(min_output, max_output, raw_data, device_id, cort
     return None
 
 
-def measuring_max_and_min_range(current_data, device_id, max_value_list, min_value_list):
+def measuring_max_and_min_range(current_data, position, max_value_list, min_value_list):
     """
     This function is useful if you don't know the range of maximum and minimum values for a sensor.
     It will measure and update the maximum and minimum values over time.
     """
-    if device_id < len(max_value_list):
-        if not max_value_list[device_id]:
+    if position < len(max_value_list):
+        if not max_value_list[position]:
             max_value_list.append(1)
             min_value_list.append(0)
     else:
         max_value_list.append(1)
         min_value_list.append(0)
-    if current_data > max_value_list[device_id]:
-        max_value_list[device_id] = current_data
-    if current_data < min_value_list[device_id]:
-        min_value_list[device_id] = current_data
+    if current_data > max_value_list[position]:
+        max_value_list[position] = current_data
+    if current_data < min_value_list[position]:
+        min_value_list[position] = current_data
     return max_value_list, min_value_list
 
 
@@ -123,25 +123,28 @@ def convert_ir_to_ipu_data(obtain_ir_list_from_robot, count, message_to_feagi):
     return message_to_feagi
 
 
-def create_data_for_feagi(cortical_id='', robot_data=[], maximum_range=[], minimum_range=[], enable_symmetric=False, columns=[], message_to_feagi={}, has_range=False):
+def create_data_for_feagi(cortical_id='', robot_data=[], maximum_range=[], minimum_range=[], enable_symmetric=False, index=1, count=1, message_to_feagi={}, has_range=False):
 
     create_data_list = dict()
     create_data_list[cortical_id] = dict()
-    start_point = columns[0]
-
-    for device_id in range(columns[0], columns[1]+1):
-        increment = device_id - start_point
+    if index == 0:
+        index = 1
+    start_point = (index * count) - count
+    feagi_data_position = start_point
+    for position in range(count):
+        new_feagi_data_position = position + feagi_data_position
+        print("NEW DATA: ", new_feagi_data_position)
         if not has_range:
-            maximum_range, minimum_range = (measuring_max_and_min_range(robot_data[increment],
-                                                                        increment,
+            maximum_range, minimum_range = (measuring_max_and_min_range(robot_data[position],
+                                                                        position,
                                                                         maximum_range,
                                                                         minimum_range))
         try:
             position_of_analog = convert_sensor_to_ipu_data(
-                minimum_range[increment],
-                maximum_range[increment],
-                robot_data[increment],
-                device_id,
+                minimum_range[position],
+                maximum_range[position],
+                robot_data[position],
+                new_feagi_data_position,
                 cortical_id=cortical_id,
                 symmetric=enable_symmetric)
             create_data_list[cortical_id][position_of_analog] = 100
@@ -150,7 +153,7 @@ def create_data_for_feagi(cortical_id='', robot_data=[], maximum_range=[], minim
             # print(f"Caught an unexpected exception: {e}")
             # print(f"Exception type: {type(e).__name__}")
             # traceback.print_exc()
-            # print("increment: ", increment, " and robot data: ", robot_data)
+            # print("position: ", position, " and robot data: ", robot_data)
     if create_data_list[cortical_id]:
         message_to_feagi = add_generic_input_to_feagi_data(create_data_list, message_to_feagi)
         return message_to_feagi, maximum_range, minimum_range

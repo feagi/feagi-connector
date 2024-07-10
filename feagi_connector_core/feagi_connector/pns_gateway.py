@@ -429,8 +429,8 @@ def create_runtime_default_list(list, capabilities):
                 "vision_range": [1, 99],  # min, max
                 "size_list": [],  # To get the size in real time based on genome's change/update
                 "enhancement": {},  # Enable ov_enh OPU on inside the genome
-                "percentage_to_allow_data": 1.0  # this will be percentage for the full data.
-                # Currently set to 0.5 to allow data go through otherwise discard it fully.
+                "percentage_to_allow_data": 1.0,  # this will be percentage for the full data.
+                "vision_sub_channels": [0]
             }
         }
         camera_config_update(list, capabilities)
@@ -442,6 +442,7 @@ def camera_config_update(list, capabilities):
     Update the capabilities to overwrite the default generated capabilities.
     """
     if 'camera' in capabilities:
+        print("CONFIG UPDATED!!")
         if 'eccentricity_control' in capabilities['camera']:
             list['camera']['eccentricity_control'] = capabilities['camera']['eccentricity_control']
         if 'modulation_control' in capabilities['camera']:
@@ -453,8 +454,9 @@ def camera_config_update(list, capabilities):
         if "threshold_default" in capabilities['camera']:
             list['camera']['threshold_default'] = capabilities['camera']['threshold_default']
         if "percentage_to_allow_data" in capabilities['camera']:
-            list['camera']['percentage_to_allow_data'] = capabilities['camera'][
-                'percentage_to_allow_data']
+            list['camera']['percentage_to_allow_data'] = capabilities['camera']['percentage_to_allow_data']
+        if "vision_sub_channels" in capabilities['camera']:
+            list['camera']['vision_sub_channels'] = capabilities['camera']['vision_sub_channels']
 
 
 def feagi_listener(feagi_opu_channel):

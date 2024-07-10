@@ -373,9 +373,9 @@ if __name__ == "__main__":
                 # cutebot is not on. So the solution is to put this under the acceleration. It is under acceleration
                 # because without acceleration, the micro:bit is not on. This leverages the advantage to detect if it
                 # is still on.
-                message_to_feagi = sensors.convert_ir_to_ipu_data(microbit_data['ir'],
-                                                                              capabilities['infrared']['count'],
-                                                                              message_to_feagi)
+                # message_to_feagi = sensors.convert_ir_to_ipu_data(microbit_data['ir'],
+                #                                                               capabilities['infrared']['count'],
+                #                                                               message_to_feagi)
 
                 # End of IR section
 
@@ -385,7 +385,8 @@ if __name__ == "__main__":
                                                                                                            maximum_range=capabilities['acceleration']['microbit']['acceleration_max_value_list'],
                                                                                                            minimum_range=capabilities['acceleration']['microbit']['acceleration_min_value_list'],
                                                                                                            enable_symmetric=True,
-                                                                                                           columns=capabilities['acceleration']['microbit']['acceleration_sub_channels'],
+                                                                                                           index=capabilities['acceleration']['microbit']['accelerator_dev_index'],
+                                                                                                           count=capabilities['acceleration']['microbit']['acceleration_sub_channel_count'],
                                                                                                            message_to_feagi=message_to_feagi)
 
             if gyro:
