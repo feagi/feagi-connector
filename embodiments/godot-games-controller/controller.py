@@ -216,7 +216,8 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, mes
                     maximum_range=capabilities['acceleration']['acceleration_max_value_list'],
                     minimum_range=capabilities['acceleration']['acceleration_min_value_list'],
                     enable_symmetric=True,
-                    columns=capabilities['acceleration']['acceleration_sub_channels'],
+                    index=capabilities['acceleration']['dev_index'],
+                    count=capabilities['acceleration']['sub_channel_count'],
                     message_to_feagi=message_to_feagi)
         if 'gyro' in gyro:
             if gyro['gyro']:
@@ -227,7 +228,8 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, mes
                     maximum_range=capabilities['gyro']['gyro_max_value_list'],
                     minimum_range=capabilities['gyro']['gyro_min_value_list'],
                     enable_symmetric=True,
-                    columns=capabilities['gyro']['gyro_sub_channels'],
+                    index=capabilities['gyro']['dev_index'],
+                    count=capabilities['gyro']['sub_channel_count'],
                     message_to_feagi=message_to_feagi)
         if 'proximity' in prox:
             if prox['proximity']:
@@ -238,7 +240,8 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, mes
                     maximum_range=capabilities['proximity']['proximity_max_value_list'],
                     minimum_range=capabilities['proximity']['proximity_min_value_list'],
                     enable_symmetric=True,
-                    columns=capabilities['proximity']['proximity_sub_channels'],
+                    index=capabilities['proximity']['dev_index'],
+                    count=capabilities['proximity']['sub_channel_count'],
                     message_to_feagi=message_to_feagi,
                     has_range=True)
         message_to_feagi = sensors.add_agent_status(connected_agents['0'], message_to_feagi, agent_settings)
