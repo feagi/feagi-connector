@@ -27,6 +27,7 @@ from feagi_connector import feagi_interface as feagi
 raw_aptr = -1
 global_ID_cortical_size = None
 full_list_dimension = []
+full_template_information_corticals = []
 resize_list = {}
 previous_genome_timestamp = 0
 genome_tracker = 0
@@ -274,18 +275,27 @@ def fetch_full_dimensions():
     """
     return router.fetch_geometry()
 
+def fetch_full_template_information():
+    """
+    List of the full size and names of every cortical area. It does not include properties such as
+    neurons or details.
+    """
+    return router.fetch_template()
+
 
 def check_genome_status(message_from_feagi, capabilities):
     """
     Verify if full_list_dimension is empty, size list for vision is empty, if genome has been
     changed, or genome modified in real time.
     """
-    global previous_genome_timestamp, genome_tracker, full_list_dimension, resize_list
+    global previous_genome_timestamp, genome_tracker, full_list_dimension, resize_list, full_template_information_corticals
     if message_from_feagi['genome_changed'] is not None:
         if full_list_dimension is None:
             full_list_dimension = []
         if len(full_list_dimension) == 0:
             full_list_dimension = fetch_full_dimensions()
+        if len(full_template_information_corticals) == 0:
+            full_template_information_corticals = fetch_full_template_information()
         genome_changed = detect_genome_change(message_from_feagi)
         if genome_changed != previous_genome_timestamp:
             full_list_dimension = fetch_full_dimensions()
@@ -430,33 +440,29 @@ def create_runtime_default_list(list, capabilities):
                 "size_list": [],  # To get the size in real time based on genome's change/update
                 "enhancement": {},  # Enable ov_enh OPU on inside the genome
                 "percentage_to_allow_data": 1.0,  # this will be percentage for the full data.
-                "vision_sub_channels": [0]
             }
         }
-        camera_config_update(list, capabilities)
+        list = camera_config_update(list, capabilities)
     return list
 
+
+def update_dict(d, u):
+    for k, v in u.items():
+        if isinstance(v, dict):
+            d[k] = update_dict(d.get(k, {}), v)
+        else:
+            d[k] = v
+    return d
 
 def camera_config_update(list, capabilities):
     """
     Update the capabilities to overwrite the default generated capabilities.
     """
+
     if 'camera' in capabilities:
-        print("CONFIG UPDATED!!")
-        if 'eccentricity_control' in capabilities['camera']:
-            list['camera']['eccentricity_control'] = capabilities['camera']['eccentricity_control']
-        if 'modulation_control' in capabilities['camera']:
-            list['camera']['modulation_control'] = capabilities['camera']['modulation_control']
-        if "enhancement" in capabilities['camera']:
-            list['camera']['enhancement'] = capabilities['camera']['enhancement']
-        if "mirror" in capabilities['camera']:
-            list['camera']['mirror'] = capabilities['camera']['mirror']
-        if "threshold_default" in capabilities['camera']:
-            list['camera']['threshold_default'] = capabilities['camera']['threshold_default']
-        if "percentage_to_allow_data" in capabilities['camera']:
-            list['camera']['percentage_to_allow_data'] = capabilities['camera']['percentage_to_allow_data']
-        if "vision_sub_channels" in capabilities['camera']:
-            list['camera']['vision_sub_channels'] = capabilities['camera']['vision_sub_channels']
+        list = update_dict(list, capabilities)
+    return list
+
 
 
 def feagi_listener(feagi_opu_channel):
