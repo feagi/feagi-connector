@@ -159,6 +159,14 @@ def fetch_geometry():
         return []
 
 
+def fetch_template():
+    try:
+        list_template = requests.get(global_api_address + '/v1/system/cortical_area_types').json()
+        return list_template
+    except Exception as e:
+        print("e: ", e)
+        return []
+
 def feagi_settings_from_composer(feagi_auth_url, feagi_settings):
     """
     Generate all needed information and return the full data to make it easier to connect with
