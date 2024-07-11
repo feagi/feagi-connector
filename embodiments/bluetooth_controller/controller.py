@@ -359,23 +359,23 @@ if __name__ == "__main__":
                     elif "petoi" in current_device['name']:
                         petoi_action(obtained_signals)
             # OPU section ENDS
-            # if microbit_data['ultrasonic']:
-                # message_to_feagi, capabilities['ultrasonic']['microbit']['ultrasonic_max_distance'], capabilities['ultrasonic']['microbit']['ultrasonic_min_distance'] = sensors.create_data_for_feagi(cortical_id='i__pro',
-                #                                                                                            robot_data=microbit_data['ultrasonic'],
-                #                                                                                            maximum_range=capabilities['ultrasonic']['microbit']['ultrasonic_max_distance'],
-                #                                                                                            minimum_range=capabilities['ultrasonic']['microbit']['ultrasonic_min_distance'],
-                #                                                                                            enable_symmetric=False,
-                #                                                                                            columns=capabilities['ultrasonic']['microbit']['ultrasonic_sub_channels'],
-                #                                                                                            message_to_feagi=message_to_feagi)
-
+            if microbit_data['ultrasonic']:
+                message_to_feagi, capabilities['ultrasonic']['microbit']['ultrasonic_max_distance'], capabilities['ultrasonic']['microbit']['ultrasonic_min_distance'] = sensors.create_data_for_feagi(cortical_id='i__pro',
+                                                                                                           robot_data=microbit_data['ultrasonic'],
+                                                                                                           maximum_range=capabilities['ultrasonic']['microbit']['ultrasonic_max_distance'],
+                                                                                                           minimum_range=capabilities['ultrasonic']['microbit']['ultrasonic_min_distance'],
+                                                                                                           enable_symmetric=False,
+                                                                                                           index=capabilities['ultrasonic']['microbit']['ultrasonic_dev_index'],
+                                                                                                           count=capabilities['ultrasonic']['microbit']['ultrasonic_sub_channel_count'],
+                                                                                                                                                                                                       message_to_feagi=message_to_feagi)
             if microbit_data['acceleration']:
                 # The IR will need to turn the inverse IR on if it doesn't detect. This would confuse humans when
                 # cutebot is not on. So the solution is to put this under the acceleration. It is under acceleration
                 # because without acceleration, the micro:bit is not on. This leverages the advantage to detect if it
                 # is still on.
-                # message_to_feagi = sensors.convert_ir_to_ipu_data(microbit_data['ir'],
-                #                                                               capabilities['infrared']['count'],
-                #                                                               message_to_feagi)
+                message_to_feagi = sensors.convert_ir_to_ipu_data(microbit_data['ir'],
+                                                                              capabilities['infrared']['count'],
+                                                                              message_to_feagi)
 
                 # End of IR section
 
@@ -424,8 +424,9 @@ if __name__ == "__main__":
                                                                                        maximum_range=capabilities['acceleration']['muse']['acceleration_max_value_list'],
                                                                                        minimum_range=capabilities['acceleration']['muse']['acceleration_min_value_list'],
                                                                                        enable_symmetric=True,
-                                                                                       columns=capabilities['acceleration']['muse']['acceleration_sub_channels'],
-                                                                                       message_to_feagi=message_to_feagi)
+                                                                                       index=capabilities['acceleration']['muse']['accelerator_dev_index'],
+                                                                                       count=capabilities['acceleration']['muse']['acceleration_sub_channel_count'],
+                                                                                        message_to_feagi=message_to_feagi)
                 if 'telemetry' in muse_data:
                     message_to_feagi, capabilities['battery']['muse']['battery_max_value_list'], \
                     capabilities['battery']['muse']['battery_min_value_list'] = sensors.create_data_for_feagi(cortical_id='i__bat',

@@ -35,33 +35,37 @@
         "acceleration": {
             "microbit": {
                 "acceleration_sub_channel_count": 3,
-                "accelerator_dev_index": 1,
+                "accelerator_dev_index": 0,
                 "acceleration_max_value_list": [],
                 "acceleration_min_value_list": []
             },
             "muse": {
-                "acceleration_sub_channels": [3,12],
+                "acceleration_sub_channel_count": 9,
+                "accelerator_dev_index": 1,
                 "acceleration_max_value_list": [],
                 "acceleration_min_value_list": []
             }
         },
         "eeg": {
             "muse": {
-                "bci_sub_channels": [0, 5],
+                "egg_sub_channel_count": 4,
+                "egg_dev_index": 0,
                 "bci_max_value_list": [],
                 "bci_min_value_list": []
             }
         },
         "battery": {
             "muse": {
-                "battery_sub_channels": [0,1],
+                "battery_sub_channel_count": 1,
+                "battery_dev_index": 0,
                 "battery_max_value_list": [100],
                 "battery_min_value_list": [0]
             }
         },
         "ultrasonic": {
             "microbit": {
-                "ultrasonic_sub_channels": [0,2],
+                "ultrasonic_sub_channel_count": 1,
+                "ultrasonic_dev_index": 0,
                 "ultrasonic_min_distance": [],
                 "ultrasonic_max_distance": []
             }

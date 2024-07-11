@@ -127,13 +127,10 @@ def create_data_for_feagi(cortical_id='', robot_data=[], maximum_range=[], minim
 
     create_data_list = dict()
     create_data_list[cortical_id] = dict()
-    if index == 0:
-        index = 1
-    start_point = (index * count) - count
+    start_point = (index * count)
     feagi_data_position = start_point
     for position in range(count):
         new_feagi_data_position = position + feagi_data_position
-        print("NEW DATA: ", new_feagi_data_position)
         if not has_range:
             maximum_range, minimum_range = (measuring_max_and_min_range(robot_data[position],
                                                                         position,
