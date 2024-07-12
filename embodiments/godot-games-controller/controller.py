@@ -269,7 +269,6 @@ if __name__ == '__main__':
     acc = {}
     gyro = {}
     prox = {}
-    capabilities['camera']['current_select'] = [[32, 32], []]
     acc['accelerator'] = {}
     prox['proximity'] = {}
     # gyro['gyro'] = []

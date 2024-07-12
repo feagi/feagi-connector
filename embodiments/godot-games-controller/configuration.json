@@ -23,8 +23,7 @@
             "disabled": false,
             "index": "00",
             "mirror": false,
-            "size": [64, 64, 3],
-            "dev_index": 1,
+            "dev_index": 0,
             "eccentricity_control": {
                 "0": 1,
                 "1": 1
