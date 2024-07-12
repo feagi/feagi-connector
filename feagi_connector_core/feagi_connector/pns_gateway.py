@@ -439,7 +439,8 @@ def create_runtime_default_list(list, capabilities):
                 "vision_range": [1, 99],  # min, max
                 "size_list": [],  # To get the size in real time based on genome's change/update
                 "enhancement": {},  # Enable ov_enh OPU on inside the genome
-                "percentage_to_allow_data": 1.0,  # this will be percentage for the full data.
+                "percentage_to_allow_data": 1.0,  # this will be percentage for the full data.,
+                "dev_index": 0
             }
         }
         list = camera_config_update(list, capabilities)
