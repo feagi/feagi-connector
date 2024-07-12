@@ -174,7 +174,7 @@ def downsize_regions(frame, resize):
         try:
             compressed_dict = cv2.resize(frame, [int(resize[0]), int(resize[1])], interpolation=cv2.INTER_AREA)
         except Exception as e:
-            print("errrrror: ", e)
+            # print("error inside downsize_regions on retina.py: ", e)
             compressed_dict = np.zeros(resize, dtype=np.uint8)
             compressed_dict = update_astype(compressed_dict)
     if resize[2] == 1:
@@ -189,35 +189,37 @@ def downsize_regions(frame, resize):
     return compressed_dict
 
 
-def create_feagi_data(significant_changes, current, shape, capabilities):
+def create_feagi_data(significant_changes, current, shape, capabilities, cortical_name):
     # start_time = datetime.now()
     feagi_data = {}
     size_of_frame = shape
     index = capabilities['camera']['dev_index']
-    offset_x = (pns.full_template_information_corticals['IPU']['supported_devices']['iv00_C']['resolution'][0] * index)
-    # print('test: ', capabilities['camera']['vision_columns'][0])
-    # test_add = capabilities['camera']['vision_columns'][0] * 64
+    name = 'iv' + cortical_name
+    offset_x = (pns.full_template_information_corticals['IPU']['supported_devices'][name]['resolution'][0] * index)
     for x in range(size_of_frame[0]):
         for y in range(size_of_frame[1]):
             for z in range(size_of_frame[2]):
                 if significant_changes[x, y, z]:
-                    key = f'{offset_x + y}-{((int(size_of_frame[0]) - 1) - x)}-{z}' # toggle if this is on controller end
+                    key = f'{offset_x + y}-{((int(size_of_frame[0]) - 1) - x)}-{z}'
                     # key = f'{y}-{((int(size_of_frame[0]) - 1) - x)}-{z}'
                     feagi_data[key] = int(current[x, y, z])
-                    print(key)
     # print("C change_detector_optimized time total: ",
     #       (datetime.now() - start_time).total_seconds())
     return feagi_data
 
 
-def create_feagi_data_grayscale(significant_changes, current, shape):
+def create_feagi_data_grayscale(significant_changes, current, shape, capabilities, cortical_name):
     start_time = datetime.now()
     feagi_data = {}
     size_of_frame = shape
+    index = capabilities['camera']['dev_index']
+    name = 'iv' + cortical_name
+    offset_x = (pns.full_template_information_corticals['IPU']['supported_devices'][name]['resolution'][0] * index)
     for x in range(size_of_frame[0]):
         for y in range(size_of_frame[1]):
             if significant_changes[x, y]:
-                key = f'{y}-{(int(size_of_frame[0]) - 1) - x}-{0}'
+                key = f'{offset_x + y}-{((int(size_of_frame[0]) - 1) - x)}-{0}'
+                # key = f'{y}-{(int(size_of_frame[0]) - 1) - x}-{0}'
                 feagi_data[key] = int(current[x, y])
     return feagi_data
 
@@ -255,7 +257,7 @@ def change_detector_grayscale(previous, current, capabilities, compare_image, co
 
           # Convert to boolean array for significant changes
           significant_changes = thresholded > 0
-          feagi_data = create_feagi_data_grayscale(significant_changes, thresholded, previous.shape)
+          feagi_data = create_feagi_data_grayscale(significant_changes, thresholded, previous.shape, capabilities, cortical_name)
       else:
           return {}
       # print("grayscale change detect: ", (datetime.now() - start_time).total_seconds())
@@ -268,7 +270,7 @@ def change_detector_grayscale(previous, current, capabilities, compare_image, co
       else:
         return {}
     if drop_high_frequency_events(thresholded) <= (get_full_dimension_of_cortical_area(cortical_name) * capabilities['camera']['percentage_to_allow_data']):
-        feagi_data = create_feagi_data_grayscale(thresholded, current, previous.shape)
+        feagi_data = create_feagi_data_grayscale(thresholded, current, previous.shape, capabilities, cortical_name)
         return dict(feagi_data)
     else:
         return {}
@@ -310,7 +312,7 @@ def change_detector(previous, current, capabilities, compare_image, cortical_nam
           # Convert to boolean array for significant changes
           significant_changes = thresholded > 0
 
-          feagi_data = create_feagi_data(significant_changes, thresholded, previous.shape, capabilities)
+          feagi_data = create_feagi_data(significant_changes, thresholded, previous.shape, capabilities, cortical_name)
       else:
           return {}
     else:
@@ -325,7 +327,7 @@ def change_detector(previous, current, capabilities, compare_image, cortical_nam
         return {}
     # print("change detect: ", (datetime.now() - start_time).total_seconds())
     if drop_high_frequency_events(thresholded) <= (get_full_dimension_of_cortical_area(cortical_name) * capabilities['camera']['percentage_to_allow_data']):
-        feagi_data = create_feagi_data(thresholded, current, previous.shape, capabilities)
+        feagi_data = create_feagi_data(thresholded, current, previous.shape, capabilities, cortical_name)
         return dict(feagi_data)
     else:
         return {}
@@ -367,15 +369,17 @@ def process_visual_stimuli(raw_frame, capabilities, previous_frame_data, rgb, ac
             compressed_data = dict()
 
             for cortical in segmented_frame_data:
-                compressed_data[cortical] = effect(downsize_regions(segmented_frame_data[cortical], capabilities['camera']['size']), capabilities)
+                name = 'iv' + cortical
+                updated_size = [pns.full_template_information_corticals['IPU']['supported_devices'][name]['resolution'][0], pns.full_template_information_corticals['IPU']['supported_devices'][name]['resolution'][1], current_dimension_list[cortical][2]]
+                compressed_data[cortical] = effect(downsize_regions(segmented_frame_data[cortical], updated_size), capabilities)
                 if len(one_data_vision[cortical]) == 0: # update the newest data into empty one_data_vision
                     one_data_vision[cortical] = compressed_data[cortical]
                 else:
                     one_data_vision[cortical] = numpy.concatenate((one_data_vision[cortical], compressed_data[cortical]), axis=1)
                     if (len(raw_frame) - 1) == obtain_raw_data: # Reach to end of the list for camera
                         one_data_vision[cortical] = cv2.resize(one_data_vision[cortical],
-                                                               [capabilities['camera']['size'][0],
-                                                                capabilities['camera']['size'][1]],
+                                                               [pns.full_template_information_corticals['IPU']['supported_devices'][name]['resolution'][0],
+                                                                pns.full_template_information_corticals['IPU']['supported_devices'][name]['resolution'][1]],
                                                                interpolation=cv2.INTER_AREA)
 
         vision_dict = dict()
