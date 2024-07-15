@@ -399,6 +399,8 @@ def configuration_load(path='./'):
     feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
     feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
     message_to_feagi = {"data": {}}
+    if 'description' in configuration:
+        pns.ver = configuration['description']
     f.close()
     return feagi_settings, agent_settings, capabilities, message_to_feagi, configuration
     # END JSON UPDATE
@@ -453,3 +455,23 @@ def build_up_from_configuration(path="./"):
         "capabilities": capabilities
     }
 
+def map_value(val, min1, max1, min2, max2):
+    """ Performs linear transformation to map value from
+    range 1 [min1, max1] to a value in range 2 [min2, max2].
+
+    :param val: value (int/float) being mapped
+    :param min1: min of range 1
+    :param max1: max of range 1
+    :param min2: min of range 2
+    :param max2: max of range 2
+    :return: value mapped from range 1 to range 2
+    """
+    if val < min1:
+        return min2
+    if val > max1:
+        return max2
+
+    mapped_value = (val - min1) * ((max2 - min2) / (max1 - min1)) + min2
+
+    if max2 >= mapped_value >= min2:
+        return mapped_value
