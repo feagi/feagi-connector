@@ -38,6 +38,7 @@ ws_operation = deque()
 webcam_size = {'size': []}
 connected_agents = dict()  # Initalize
 connected_agents['0'] = False  # By default, it is not connected by client's websocket
+camera_data = {"vision": {}}
 
 
 async def bridge_to_godot(runtime_data):
@@ -128,7 +129,6 @@ if __name__ == "__main__":
     CHECKPOINT_TOTAL = 5
     rgb['camera'] = {}
     rgb_array['current'] = {}
-    camera_data = {"vision": {}}
     threading.Thread(target=websocket_operation, daemon=True).start()
     threading.Thread(target=bridge_operation, args=(runtime_data,), daemon=True).start()
     while True:
@@ -156,8 +156,8 @@ if __name__ == "__main__":
         default_capabilities = pns.create_runtime_default_list(default_capabilities, capabilities)
         threading.Thread(target=pns.feagi_listener, args=(feagi_opu_channel,), daemon=True).start()
         threading.Thread(target=retina.vision_progress,
-                         args=(default_capabilities, feagi_opu_channel, api_address, feagi_settings,
-                               camera_data['vision'],), daemon=True).start()
+                         args=(default_capabilities,
+                               feagi_settings, camera_data,), daemon=True).start()
         while True:
             try:
                 if np.any(rgb_array['current']):
@@ -167,8 +167,9 @@ if __name__ == "__main__":
                     raw_frame = retina.RGB_list_to_ndarray(rgb_array['current'],
                                                            webcam_size['size'])
                     raw_frame = retina.update_astype(raw_frame)
+                    camera_data["vision"] = raw_frame
                     if 'camera' in default_capabilities:
-                        if default_capabilities['camera']['blink'] != []:
+                        if len(default_capabilities['camera']['blink']) != 0:
                             raw_frame = default_capabilities['camera']['blink']
                     previous_frame_data, rgb, default_capabilities = \
                         retina.process_visual_stimuli(
@@ -177,17 +178,12 @@ if __name__ == "__main__":
                             previous_frame_data,
                             rgb, capabilities)
                     default_capabilities['camera']['blink'] = []
-                    message_to_feagi = pns.generate_feagi_data(rgb, msg_counter, datetime.now(),
-                                                               message_to_feagi)
-                    # if previous_burst != feagi_settings['feagi_burst_speed']:
-                    #     ws.append({"newRefreshRate": feagi_settings['feagi_burst_speed']})
-                    #     previous_burst = feagi_settings['feagi_burst_speed']
+                    message_to_feagi = pns.generate_feagi_data(rgb, message_to_feagi)
                 message_to_feagi = sensors.add_agent_status(connected_agents['0'],
                                                             message_to_feagi,
                                                             agent_settings)
                 pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings, feagi_settings)
                 sleep(feagi_settings['feagi_burst_speed'])  # bottleneck
-                message_to_feagi.clear()
                 if 'camera' in rgb:
                     for i in rgb['camera']:
                         rgb['camera'][i].clear()
