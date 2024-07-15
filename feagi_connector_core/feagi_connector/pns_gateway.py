@@ -16,26 +16,27 @@ limitations under the License.
 ==============================================================================
 """
 
-from feagi_connector import feagi_interface as feagi
-from feagi_connector import retina
-from feagi_connector import router
-from time import sleep
-import requests
-import threading
+import time
 import asyncio
+import threading
+from feagi_connector import router
+from feagi_connector import retina
+from feagi_connector import feagi_interface as feagi
 
 # Variable storage #
 raw_aptr = -1
 global_ID_cortical_size = None
 full_list_dimension = []
+full_template_information_corticals = []
 resize_list = {}
 previous_genome_timestamp = 0
 genome_tracker = 0
 message_from_feagi = {}
 refresh_rate = 0.01
+ver = "local"
 
 
-def generate_feagi_data(rgb, msg_counter, date, message_to_feagi):
+def generate_feagi_data(rgb, message_to_feagi):
     """
     This function generates data for Feagi by combining RGB values, message counter, and date into
     the provided message.
@@ -49,8 +50,6 @@ def generate_feagi_data(rgb, msg_counter, date, message_to_feagi):
             message_to_feagi["data"]["sensory_data"]['camera'] = rgb['camera']
     except Exception as e:
         print("ERROR: ", e)
-    message_to_feagi['timestamp'] = date
-    message_to_feagi['counter'] = msg_counter
     return message_to_feagi
 
 
@@ -85,11 +84,14 @@ def signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings, feagi_
     """
     Sends data to FEAGI through the router.py
     """
+    message_to_feagi['ver'] = ver
+    message_to_feagi['sent_by_rounter'] = time.time()
+    message_to_feagi['seqID'] = router.msg_counter
     if 'magic_link' not in feagi_settings:
         router.send_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
     else:
         router.websocket_send(message_to_feagi)
-
+    router.msg_counter += 1
 
 def grab_geometry():
     """
@@ -273,30 +275,37 @@ def fetch_full_dimensions():
     """
     return router.fetch_geometry()
 
+def fetch_full_template_information():
+    """
+    List of the full size and names of every cortical area. It does not include properties such as
+    neurons or details.
+    """
+    return router.fetch_template()
+
 
 def check_genome_status(message_from_feagi, capabilities):
     """
     Verify if full_list_dimension is empty, size list for vision is empty, if genome has been
     changed, or genome modified in real time.
     """
-    global previous_genome_timestamp, genome_tracker, full_list_dimension, resize_list
+    global previous_genome_timestamp, genome_tracker, full_list_dimension, resize_list, full_template_information_corticals
     if message_from_feagi['genome_changed'] is not None:
         if full_list_dimension is None:
             full_list_dimension = []
         if len(full_list_dimension) == 0:
             full_list_dimension = fetch_full_dimensions()
+        if len(full_template_information_corticals) == 0:
+            full_template_information_corticals = fetch_full_template_information()
         genome_changed = detect_genome_change(message_from_feagi)
         if genome_changed != previous_genome_timestamp:
             full_list_dimension = fetch_full_dimensions()
             response = full_list_dimension
-            resize_list = retina.obtain_cortical_vision_size(capabilities['camera']["index"],
-                                                             response)
+            resize_list = retina.obtain_cortical_vision_size(capabilities['camera']["index"], response)
             previous_genome_timestamp = message_from_feagi["genome_changed"]
         current_tracker = obtain_genome_number(genome_tracker, message_from_feagi)
         if len(resize_list) == 0:
             response = full_list_dimension
-            resize_list = retina.obtain_cortical_vision_size(capabilities['camera']["index"],
-                                                             response)
+            resize_list = retina.obtain_cortical_vision_size(capabilities['camera']["index"], response)
         if genome_tracker != current_tracker:
             full_list_dimension = fetch_full_dimensions()
             genome_tracker = current_tracker
@@ -430,32 +439,31 @@ def create_runtime_default_list(list, capabilities):
                 "vision_range": [1, 99],  # min, max
                 "size_list": [],  # To get the size in real time based on genome's change/update
                 "enhancement": {},  # Enable ov_enh OPU on inside the genome
-                "percentage_to_allow_data": 1.0  # this will be percentage for the full data.
-                # Currently set to 0.5 to allow data go through otherwise discard it fully.
+                "percentage_to_allow_data": 1.0,  # this will be percentage for the full data.,
+                "dev_index": 0
             }
         }
-        camera_config_update(list, capabilities)
+        list = camera_config_update(list, capabilities)
     return list
 
+
+def update_dict(d, u):
+    for k, v in u.items():
+        if isinstance(v, dict):
+            d[k] = update_dict(d.get(k, {}), v)
+        else:
+            d[k] = v
+    return d
 
 def camera_config_update(list, capabilities):
     """
     Update the capabilities to overwrite the default generated capabilities.
     """
+
     if 'camera' in capabilities:
-        if 'eccentricity_control' in capabilities['camera']:
-            list['camera']['eccentricity_control'] = capabilities['camera']['eccentricity_control']
-        if 'modulation_control' in capabilities['camera']:
-            list['camera']['modulation_control'] = capabilities['camera']['modulation_control']
-        if "enhancement" in capabilities['camera']:
-            list['camera']['enhancement'] = capabilities['camera']['enhancement']
-        if "mirror" in capabilities['camera']:
-            list['camera']['mirror'] = capabilities['camera']['mirror']
-        if "threshold_default" in capabilities['camera']:
-            list['camera']['threshold_default'] = capabilities['camera']['threshold_default']
-        if "percentage_to_allow_data" in capabilities['camera']:
-            list['camera']['percentage_to_allow_data'] = capabilities['camera'][
-                'percentage_to_allow_data']
+        list = update_dict(list, capabilities)
+    return list
+
 
 
 def feagi_listener(feagi_opu_channel):

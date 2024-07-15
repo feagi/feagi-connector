@@ -64,7 +64,6 @@ if __name__ == "__main__":
     feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
     feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
     agent_settings['godot_websocket_port'] = os.environ.get('WS_CONTROLLER_PORT', "9053")
-    # agent_settings['godot_websocket_ip'] = os.environ.get('WS_MICROBIT_PORT', "9052")
     f.close()
     message_to_feagi = {"data": {}}
     # END JSON UPDATE
@@ -104,7 +103,7 @@ if __name__ == "__main__":
                                                             agent_settings)
                 sleep(feagi_settings['feagi_burst_speed'])  # bottleneck
                 pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings, feagi_settings)
-                message_to_feagi.clear()
+                # message_to_feagi.clear()
             except Exception as e:
                 # pass
                 print("ERROR! : ", e)

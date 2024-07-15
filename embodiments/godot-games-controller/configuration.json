@@ -23,6 +23,7 @@
             "disabled": false,
             "index": "00",
             "mirror": false,
+            "dev_index": 0,
             "eccentricity_control": {
                 "0": 1,
                 "1": 1
@@ -33,6 +34,24 @@
             },
             "threshold_default": [0, 255],
             "percentage_to_allow_data": 1.0
+        },
+        "gyro": {
+                "sub_channel_count": 3,
+                "dev_index": 0,
+                "gyro_max_value_list": [],
+                "gyro_min_value_list": []
+        },
+        "acceleration": {
+            "sub_channel_count": 3,
+            "dev_index": 0,
+            "acceleration_max_value_list": [],
+            "acceleration_min_value_list": []
+        },
+        "proximity": {
+            "sub_channel_count": 3,
+            "dev_index": 0,
+            "proximity_max_value_list": [0.5, 0.5, 0.5],
+            "proximity_min_value_list": [-0.5, -0.5, -0.5]
         }
     }
 }
