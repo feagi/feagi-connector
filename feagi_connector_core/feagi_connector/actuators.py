@@ -115,8 +115,8 @@ def get_servo_data(obtained_data, converter_id=False):
     servo_data = dict()
     if 'servo' in obtained_data:
         for data_point in obtained_data['servo']:
-            device_power = servo_negative_or_positive(data_point,
-                                                      obtained_data['servo'][data_point])
+            device_power = servo_negative_or_positive(data_point, obtained_data['servo'][
+                data_point])
             if converter_id:
                 device_id = feagi_id_converter(data_point)
             else:
@@ -126,6 +126,18 @@ def get_servo_data(obtained_data, converter_id=False):
             else:
                 servo_data[device_id] = device_power
     return servo_data
+
+def get_servo_position_data(obtained_data):
+    servo_position_data = dict()
+    if 'servo_position' in obtained_data:
+        for data_point in obtained_data['servo_position']:
+            device_power = obtained_data['servo_position'][data_point]
+            device_id = data_point
+            if device_id in servo_position_data:
+                servo_position_data[device_id] += device_power
+            else:
+                servo_position_data[device_id] = device_power
+    return servo_position_data
 
 
 def check_emergency_stop(obtained_data):
@@ -195,8 +207,6 @@ def check_convert_gpio_to_input(obtained_data):
     return input_gpio_data
 
 
-def get_position_data(power, capabilities, device_id):
+def get_position_data(power, min_output, max_output):
     max_input = pns.full_list_dimension['o_spos']['cortical_dimensions'][2]
-    min_output = capabilities['servo']['servo_range'][str(device_id)][0]
-    max_output = capabilities['servo']['servo_range'][str(device_id)][1]
     return (power / max_input) * (max_output - min_output) + min_output
