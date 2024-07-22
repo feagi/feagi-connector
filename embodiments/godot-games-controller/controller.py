@@ -184,6 +184,7 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, mes
     default_capabilities = {}  # It will be generated in process_visual_stimuli. See the
     # overwrite manual
     default_capabilities = pns.create_runtime_default_list(default_capabilities, capabilities)
+    default_capabilities = retina.convert_new_json_to_old_json(default_capabilities)
     threading.Thread(target=retina.vision_progress, args=(default_capabilities,feagi_settings, camera_data['vision'],), daemon=True).start()
     while True:
         # Decompression section starts
@@ -233,17 +234,28 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, mes
                     message_to_feagi=message_to_feagi)
         if 'proximity' in prox:
             if prox['proximity']:
-                message_to_feagi, capabilities['proximity']['proximity_max_value_list'], \
-                    capabilities['proximity']['proximity_min_value_list'] = sensors.create_data_for_feagi(
-                    cortical_id='i__pro',
-                    robot_data=prox['proximity'],
-                    maximum_range=capabilities['proximity']['proximity_max_value_list'],
-                    minimum_range=capabilities['proximity']['proximity_min_value_list'],
-                    enable_symmetric=True,
-                    index=capabilities['proximity']['dev_index'],
-                    count=capabilities['proximity']['sub_channel_count'],
-                    message_to_feagi=message_to_feagi,
-                    has_range=True)
+                for device_id in capabilities['input']['proximity']:
+                    if not capabilities['input']['proximity'][device_id]['disable']:
+                        cortical_id = capabilities['input']['proximity'][device_id]["cortical_id"]
+                        create_data_list = dict()
+                        create_data_list[cortical_id] = dict()
+                        start_point = capabilities['input']['proximity'][device_id]["feagi_index"] * len(capabilities['input']['proximity'])
+                        feagi_data_position = start_point
+                        capabilities['input']['proximity']['0']['proximity_max_distance'], \
+                        capabilities['input']['proximity']['0']['proximity_min_distance'] = \
+                            sensors.measuring_max_and_min_range(prox['proximity'][int(device_id)],
+                                                            capabilities['input']['proximity'][device_id]['proximity_max_distance'],
+                                                            capabilities['input']['proximity'][device_id]['proximity_min_distance'])
+
+                        position_in_feagi_location = sensors.convert_sensor_to_ipu_data(
+                                                            capabilities['input']['proximity'][device_id]['proximity_min_distance'],
+                                                           capabilities['input']['proximity'][device_id]['proximity_max_distance'],
+                                                           prox['proximity'][int(device_id)],
+                                                           capabilities['input']['proximity'][device_id]['feagi_index'],
+                                                           cortical_id=cortical_id)
+                        create_data_list[cortical_id][position_in_feagi_location] = 100
+                        if create_data_list[cortical_id]:
+                            message_to_feagi = sensors.add_generic_input_to_feagi_data(create_data_list, message_to_feagi)
         message_to_feagi = sensors.add_agent_status(connected_agents['0'], message_to_feagi, agent_settings)
         pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings, feagi_settings)
         sleep(feagi_settings['feagi_burst_speed'])
