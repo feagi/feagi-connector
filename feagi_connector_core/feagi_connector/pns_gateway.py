@@ -422,6 +422,7 @@ def create_runtime_default_list(list, capabilities):
     if not list:
         list = {
             "camera": {
+                "0": {
                 "type": "ipu",
                 "disabled": False,
                 "index": "00",
@@ -440,7 +441,7 @@ def create_runtime_default_list(list, capabilities):
                 "size_list": [],  # To get the size in real time based on genome's change/update
                 "enhancement": {},  # Enable ov_enh OPU on inside the genome
                 "percentage_to_allow_data": 1.0,  # this will be percentage for the full data.,
-                "dev_index": 0
+                "dev_index": 0}
             }
         }
         list = camera_config_update(list, capabilities)
@@ -461,7 +462,8 @@ def camera_config_update(list, capabilities):
     """
 
     if 'camera' in capabilities:
-        list = update_dict(list, capabilities)
+        for device_id in capabilities['camera']:
+            list = update_dict(list, capabilities['camera'][device_id])
     return list
 
 

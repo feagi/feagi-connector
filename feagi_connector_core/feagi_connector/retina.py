@@ -194,6 +194,7 @@ def create_feagi_data(significant_changes, current, shape, capabilities, cortica
     feagi_data = {}
     size_of_frame = shape
     index = capabilities['camera']['dev_index']
+    print("CASTLE HERE: ", index)
     name = 'iv' + cortical_name
     offset_x = (pns.full_template_information_corticals['IPU']['supported_devices'][name]['resolution'][0] * index)
     for x in range(size_of_frame[0]):
@@ -345,6 +346,7 @@ def process_visual_stimuli(raw_frame, capabilities, previous_frame_data, rgb, ac
         temp_dict = {0:raw_frame}
         raw_frame = temp_dict.copy()
     capabilities = pns.create_runtime_default_list(capabilities, actual_capabilities)
+    # print(capabilities)
     if pns.resize_list:
         current_dimension_list = pns.resize_list
         one_data_vision = {}
@@ -536,3 +538,14 @@ def effect(image, capabilities):
                    capabilities['camera']['enhancement'][2]
         image = np.array(adjusted, dtype=np.uint8)
     return image
+
+def convert_new_json_to_old_json(capabilities, index='0'):
+    """
+    Temporary function
+    """
+    new_capabilities = dict()
+    new_capabilities['camera'] = {}
+    if len(capabilities['camera']) == 1:
+        new_capabilities['camera'].update(capabilities['camera'][index])
+    print("test: ", new_capabilities)
+    return new_capabilities
