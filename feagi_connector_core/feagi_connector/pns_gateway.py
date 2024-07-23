@@ -249,6 +249,16 @@ def detect_ID_data(message_from_feagi):
             return message_from_feagi["opu_data"]["o___id"]
     return {}
 
+def recognize_location_data(message_from_feagi):
+    """
+    :param message_from_feagi: Should be a dict from FEAGI data only
+    :return: Return the data that given by FEAGI
+    """
+    if "o__loc" in message_from_feagi["opu_data"]:
+        if message_from_feagi["opu_data"]["o__loc"]:
+            return message_from_feagi["opu_data"]["o__loc"]
+    return {}
+
 
 def detect_genome_change(message_from_feagi):
     """
