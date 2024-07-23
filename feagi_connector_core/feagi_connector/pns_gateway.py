@@ -421,27 +421,32 @@ def create_runtime_default_list(list, capabilities):
     """
     if not list:
         list = {
-            "camera": {
-                "0": {
-                "type": "ipu",
-                "disabled": False,
-                "index": "00",
-                "threshold_default": [50, 255, 130, 51],  # min #1, max #1, min #2, max #2,
-                "threshold_range": [1, 255],
-                "threshold_type": {},
-                # simple thresholding types. see the retina.threshold_detect function
-                "threshold_name": 0,  # Binary_threshold as a default
-                "mirror": True,  # flip the image
-                "blink": [],  # cv2 ndarray raw data of an image. Controlled by blink OPU in genome
-                "eccentricity_control": {'0': 1, '1': 1},
-                # Controlled by eccentricity_control in genome
-                "modulation_control": {'0': 99, '1': 99},
-                # Controlled by modulation_control in genome
-                "vision_range": [1, 99],  # min, max
-                "size_list": [],  # To get the size in real time based on genome's change/update
-                "enhancement": {},  # Enable ov_enh OPU on inside the genome
-                "percentage_to_allow_data": 1.0,  # this will be percentage for the full data.,
-                "dev_index": 0}
+            "input":{
+                "camera": {
+                    "0": {
+                        "type": "ipu",
+                        "disabled": False,
+                        "index": "00",
+                        "threshold_default": [50, 255, 130, 51],  # min #1, max #1, min #2, max #2,
+                        "threshold_range": [1, 255],
+                        "threshold_type": {},
+                        # simple thresholding types. see the retina.threshold_detect function
+                        "threshold_name": 0,  # Binary_threshold as a default
+                        "mirror": True,  # flip the image
+                        "blink": [],
+                        # cv2 ndarray raw data of an image. Controlled by blink OPU in genome
+                        "eccentricity_control": {'0': 1, '1': 1},
+                        # Controlled by eccentricity_control in genome
+                        "modulation_control": {'0': 99, '1': 99},
+                        # Controlled by modulation_control in genome
+                        "vision_range": [1, 99],  # min, max
+                        "size_list": [],
+                        # To get the size in real time based on genome's change/update
+                        "enhancement": {},  # Enable ov_enh OPU on inside the genome
+                        "percentage_to_allow_data": 1.0,
+                        # this will be percentage for the full data.,
+                        "dev_index": 0}
+                }
             }
         }
         list = camera_config_update(list, capabilities)
@@ -460,10 +465,11 @@ def camera_config_update(list, capabilities):
     """
     Update the capabilities to overwrite the default generated capabilities.
     """
-
-    if 'camera' in capabilities:
-        for device_id in capabilities['camera']:
-            list = update_dict(list, capabilities['camera'][device_id])
+    if 'input' in capabilities and 'camera' in capabilities['input']:
+        for device_id, device_config in capabilities['input']['camera'].items():
+            if device_id not in list['input']['camera']:
+                list['input']['camera'][device_id] = {}
+            list['input']['camera'][device_id] = update_dict(list['input']['camera'][device_id], device_config)
     return list
 
 
