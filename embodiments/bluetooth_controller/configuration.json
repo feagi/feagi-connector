@@ -15,14 +15,22 @@
         "godot_websocket_ip": "0.0.0.0",
         "godot_websocket_port": 9052
     },
-
     "capabilities": {
-        "motor": {
-            "type": "opu",
-            "disabled": false,
-            "count": 4,
-            "rolling_window_len": 1,
-            "power_amount": 100
+        "output": {
+            "motor": {
+                "0": {
+                    "disable": false,
+                    "custom_name": "left_wheel",
+                    "max_power": 100,
+                    "rolling_window_len": 1
+                },
+                "1": {
+                    "disable": false,
+                    "custom_name": "right_wheel",
+                    "max_power": 100,
+                    "rolling_window_len": 1
+                }
+            }
         },
         "infrared": {
             "type": "ipu",
@@ -58,8 +66,12 @@
             "muse": {
                 "battery_sub_channel_count": 1,
                 "battery_dev_index": 0,
-                "battery_max_value_list": [100],
-                "battery_min_value_list": [0]
+                "battery_max_value_list": [
+                    100
+                ],
+                "battery_min_value_list": [
+                    0
+                ]
             }
         },
         "ultrasonic": {
@@ -70,7 +82,5 @@
                 "ultrasonic_max_distance": []
             }
         }
+    }
 }
-}
-
-
