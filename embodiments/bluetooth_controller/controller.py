@@ -256,35 +256,25 @@ def microbit_action(obtained_data, motor_data):
 
     WS_STRING = ""
     new_dict = {'motor': {}}
-    if 0 in recieve_motor_data:
-        if 1 in recieve_motor_data:
-            if recieve_motor_data[0] >= recieve_motor_data[1]:
-                new_dict['motor'][0] = recieve_motor_data[0]
-            else:
-                new_dict['motor'][1] = recieve_motor_data[1]
-    if 2 in recieve_motor_data:
-        if 3 in recieve_motor_data:
-            if recieve_motor_data[2] >= recieve_motor_data[3]:
-                new_dict['motor'][2] = recieve_motor_data[2]
-            else:
-                new_dict['motor'][3] = recieve_motor_data[3]
-    for i in new_dict['motor']:
-        if i in [0, 1]:
-            data_power = new_dict['motor'][i]
+
+    for i in recieve_motor_data['motor']:
+        if i in 0:
+            data_power = recieve_motor_data['motor'][i]
             if data_power <= 0:
                 data_power = 1
-            WS_STRING += str(i) + str(data_power - 1).zfill(
-                2)  # Append the motor data as a two-digit
+            WS_STRING += str(i) + str(data_power - 1).zfill(2)  # Append the motor data as a two-digit
             # string
-        elif i in [2, 3]:
-            data_power = new_dict['motor'][i]
+            print(WS_STRING)
+        elif i in 1:
+            data_power = recieve_motor_data['motor'][i]
             if data_power <= 0:
                 data_power = 1
-            WS_STRING += str(i) + str(data_power - 1).zfill(
-                2)  # Append the motor data as a two-digit
+            WS_STRING += str(i) + str(data_power - 1).zfill(2)  # Append the motor data as a two-digit
     if WS_STRING != "":
         WS_STRING = WS_STRING + "#"
         ws.append(WS_STRING)
+    print(WS_STRING)
+    return motor_data
 
 
 if __name__ == "__main__":
@@ -364,7 +354,7 @@ if __name__ == "__main__":
                 obtained_signals = pns.obtain_opu_data(message_from_feagi)
                 if 'name' in current_device:
                     if "microbit" in current_device['name']:
-                        microbit_action(obtained_signals, motor_data)
+                        motor_data = microbit_action(obtained_signals, motor_data)
                     elif "petoi" in current_device['name']:
                         petoi_action(obtained_signals)
             # OPU section ENDS
