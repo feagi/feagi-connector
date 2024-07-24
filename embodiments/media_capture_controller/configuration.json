@@ -16,18 +16,22 @@
         "compression": true
     },
     "capabilities": {
-        "camera": {
-            "type": "ipu",
-            "disabled": false,
-            "index": "00",
-            "mirror": true,
-            "eccentricity_control": {
-                "0": 1,
-                "1": 1
-            },
-            "modulation_control": {
-                "0": 99,
-                "1": 99
+        "input": {
+            "0": {
+                "camera": {
+                    "type": "ipu",
+                    "disabled": false,
+                    "index": "00",
+                    "mirror": true,
+                    "eccentricity_control": {
+                        "0": 1,
+                        "1": 1
+                    },
+                    "modulation_control": {
+                        "0": 99,
+                        "1": 99
+                    }
+                }
             }
         }
     }
