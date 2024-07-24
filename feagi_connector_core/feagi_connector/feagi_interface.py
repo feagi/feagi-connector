@@ -417,7 +417,7 @@ def reading_parameters_to_confirm_communication(feagi_settings, configuration, p
     if args['port']:
         feagi_settings['feagi_opu_port'] = args['port']
     else:
-        feagi_settings['feagi_opu_port'] = "3000"
+        feagi_settings['feagi_opu_port'] = os.environ.get('FEAGI_OPU_PORT', "3000")
 
     if args['magic'] or args['magic_link']:
         if args['magic'] or args['magic_link']:
