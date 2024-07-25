@@ -126,7 +126,7 @@ def microbit_listen(message):
         sound_level = int(message[16:18])
         # Store values in dictionary
         microbit_data['ir'] = ir_list
-        microbit_data['ultrasonic'] = [ultrasonic / 25]
+        microbit_data['ultrasonic'] = ultrasonic / 25
         microbit_data['acceleration'] = {0: x_acc, 1: y_acc, 2: z_acc}
         microbit_data['sound_level'] = {sound_level}
         return
@@ -255,25 +255,29 @@ def microbit_action(obtained_data, motor_data):
         motor_data = actuators.rolling_window_update(motor_data)
 
     WS_STRING = ""
+    updated_motor = 0
     for motor_id in motor_data:
         data_power = motor_data[motor_id][0]
         if data_power == 100:
             data_power -= 1
         elif data_power == -100:
             data_power += 1
-        if data_power < 0:
-            if motor_id == 0:
-                motor_id = 1
-            elif motor_id == 1:
-                motor_id = 3
-        WS_STRING += str(motor_id) + str(abs(data_power)).zfill(2)  # Append the motor data as a two-digit string
-        if WS_STRING == "000100":
-            WS_STRING = "" # so we don't spam microbit with no power
+            # Here, change to make 0 to 0,1 and 1 makes 2,3
+        if motor_id == 0:
+            if data_power < 0:
+                updated_motor = 1
+        elif motor_id == 1:
+            if data_power < 0:
+                updated_motor = 3
+            else:
+                updated_motor = 2
+        WS_STRING += str(updated_motor) + str(abs(data_power)).zfill(2)  # Append the motor data as a two-digit string
+        if WS_STRING == "000200":
+            WS_STRING = ""  # so we don't spam microbit with no power
 
     if WS_STRING != "":
         WS_STRING = WS_STRING + "#"
         ws.append(WS_STRING)
-        print("final: ", WS_STRING)
     return motor_data
 
 
@@ -340,54 +344,78 @@ if __name__ == "__main__":
         min_value.append(0)
 
     for i in range(4):
-        capabilities['eeg']['muse']['bci_max_value_list'].append(0)
-        capabilities['eeg']['muse']['bci_min_value_list'].append(0)
+        capabilities['input']['eeg']['muse']['bci_max_value_list'].append(0)
+        capabilities['input']['eeg']['muse']['bci_min_value_list'].append(0)
     while True:
         try:
             message_from_feagi = pns.message_from_feagi
             # OPU section STARTS
             if message_from_feagi:
                 pns.check_genome_status_no_vision(message_from_feagi)
-                feagi_settings['feagi_burst_speed'] = pns.check_refresh_rate(message_from_feagi,
-                                                                             feagi_settings[
-                                                                                 'feagi_burst_speed'])
+                feagi_settings['feagi_burst_speed'] = pns.check_refresh_rate(message_from_feagi, feagi_settings['feagi_burst_speed'])
                 obtained_signals = pns.obtain_opu_data(message_from_feagi)
                 if 'name' in current_device:
                     if "microbit" in current_device['name']:
                         motor_data = microbit_action(obtained_signals, motor_data)
                     elif "petoi" in current_device['name']:
                         petoi_action(obtained_signals)
+
             # OPU section ENDS
-            # if microbit_data['ultrasonic']:
-            #     message_to_feagi, capabilities['ultrasonic']['microbit']['ultrasonic_max_distance'], capabilities['ultrasonic']['microbit']['ultrasonic_min_distance'] = sensors.create_data_for_feagi(cortical_id='i__pro',
-            #                                                                                                robot_data=microbit_data['ultrasonic'],
-            #                                                                                                maximum_range=capabilities['ultrasonic']['microbit']['ultrasonic_max_distance'],
-            #                                                                                                minimum_range=capabilities['ultrasonic']['microbit']['ultrasonic_min_distance'],
-            #                                                                                                enable_symmetric=False,
-            #                                                                                                index=capabilities['ultrasonic']['microbit']['ultrasonic_dev_index'],
-            #                                                                                                count=capabilities['ultrasonic']['microbit']['ultrasonic_sub_channel_count'],
-            #                                                                                                                                                                                            message_to_feagi=message_to_feagi)
-            # if microbit_data['acceleration']:
-            #     # The IR will need to turn the inverse IR on if it doesn't detect. This would confuse humans when
-            #     # cutebot is not on. So the solution is to put this under the acceleration. It is under acceleration
-            #     # because without acceleration, the micro:bit is not on. This leverages the advantage to detect if it
-            #     # is still on.
-            #     message_to_feagi = sensors.convert_ir_to_ipu_data(microbit_data['ir'],
-            #                                                                   capabilities['infrared']['count'],
-            #                                                                   message_to_feagi)
-            #
-            #     # End of IR section
-            #
-            #     # Section of acceleration
-            #     message_to_feagi, capabilities['acceleration']['microbit']['acceleration_max_value_list'], capabilities['acceleration']['microbit']['acceleration_min_value_list'] = sensors.create_data_for_feagi(cortical_id='i__acc',
-            #                                                                                                robot_data=microbit_data['acceleration'],
-            #                                                                                                maximum_range=capabilities['acceleration']['microbit']['acceleration_max_value_list'],
-            #                                                                                                minimum_range=capabilities['acceleration']['microbit']['acceleration_min_value_list'],
-            #                                                                                                enable_symmetric=True,
-            #                                                                                                index=capabilities['acceleration']['microbit']['accelerator_dev_index'],
-            #                                                                                                count=capabilities['acceleration']['microbit']['acceleration_sub_channel_count'],
-            #                                                                                                message_to_feagi=message_to_feagi)
-            #
+            if microbit_data['ultrasonic']:
+                for device_id in capabilities['input']['ultrasonic']:
+                    if not capabilities['input']['ultrasonic'][device_id]['disable']:
+                        cortical_id = capabilities['input']['ultrasonic'][device_id]["cortical_id"]
+                        create_data_list = dict()
+                        create_data_list[cortical_id] = dict()
+                        start_point = capabilities['input']['ultrasonic'][device_id]["feagi_index"] * len(capabilities['input']['ultrasonic'])
+                        feagi_data_position = start_point
+                        capabilities['input']['ultrasonic']['0']['ultrasonic_max_distance'], capabilities['input']['ultrasonic']['0']['ultrasonic_min_distance'] = sensors.measuring_max_and_min_range(microbit_data['ultrasonic'],
+                                                            capabilities['input']['ultrasonic']['0']['ultrasonic_max_distance'],
+                                                            capabilities['input']['ultrasonic']['0']['ultrasonic_min_distance'])
+
+                        position_in_feagi_location = sensors.convert_sensor_to_ipu_data(
+                                                            capabilities['input']['ultrasonic']['0']['ultrasonic_min_distance'],
+                                                           capabilities['input']['ultrasonic']['0']['ultrasonic_max_distance'],
+                                                           microbit_data['ultrasonic'],
+                                                           capabilities['input']['ultrasonic']['0']['feagi_index'],
+                                                           cortical_id=cortical_id)
+                        create_data_list[cortical_id][position_in_feagi_location] = 100
+                        if create_data_list[cortical_id]:
+                            message_to_feagi = sensors.add_generic_input_to_feagi_data(create_data_list, message_to_feagi)
+
+            if microbit_data['acceleration']:
+                message_to_feagi = sensors.convert_ir_to_ipu_data(microbit_data['ir'], len(capabilities['input']['infrared']), message_to_feagi)
+                for device_id in capabilities['input']['accelerator']:
+                    # The IR will need to turn the inverse IR on if it doesn't detect. This would confuse humans when
+                    # cutebot is not on. So the solution is to put this under the acceleration. It is under acceleration
+                    # because without acceleration, the micro:bit is not on. This leverages the advantage to detect if it
+                    # is still on.
+                    if not capabilities['input']['accelerator'][device_id]['disable']:
+                        cortical_id = capabilities['input']['accelerator'][device_id]["cortical_id"]
+                        create_data_list = dict()
+                        create_data_list[cortical_id] = dict()
+                        start_point = capabilities['input']['accelerator'][device_id]["feagi_index"] * len(capabilities['input']['accelerator'])
+                        feagi_data_position = start_point
+                        try:
+                            for device_id in range(len(capabilities['input']['accelerator']['0']['max_value'])):
+                                capabilities['input']['accelerator']['0']['max_value'][device_id], capabilities['input']['accelerator']['0']['min_value'][device_id] = sensors.measuring_max_and_min_range(microbit_data['acceleration'][device_id],
+                                                                    capabilities['input']['accelerator']['0']['max_value'][device_id],
+                                                                    capabilities['input']['accelerator']['0']['min_value'][device_id])
+
+                                position_in_feagi_location = sensors.convert_sensor_to_ipu_data(
+                                    capabilities['input']['accelerator']['0']['min_value'][device_id],
+                                    capabilities['input']['accelerator']['0']['max_value'][device_id],
+                                    microbit_data['acceleration'][device_id],
+                                    capabilities['input']['accelerator']['0']['feagi_index'] + device_id,
+                                    cortical_id=cortical_id,
+                                    symmetric=True)
+                                create_data_list[cortical_id][position_in_feagi_location] = 100
+                            if create_data_list[cortical_id]:
+                                message_to_feagi = sensors.add_generic_input_to_feagi_data(create_data_list, message_to_feagi)
+                        except:
+                            pass
+
+
             # if gyro:
             #     message_to_feagi = sensors.add_gyro_to_feagi_data(gyro['gyro'], message_to_feagi)
             #
