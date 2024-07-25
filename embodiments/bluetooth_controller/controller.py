@@ -255,25 +255,25 @@ def microbit_action(obtained_data, motor_data):
         motor_data = actuators.rolling_window_update(motor_data)
 
     WS_STRING = ""
-    new_dict = {'motor': {}}
+    for motor_id in motor_data:
+        data_power = motor_data[motor_id][0]
+        if data_power == 100:
+            data_power -= 1
+        elif data_power == -100:
+            data_power += 1
+        if data_power < 0:
+            if motor_id == 0:
+                motor_id = 1
+            elif motor_id == 1:
+                motor_id = 3
+        WS_STRING += str(motor_id) + str(abs(data_power)).zfill(2)  # Append the motor data as a two-digit string
+        if WS_STRING == "000100":
+            WS_STRING = "" # so we don't spam microbit with no power
 
-    for i in recieve_motor_data['motor']:
-        if i in 0:
-            data_power = recieve_motor_data['motor'][i]
-            if data_power <= 0:
-                data_power = 1
-            WS_STRING += str(i) + str(data_power - 1).zfill(2)  # Append the motor data as a two-digit
-            # string
-            print(WS_STRING)
-        elif i in 1:
-            data_power = recieve_motor_data['motor'][i]
-            if data_power <= 0:
-                data_power = 1
-            WS_STRING += str(i) + str(data_power - 1).zfill(2)  # Append the motor data as a two-digit
     if WS_STRING != "":
         WS_STRING = WS_STRING + "#"
         ws.append(WS_STRING)
-    print(WS_STRING)
+        print("final: ", WS_STRING)
     return motor_data
 
 
