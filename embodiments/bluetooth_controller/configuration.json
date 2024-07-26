@@ -15,62 +15,86 @@
         "godot_websocket_ip": "0.0.0.0",
         "godot_websocket_port": 9052
     },
-
     "capabilities": {
-        "motor": {
-            "type": "opu",
-            "disabled": false,
-            "count": 4,
-            "rolling_window_len": 1,
-            "power_amount": 100
+        "output": {
+            "motor": {
+                "0": {
+                    "disable": false,
+                    "custom_name": "left_wheel",
+                    "max_power": 100,
+                    "rolling_window_len": 1
+                },
+                "1": {
+                    "disable": false,
+                    "custom_name": "right_wheel",
+                    "max_power": 100,
+                    "rolling_window_len": 1
+                }
+            }
         },
-        "infrared": {
-            "type": "ipu",
-            "disabled": false,
-            "count": 2,
-            "cortical_mapping": "i__inf",
-            "topic_identifier": "IR",
-            "power_amount": 10
-        },
-        "acceleration": {
-            "microbit": {
-                "acceleration_sub_channel_count": 3,
-                "accelerator_dev_index": 0,
-                "acceleration_max_value_list": [],
-                "acceleration_min_value_list": []
+        "input": {
+            "infrared": {
+                "0": {
+                    "disable": false,
+                    "feagi_index": 0,
+                    "cortical_id": "i__inf",
+                    "custom_name": "infrared_0"
+                },
+                "1": {
+                    "disable": false,
+                    "feagi_index": 0,
+                    "cortical_id": "i__inf",
+                    "custom_name": "infrared_1"
+                }
             },
-            "muse": {
-                "acceleration_sub_channel_count": 9,
-                "accelerator_dev_index": 1,
-                "acceleration_max_value_list": [],
-                "acceleration_min_value_list": []
-            }
-        },
-        "eeg": {
-            "muse": {
-                "egg_sub_channel_count": 4,
-                "egg_dev_index": 0,
-                "bci_max_value_list": [],
-                "bci_min_value_list": []
-            }
-        },
-        "battery": {
-            "muse": {
-                "battery_sub_channel_count": 1,
-                "battery_dev_index": 0,
-                "battery_max_value_list": [100],
-                "battery_min_value_list": [0]
-            }
-        },
-        "ultrasonic": {
-            "microbit": {
-                "ultrasonic_sub_channel_count": 1,
-                "ultrasonic_dev_index": 0,
-                "ultrasonic_min_distance": [],
-                "ultrasonic_max_distance": []
+            "accelerator": {
+                "0": {
+                    "feagi_index": 0,
+                    "disable": false,
+                    "max_value": [
+                        null,
+                        null,
+                        null
+                    ],
+                    "min_value": [
+                        null,
+                        null,
+                        null
+                    ],
+                    "cortical_id": "i__acc",
+                    "custom_name": "accelerometer_0"
+                }
+            },
+            "eeg": {
+                "muse": {
+                    "egg_sub_channel_count": 4,
+                    "egg_dev_index": 0,
+                    "bci_max_value_list": [],
+                    "bci_min_value_list": []
+                }
+            },
+            "battery": {
+                "muse": {
+                    "battery_sub_channel_count": 1,
+                    "battery_dev_index": 0,
+                    "battery_max_value_list": [
+                        100
+                    ],
+                    "battery_min_value_list": [
+                        0
+                    ]
+                }
+            },
+            "ultrasonic": {
+                "0": {
+                    "disable": false,
+                    "feagi_index": 0,
+                    "ultrasonic_min_distance": null,
+                    "ultrasonic_max_distance": null,
+                    "cortical_id": "i__pro",
+                    "custom_name": "ultrasonic_0"
+                }
             }
         }
+    }
 }
-}
-
-
