@@ -84,8 +84,7 @@ async def echo(websocket):
             ws_operation.append(websocket)
         else:
             ws_operation[0] = websocket
-        test = message
-        rgb_array['current'] = list(lz4.frame.decompress(test))
+        rgb_array['current'] = list(lz4.frame.decompress(message))
         webcam_size['size'] = []
     connected_agents['0'] = False  # Once client disconnects, mark it as false
 
@@ -154,6 +153,7 @@ if __name__ == "__main__":
         # overwrite manual
         previous_burst = 0
         default_capabilities = pns.create_runtime_default_list(default_capabilities, capabilities)
+        default_capabilities = retina.convert_new_json_to_old_json(default_capabilities)  # temporary
         threading.Thread(target=pns.feagi_listener, args=(feagi_opu_channel,), daemon=True).start()
         threading.Thread(target=retina.vision_progress,
                          args=(default_capabilities,
