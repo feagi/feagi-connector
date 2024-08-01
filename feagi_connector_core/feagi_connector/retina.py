@@ -195,7 +195,7 @@ def create_feagi_data(significant_changes, current, shape, capabilities, cortica
     size_of_frame = shape
     index = capabilities['camera']['dev_index']
     name = 'iv' + cortical_name
-    offset_x = (pns.full_template_information_corticals['IPU']['supported_devices'][name]['resolution'][0] * index)
+    offset_x = (pns.full_list_dimension[name]['cortical_dimensions_per_device'][0] * index)
     for x in range(size_of_frame[0]):
         for y in range(size_of_frame[1]):
             for z in range(size_of_frame[2]):
@@ -214,7 +214,7 @@ def create_feagi_data_grayscale(significant_changes, current, shape, capabilitie
     size_of_frame = shape
     index = capabilities['camera']['dev_index']
     name = 'iv' + cortical_name
-    offset_x = (pns.full_template_information_corticals['IPU']['supported_devices'][name]['resolution'][0] * index)
+    offset_x = (pns.full_list_dimension[name]['cortical_dimensions_per_device'][0] * index)
     for x in range(size_of_frame[0]):
         for y in range(size_of_frame[1]):
             if significant_changes[x, y]:
@@ -478,7 +478,7 @@ def process_visual_stimuli(raw_frame, capabilities, previous_frame_data, rgb, ac
 
                 for cortical in segmented_frame_data:
                     name = 'iv' + cortical
-                    updated_size = [pns.full_template_information_corticals['IPU']['supported_devices'][name]['resolution'][0], pns.full_template_information_corticals['IPU']['supported_devices'][name]['resolution'][1], current_dimension_list[cortical][2]]
+                    updated_size = [pns.full_list_dimension[name]['cortical_dimensions_per_device'][0], pns.full_list_dimension[name]['cortical_dimensions_per_device'][1], current_dimension_list[cortical][2]]
                     compressed_data[cortical] = effect(downsize_regions(segmented_frame_data[cortical], updated_size), capabilities)
                     if len(one_data_vision[cortical]) == 0: # update the newest data into empty one_data_vision
                         one_data_vision[cortical] = compressed_data[cortical]
@@ -486,8 +486,8 @@ def process_visual_stimuli(raw_frame, capabilities, previous_frame_data, rgb, ac
                         one_data_vision[cortical] = numpy.concatenate((one_data_vision[cortical], compressed_data[cortical]), axis=1)
                         if (len(raw_frame) - 1) == obtain_raw_data: # Reach to end of the list for camera
                             one_data_vision[cortical] = cv2.resize(one_data_vision[cortical],
-                                                                   [pns.full_template_information_corticals['IPU']['supported_devices'][name]['resolution'][0],
-                                                                    pns.full_template_information_corticals['IPU']['supported_devices'][name]['resolution'][1]],
+                                                                   [pns.full_list_dimension[name]['cortical_dimensions_per_device'][0],
+                                                                    pns.full_list_dimension[name]['cortical_dimensions_per_device'][1]],
                                                                    interpolation=cv2.INTER_AREA)
 
             vision_dict = dict()
@@ -588,7 +588,7 @@ def process_visual_stimuli_trainer(raw_frame, capabilities, previous_frame_data,
 
                 for cortical in segmented_frame_data:
                     name = 'iv' + cortical
-                    updated_size = [pns.full_template_information_corticals['IPU']['supported_devices'][name]['resolution'][0], pns.full_template_information_corticals['IPU']['supported_devices'][name]['resolution'][1], current_dimension_list[cortical][2]]
+                    updated_size = [pns.full_list_dimension[name]['cortical_dimensions_per_device'][0], pns.full_list_dimension[name]['cortical_dimensions_per_device'][1], current_dimension_list[cortical][2]]
                     compressed_data[cortical] = effect(downsize_regions(segmented_frame_data[cortical], updated_size), capabilities)
                     if len(one_data_vision[cortical]) == 0: # update the newest data into empty one_data_vision
                         one_data_vision[cortical] = compressed_data[cortical]
@@ -596,8 +596,8 @@ def process_visual_stimuli_trainer(raw_frame, capabilities, previous_frame_data,
                         one_data_vision[cortical] = numpy.concatenate((one_data_vision[cortical], compressed_data[cortical]), axis=1)
                         if (len(raw_frame) - 1) == obtain_raw_data: # Reach to end of the list for camera
                             one_data_vision[cortical] = cv2.resize(one_data_vision[cortical],
-                                                                   [pns.full_template_information_corticals['IPU']['supported_devices'][name]['resolution'][0],
-                                                                    pns.full_template_information_corticals['IPU']['supported_devices'][name]['resolution'][1]],
+                                                                   [pns.full_list_dimension[name]['cortical_dimensions_per_device'][0],
+                                                                    pns.full_list_dimension[name]['cortical_dimensions_per_device'][1]],
                                                                    interpolation=cv2.INTER_AREA)
 
             vision_dict = dict()
