@@ -65,6 +65,8 @@ def main(feagi_settings, runtime_data, capabilities):
     # bridge and controllers.
     current_genome_number = 0
     while True:
+        if not feagi.is_FEAGI_reachable(feagi_settings['feagi_host'], int(feagi_settings['feagi_api_port'])):
+            break
         one_frame = pns.message_from_feagi
         if one_frame != {}:
             pns.check_genome_status_no_vision(one_frame)
@@ -137,9 +139,10 @@ if __name__ == "__main__":
     threading.Thread(target=feagi_to_brain_visualizer, args=(runtime_data,), daemon=True).start()
     while True:
         FEAGI_FLAG = False
+        print("Waiting on Feagi...")
         while not FEAGI_FLAG:
             FEAGI_FLAG = feagi.is_FEAGI_reachable(
-                os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1"),
-                int(os.environ.get('FEAGI_OPU_PORT', "3000")))
+                feagi_settings['feagi_host'],
+                int(feagi_settings['feagi_api_port']))
             sleep(2)
         main(feagi_settings, runtime_data, capabilities)
