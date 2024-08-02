@@ -65,8 +65,8 @@ def main(feagi_settings, runtime_data, capabilities):
     # bridge and controllers.
     current_genome_number = 0
     while True:
-        if not feagi.is_FEAGI_reachable(feagi_settings['feagi_host'], int(feagi_settings['feagi_api_port'])):
-            break
+        # if not feagi.is_FEAGI_reachable(feagi_settings['feagi_host'], int(feagi_settings['feagi_api_port'])):
+        #     break
         one_frame = pns.message_from_feagi
         if one_frame != {}:
             pns.check_genome_status_no_vision(one_frame)
