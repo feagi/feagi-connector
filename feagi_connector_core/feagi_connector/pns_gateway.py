@@ -311,7 +311,8 @@ def check_genome_status(message_from_feagi, capabilities):
         if genome_changed != previous_genome_timestamp:
             full_list_dimension = fetch_full_dimensions()
             response = full_list_dimension
-            resize_list = retina.obtain_cortical_vision_size(capabilities['camera']["index"], response)
+            for index in capabilities['input']['camera']:
+                resize_list = retina.obtain_cortical_vision_size(capabilities['input']['camera'][index]["index"], response)
             previous_genome_timestamp = message_from_feagi["genome_changed"]
         current_tracker = obtain_genome_number(genome_tracker, message_from_feagi)
         if len(resize_list) == 0:
@@ -394,20 +395,23 @@ def fetch_enhancement_data(message_from_feagi, capabilities):
                                                  2] - 1
                         max_range = 1.4
                         min_range = 0.5
-                        capabilities['camera']["enhancement"][int(device_id)] = float(((intensity_select / max_depth_of_cortical) * (max_range - min_range)) + min_range)
+                        for index in capabilities['input']['camera']:
+                            capabilities['input']['camera'][index]["enhancement"][int(device_id)] = float(((intensity_select / max_depth_of_cortical) * (max_range - min_range)) + min_range)
                     if device_id == 2:
                         intensity_select = (int(data_point.split('-')[-1]))
                         max_depth_of_cortical = full_list_dimension['ov_enh']['cortical_dimensions'][
                                                  2] - 1
                         max_range = 2.0
                         min_range = 0.8
-                        capabilities['camera']["enhancement"][int(device_id)] = float(((intensity_select/ max_depth_of_cortical) * (max_range - min_range)) + min_range)
+                        for index in capabilities['input']['camera']:
+                            capabilities['input']['camera'][index]["enhancement"][int(device_id)] = float(((intensity_select/ max_depth_of_cortical) * (max_range - min_range)) + min_range)
                     if device_id == 0:
                         intensity_select = (int(data_point.split('-')[-1]))
                         max_depth_of_cortical = full_list_dimension['ov_enh']['cortical_dimensions'][2]
                         max_range = 100
                         min_range = -100
-                        capabilities['camera']["enhancement"][int(device_id)] = float(((intensity_select/ max_depth_of_cortical) * (max_range - min_range)) + min_range)
+                        for index in capabilities['input']['camera']:
+                            capabilities['input']['camera'][index]["enhancement"][int(device_id)] = float(((intensity_select/ max_depth_of_cortical) * (max_range - min_range)) + min_range)
     return capabilities
 
 
