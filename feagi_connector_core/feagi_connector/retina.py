@@ -429,17 +429,9 @@ def change_detector(previous, current, capabilities, compare_image, cortical_nam
                 _, thresholded = cv2.threshold(difference,
                                                capabilities['camera']['threshold_default'][0], 255,
                                                cv2.THRESH_TOZERO)
-                # thresholded = effect(thresholded, capabilities)
             else:
                 difference = current
                 thresholded = cv2.threshold(difference, 0, 255, cv2.THRESH_TOZERO)[1]
-            # thresholded = effect(thresholded, capabilities)
-            # cv2.imshow("difference", difference)
-            # Convert to boolean array for significant changes
-            significant_changes = thresholded > 0
-
-            feagi_data = create_feagi_data(significant_changes, thresholded, previous.shape,
-                                           capabilities, cortical_name)
         else:
             return {}
     else:
@@ -482,8 +474,7 @@ def get_full_dimension_of_cortical_area(cortical_name):
            current_dimension_list[cortical_name][2]
 
 
-def process_visual_stimuli(raw_frame, capabilities, previous_frame_data, rgb, actual_capabilities,
-                           compare_image=True):
+def process_visual_stimuli(raw_frame, capabilities, previous_frame_data, rgb, actual_capabilities, compare_image=True):
     global current_dimension_list
 
     if isinstance(raw_frame, numpy.ndarray):
@@ -537,8 +528,8 @@ def process_visual_stimuli(raw_frame, capabilities, previous_frame_data, rgb, ac
 
             # for segment in compressed_data:
             #     cv2.imshow(segment, compressed_data[segment])
-            # if cv2.waitKey(30) & 0xFF == ord('q'):
-            #     pass
+            if cv2.waitKey(30) & 0xFF == ord('q'):
+                pass
             for get_region in one_data_vision:
                 if current_dimension_list[get_region][2] == 3:
                     if previous_frame_data != {}:
