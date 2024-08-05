@@ -180,7 +180,8 @@ def obtain_blink_data(raw_frame, message_from_feagi, capabilities):
     """
     if "o_blnk" in message_from_feagi["opu_data"]:
         if message_from_feagi["opu_data"]["o_blnk"]:
-            capabilities['camera']['blink'] = raw_frame
+            for index in capabilities['input']['camera']:
+                capabilities['input']['camera'][index]['blink'] = raw_frame
     return capabilities
 
 
@@ -217,8 +218,8 @@ def eccentricity_control_update(message_from_feagi, capabilities):
             if str(device_id) in ['0', '1']:
                 intensity_select = (int(data_point.split('-')[-1]))
                 max_depth_of_cortical = full_list_dimension['ov_ecc']['cortical_dimensions'][2] - 1
-                max_range = capabilities['camera']['vision_range'][1]
-                min_range = capabilities['camera']['vision_range'][0]
+                max_range = capabilities['input']['camera']['0']['vision_range'][1]
+                min_range = capabilities['input']['camera']['0']['vision_range'][0]
                 capabilities['camera']["eccentricity_control"][str(device_id)] = int(((intensity_select / max_depth_of_cortical) * (max_range - min_range)) + min_range)
     return capabilities
 
@@ -233,8 +234,8 @@ def modulation_control_update(message_from_feagi, capabilities):
             if str(device_id) in ['0', '1']:
                 intensity_select = (int(data_point.split('-')[-1]))
                 max_depth_of_cortical = full_list_dimension['ov_mod']['cortical_dimensions'][2] - 1
-                max_range = capabilities['camera']['vision_range'][1]
-                min_range = capabilities['camera']['vision_range'][0]
+                max_range = capabilities['input']['camera']['0']['vision_range'][1]
+                min_range = capabilities['input']['camera']['0']['vision_range'][0]
                 capabilities['camera']["modulation_control"][str(device_id)] = int(((intensity_select / max_depth_of_cortical) * (max_range - min_range)) + min_range)
     return capabilities
 
@@ -355,12 +356,14 @@ def fetch_vision_turner(message_from_feagi, capabilities):
                     device_id = data_point.split('-')[0]
                     intensity_select = (int(data_point.split('-')[-1]))
                     max_depth_of_cortical = full_list_dimension['ovtune']['cortical_dimensions'][2] - 1
-                    max_range = capabilities['camera']["threshold_range"][1]
-                    min_range = capabilities['camera']["threshold_range"][0]
+                    max_range = capabilities['input']['camera']['0']["threshold_range"][1]
+                    min_range = capabilities['input']['camera']['0']["threshold_range"][0]
                     if int(device_id) == 1:
-                        capabilities['camera']["percentage_to_allow_data"] = int(((intensity_select / max_depth_of_cortical) * (10 - 1)) + 1) / 10
+                        for index in capabilities['input']['camera']:
+                            capabilities['input']['camera'][index]["percentage_to_allow_data"] = int(((intensity_select / max_depth_of_cortical) * (10 - 1)) + 1) / 10
                     else:
-                        capabilities['camera']["threshold_default"][int(device_id)] = int(((intensity_select / max_depth_of_cortical) * (max_range - min_range)) + min_range)
+                        for index in capabilities['input']['camera']:
+                            capabilities['input']['camera'][index]["threshold_default"][int(device_id)] = int(((intensity_select / max_depth_of_cortical) * (max_range - min_range)) + min_range)
     return capabilities
 
 
