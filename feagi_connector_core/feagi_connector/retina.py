@@ -68,8 +68,8 @@ def vision_frame_capture(device, RGB_flag=True):
         return cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY), datetime.now(), check
 
 
-def vision_region_coordinates(frame_width=0, frame_height=0, x1=0, x2=0, y1=0, y2=0,
-                              camera_index=0, size_list=0):
+def vision_region_coordinates(frame_width=None, frame_height=None, x1=None, x2=None, y1=None,
+                              y2=None, camera_index=0, size_list=None):
     """
     Calculate coordinates for nine different regions within a frame based on given percentages.
 
@@ -228,6 +228,15 @@ def create_feagi_data_grayscale(significant_changes, current, shape, capabilitie
     return feagi_data
 
 
+def get_difference_from_two_images(previous, current):
+    """
+    todo: Explain what it is for
+    """
+    return cv2.absdiff(previous, current)
+
+def apply_threshold(difference, src=50):
+    return cv2.threshold(difference, src, 255,cv2.THRESH_TOZERO)
+
 def change_detector_grayscale_trainer(previous, current, capabilities, compare_image,
                                       cortical_name):
     """
@@ -248,14 +257,11 @@ def change_detector_grayscale_trainer(previous, current, capabilities, compare_i
         if current.shape == previous.shape:
             # start_time = datetime.now()
             if len(capabilities['camera']['blink']) == 0:
-                # current = effect(current, capabilities)
-                difference = cv2.absdiff(previous, current)  # there is more than 5 types
-                if capabilities['camera']['threshold_type']:
-                    capabilities['camera']['threshold_name'] = threshold_detect(capabilities)
+                difference = get_difference_from_two_images(previous, current)
+
                 _, thresholded = cv2.threshold(difference,
                                                capabilities['camera']['threshold_default'][0], 255,
                                                capabilities['camera']['threshold_name'])
-                # thresholded = effect(thresholded, capabilities) # ? why repeat
             else:
                 difference = current
                 thresholded = cv2.threshold(difference, 1, 255, cv2.THRESH_TOZERO)[1]
@@ -269,7 +275,6 @@ def change_detector_grayscale_trainer(previous, current, capabilities, compare_i
         # print("grayscale change detect: ", (datetime.now() - start_time).total_seconds())
     else:
         if current.shape == previous.shape:
-            thresholded = effect(current, capabilities)
             thresholded = cv2.threshold(thresholded,
                                         capabilities['camera']['threshold_default'][0], 255,
                                         cv2.THRESH_TOZERO)[1]
@@ -304,14 +309,12 @@ def change_detector_grayscale(previous, current, capabilities, compare_image, co
         if current.shape == previous.shape:
             # start_time = datetime.now()
             if len(capabilities['camera']['blink']) == 0:
-                # current = effect(current, capabilities)
                 difference = cv2.absdiff(previous, current)  # there is more than 5 types
                 if capabilities['camera']['threshold_type']:
                     capabilities['camera']['threshold_name'] = threshold_detect(capabilities)
                 _, thresholded = cv2.threshold(difference,
                                                capabilities['camera']['threshold_default'][0], 255,
                                                capabilities['camera']['threshold_name'])
-                # thresholded = effect(thresholded, capabilities) # ? why repeat
             else:
                 difference = current
                 thresholded = cv2.threshold(difference, 1, 255, cv2.THRESH_TOZERO)[1]
@@ -325,7 +328,7 @@ def change_detector_grayscale(previous, current, capabilities, compare_image, co
         # print("grayscale change detect: ", (datetime.now() - start_time).total_seconds())
     else:
         if current.shape == previous.shape:
-            thresholded = effect(current, capabilities)
+            # thresholded = effect(current, capabilities)
             thresholded = cv2.threshold(thresholded,
                                         capabilities['camera']['threshold_default'][0], 255,
                                         cv2.THRESH_TOZERO)[1]
@@ -361,18 +364,15 @@ def change_detector_trainer(previous, current, capabilities, compare_image, cort
     if compare_image:
         if current.shape == previous.shape:
             if len(capabilities['camera']['blink']) == 0:
-                # current = effect(current, capabilities)
                 difference = cv2.absdiff(previous, current)  # there is more than 5 types
                 if capabilities['camera']['threshold_type']:
                     capabilities['camera']['threshold_name'] = threshold_detect(capabilities)
                 _, thresholded = cv2.threshold(difference,
                                                capabilities['camera']['threshold_default'][0], 255,
                                                cv2.THRESH_TOZERO)
-                # thresholded = effect(thresholded, capabilities)
             else:
                 difference = current
                 thresholded = cv2.threshold(difference, 0, 255, cv2.THRESH_TOZERO)[1]
-            # thresholded = effect(thresholded, capabilities)
             # cv2.imshow("difference", difference)
             # Convert to boolean array for significant changes
             significant_changes = thresholded > 0
@@ -383,12 +383,12 @@ def change_detector_trainer(previous, current, capabilities, compare_image, cort
             return {}, {}
     else:
         if current.shape == previous.shape:
-            thresholded = effect(current, capabilities)
+            # thresholded = effect(current, capabilities)
             thresholded = cv2.threshold(thresholded,
                                         capabilities['camera']['threshold_default'][0],
                                         255,
                                         cv2.THRESH_TOZERO)[1]
-            thresholded = effect(thresholded, capabilities)
+            # thresholded = effect(thresholded, capabilities)
         else:
             return {}, {}
     # print("change detect: ", (datetime.now() - start_time).total_seconds())
@@ -422,26 +422,19 @@ def change_detector(previous, current, capabilities, compare_image, cortical_nam
     if compare_image:
         if current.shape == previous.shape:
             if len(capabilities['camera']['blink']) == 0:
-                # current = effect(current, capabilities)
                 difference = cv2.absdiff(previous, current)  # there is more than 5 types
-                if capabilities['camera']['threshold_type']:
-                    capabilities['camera']['threshold_name'] = threshold_detect(capabilities)
-                _, thresholded = cv2.threshold(difference,
-                                               capabilities['camera']['threshold_default'][0], 255,
-                                               cv2.THRESH_TOZERO)
+                _, thresholded = apply_threshold(difference,
+                                                 src=capabilities['camera']['threshold_default'][0])
             else:
                 difference = current
-                thresholded = cv2.threshold(difference, 0, 255, cv2.THRESH_TOZERO)[1]
+                thresholded = apply_threshold(difference, src=0)
         else:
             return {}
     else:
         if current.shape == previous.shape:
-            thresholded = effect(current, capabilities)
             thresholded = cv2.threshold(thresholded,
-                                        capabilities['camera']['threshold_default'][0],
-                                        255,
+                                        capabilities['camera']['threshold_default'][0], 255,
                                         cv2.THRESH_TOZERO)[1]
-            thresholded = effect(thresholded, capabilities)
         else:
             return {}
     # print("change detect: ", (datetime.now() - start_time).total_seconds())
@@ -514,7 +507,16 @@ def process_visual_stimuli(raw_frame, capabilities, previous_frame_data, rgb, ac
                 for cortical in segmented_frame_data:
                     name = 'iv' + cortical
                     updated_size = grab_cortical_resolution(name, cortical)
-                    compressed_data[cortical] = effect(downsize_regions(segmented_frame_data[cortical], updated_size), capabilities)
+                    compressed_data[cortical] = downsize_regions(segmented_frame_data[cortical], updated_size)
+                    if 0 in capabilities['camera']['enhancement']:
+                        compressed_data[cortical] = adjust_brightness(compressed_data[cortical],
+                                                    capabilities['camera']['enhancement'][0])
+                    if 1 in capabilities['camera']['enhancement']:
+                        compressed_data[cortical] = adjust_contrast(compressed_data[cortical],
+                                                                  capabilities['camera']['enhancement'][1])
+                    if 2 in capabilities['camera']['enhancement']:
+                        compressed_data[cortical] = adjust_shadow(compressed_data[cortical],
+                                                                  capabilities['camera']['enhancement'][2])
                     if len(one_data_vision[cortical]) == 0:  # update the newest data into empty one_data_vision
                         one_data_vision[cortical] = compressed_data[cortical]
                     else:
@@ -526,8 +528,9 @@ def process_visual_stimuli(raw_frame, capabilities, previous_frame_data, rgb, ac
 
             vision_dict = dict()
 
-            # for segment in compressed_data:
-            #     cv2.imshow(segment, compressed_data[segment])
+            for segment in compressed_data:
+                if "_C" in segment:
+                    cv2.imshow(segment, compressed_data[segment])
             if cv2.waitKey(30) & 0xFF == ord('q'):
                 pass
             for get_region in one_data_vision:
@@ -633,9 +636,7 @@ def process_visual_stimuli_trainer(raw_frame, capabilities, previous_frame_data,
                             'resolution'][0],
                         pns.full_template_information_corticals['IPU']['supported_devices'][name][
                             'resolution'][1], current_dimension_list[cortical][2]]
-                    compressed_data[cortical] = effect(
-                        downsize_regions(segmented_frame_data[cortical], updated_size),
-                        capabilities)
+                    compressed_data[cortical] = downsize_regions(segmented_frame_data[cortical], updated_size)
                     if len(one_data_vision[
                                cortical]) == 0:  # update the newest data into empty one_data_vision
                         one_data_vision[cortical] = compressed_data[cortical]
@@ -778,27 +779,25 @@ def threshold_detect(capabilities):
     capabilities['camera']['threshold_type'].clear()
     return threshold_total
 
-
-def effect(image, capabilities):
-    if any(value in capabilities['camera']['enhancement'] for value in [0]):
-        if capabilities['camera']['enhancement'][0] > 0:
-            shadow = capabilities['camera']['enhancement'][0]
-            highlight = 255
-        else:
-            shadow = 0
-            highlight = 255 + capabilities['camera']['enhancement'][0]
-        alpha_b = (highlight - shadow) / 255
-        gamma_b = shadow
+def adjust_brightness(image, bright=None):
+    if bright:
+        highlight = 255
+        alpha_b = (highlight - bright) / 255
+        gamma_b = bright
         image = cv2.addWeighted(image, alpha_b, image, 0, gamma_b)
-    if any(value in capabilities['camera']['enhancement'] for value in [1]):
-        image = cv2.convertScaleAbs(image, alpha=capabilities['camera']['enhancement'][1], beta=0)
-    if any(value in capabilities['camera']['enhancement'] for value in [2]):
+    return image
+
+def adjust_contrast(image, contrast=None):
+    if contrast:
+        image = cv2.convertScaleAbs(image, alpha=contrast, beta=0)
+    return image
+
+def adjust_shadow(image, shadow=None):
+    if shadow:
         maxIntensity = 255.0
         phi = 1
         theta = 1
-
-        adjusted = (maxIntensity / phi) * (image / (maxIntensity / theta)) ** \
-                   capabilities['camera']['enhancement'][2]
+        adjusted = (maxIntensity / phi) * (image / (maxIntensity / theta)) ** shadow
         image = np.array(adjusted, dtype=np.uint8)
     return image
 
