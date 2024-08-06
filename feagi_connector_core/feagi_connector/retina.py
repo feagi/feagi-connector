@@ -517,49 +517,49 @@ def process_visual_stimuli(raw_frame, capabilities, previous_frame_data, rgb, ac
                                                                    grab_XY_cortical_resolution(name),
                                                                    interpolation=cv2.INTER_AREA)
 
-            vision_dict = dict()
-            for segment in compressed_data:
-                if "_C" in segment:
-                    cv2.imshow(segment, compressed_data[segment])
-            if cv2.waitKey(30) & 0xFF == ord('q'):
-                pass
-            for get_region in one_data_vision:
-                if current_dimension_list[get_region][2] == 3:
-                    if previous_frame_data != {}:
-                        if get_region in previous_frame_data:
-                            modified_data = change_detector(
-                                previous_frame_data[get_region],
-                                one_data_vision[get_region],
-                                capabilities['input']['camera'][str(obtain_raw_data)]['threshold_default'][0], compare_image, get_region)
-                            vision_dict[get_region] = generating_rgb_data(
-                                capabilities['input']['camera'][str(obtain_raw_data)]['percentage_to_allow_data'],
-                            get_region, modified_data, one_data_vision[get_region],
-                                previous_frame_data[get_region], capabilities['input']['camera'][str(obtain_raw_data)]['dev_index'])
-                        else:
-                            vision_dict[get_region] = change_detector(
-                                np.zeros((3, 3, 3)),
-                                one_data_vision[get_region],
-                                capabilities['input']['camera'][str(obtain_raw_data)]['threshold_default'][0], compare_image, get_region)
-                else:
-                    if previous_frame_data != {}:
-                        if get_region in previous_frame_data:
-                            vision_dict[get_region] = change_detector_grayscale(
-                                previous_frame_data[get_region],
-                                one_data_vision[get_region],
-                                capabilities, compare_image, get_region)
-                        else:
-                            vision_dict[get_region] = change_detector_grayscale(
-                                np.zeros((3, 3, 3)),
-                                one_data_vision[get_region],
-                                capabilities, compare_image, get_region)
-            if previous_frame_data:
-                previous_frame_data.update(one_data_vision)
+        vision_dict = dict()
+        for segment in compressed_data:
+            if "_C" in segment:
+                cv2.imshow(segment, compressed_data[segment])
+        if cv2.waitKey(30) & 0xFF == ord('q'):
+            pass
+        for get_region in one_data_vision:
+            if current_dimension_list[get_region][2] == 3:
+                if previous_frame_data != {}:
+                    if get_region in previous_frame_data:
+                        modified_data = change_detector(
+                            previous_frame_data[get_region],
+                            one_data_vision[get_region],
+                            capabilities['input']['camera'][str(obtain_raw_data)]['threshold_default'][0], compare_image, get_region)
+                        vision_dict[get_region] = generating_rgb_data(
+                            capabilities['input']['camera'][str(obtain_raw_data)]['percentage_to_allow_data'],
+                        get_region, modified_data, one_data_vision[get_region],
+                            previous_frame_data[get_region], capabilities['input']['camera'][str(obtain_raw_data)]['dev_index'])
+                    else:
+                        vision_dict[get_region] = change_detector(
+                            np.zeros((3, 3, 3)),
+                            one_data_vision[get_region],
+                            capabilities['input']['camera'][str(obtain_raw_data)]['threshold_default'][0], compare_image, get_region)
             else:
-                previous_frame_data = one_data_vision
-            if 'camera' in rgb:
-                rgb['camera'].update(vision_dict)
-            else:
-                rgb['camera'] = vision_dict
+                if previous_frame_data != {}:
+                    if get_region in previous_frame_data:
+                        vision_dict[get_region] = change_detector_grayscale(
+                            previous_frame_data[get_region],
+                            one_data_vision[get_region],
+                            capabilities, compare_image, get_region)
+                    else:
+                        vision_dict[get_region] = change_detector_grayscale(
+                            np.zeros((3, 3, 3)),
+                            one_data_vision[get_region],
+                            capabilities, compare_image, get_region)
+        if previous_frame_data:
+            previous_frame_data.update(one_data_vision)
+        else:
+            previous_frame_data = one_data_vision
+        if 'camera' in rgb:
+            rgb['camera'].update(vision_dict)
+        else:
+            rgb['camera'] = vision_dict
         return previous_frame_data, rgb, capabilities
     return pns.resize_list, pns.resize_list, capabilities  # sending empty dict
 
