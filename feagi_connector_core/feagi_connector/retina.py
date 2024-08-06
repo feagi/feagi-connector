@@ -518,9 +518,9 @@ def process_visual_stimuli(raw_frame, capabilities, previous_frame_data, rgb, ac
                                                                    interpolation=cv2.INTER_AREA)
 
         vision_dict = dict()
-        for segment in compressed_data:
-            if "_C" in segment:
-                cv2.imshow(segment, compressed_data[segment])
+        # for segment in compressed_data:
+        #     if "_C" in segment:
+        #         cv2.imshow(segment, compressed_data[segment])
         if cv2.waitKey(30) & 0xFF == ord('q'):
             pass
         for get_region in one_data_vision:
@@ -531,6 +531,8 @@ def process_visual_stimuli(raw_frame, capabilities, previous_frame_data, rgb, ac
                             previous_frame_data[get_region],
                             one_data_vision[get_region],
                             capabilities['input']['camera'][str(obtain_raw_data)]['threshold_default'][0], compare_image, get_region)
+                        if "_C" in get_region:
+                            cv2.imshow(get_region, modified_data)
                         vision_dict[get_region] = generating_rgb_data(
                             capabilities['input']['camera'][str(obtain_raw_data)]['percentage_to_allow_data'],
                         get_region, modified_data, one_data_vision[get_region],
