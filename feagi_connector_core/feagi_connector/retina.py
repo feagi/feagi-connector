@@ -465,14 +465,13 @@ def process_visual_stimuli(raw_frame, capabilities, previous_frame_data, rgb, ac
         raw_frame = temp_dict.copy()
 
     capabilities = pns.create_runtime_default_list(capabilities, actual_capabilities)
-
     if pns.resize_list:
         current_dimension_list = pns.resize_list
         one_data_vision = {}
         for obtain_raw_data in raw_frame:
             if not capabilities['input']['camera'][str(obtain_raw_data)]['disabled']:
                 if 0 in capabilities['input']['camera'][str(obtain_raw_data)]['blink']:
-                    raw_frame[0] = vision_blink(raw_frame, capabilities['input']['camera'][str(obtain_raw_data)]['blink'][0])
+                    raw_frame[obtain_raw_data] = vision_blink(raw_frame, capabilities['input']['camera'][str(obtain_raw_data)]['blink'][0])
                 if capabilities['input']['camera'][str(obtain_raw_data)]["mirror"]:
                     raw_frame[obtain_raw_data] = cv2.flip(raw_frame[obtain_raw_data], 1)
                 region_coordinates = vision_region_coordinates(
@@ -532,7 +531,7 @@ def process_visual_stimuli(raw_frame, capabilities, previous_frame_data, rgb, ac
                             one_data_vision[get_region],
                             capabilities['input']['camera'][str(obtain_raw_data)]['threshold_default'][0], compare_image, get_region)
                         if "_C" in get_region:
-                            cv2.imshow(get_region, modified_data)
+                            cv2.imshow(get_region, one_data_vision[get_region])
                         vision_dict[get_region] = generating_rgb_data(
                             capabilities['input']['camera'][str(obtain_raw_data)]['percentage_to_allow_data'],
                         get_region, modified_data, one_data_vision[get_region],
