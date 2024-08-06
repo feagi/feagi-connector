@@ -218,9 +218,10 @@ def eccentricity_control_update(message_from_feagi, capabilities):
             if str(device_id) in ['0', '1']:
                 intensity_select = (int(data_point.split('-')[-1]))
                 max_depth_of_cortical = full_list_dimension['ov_ecc']['cortical_dimensions'][2] - 1
-                max_range = capabilities['input']['camera']['0']['vision_range'][1]
-                min_range = capabilities['input']['camera']['0']['vision_range'][0]
-                capabilities['camera']["eccentricity_control"][str(device_id)] = int(((intensity_select / max_depth_of_cortical) * (max_range - min_range)) + min_range)
+                for index in capabilities['input']['camera']:
+                    max_range = capabilities['input']['camera'][index]['vision_range'][1]
+                    min_range = capabilities['input']['camera'][index]['vision_range'][0]
+                    capabilities['input']['camera'][index]["eccentricity_control"][str(device_id)] = int(((intensity_select / max_depth_of_cortical) * (max_range - min_range)) + min_range)
     return capabilities
 
 
@@ -234,9 +235,10 @@ def modulation_control_update(message_from_feagi, capabilities):
             if str(device_id) in ['0', '1']:
                 intensity_select = (int(data_point.split('-')[-1]))
                 max_depth_of_cortical = full_list_dimension['ov_mod']['cortical_dimensions'][2] - 1
-                max_range = capabilities['input']['camera']['0']['vision_range'][1]
-                min_range = capabilities['input']['camera']['0']['vision_range'][0]
-                capabilities['camera']["modulation_control"][str(device_id)] = int(((intensity_select / max_depth_of_cortical) * (max_range - min_range)) + min_range)
+                for index in capabilities['input']['camera']:
+                    max_range = capabilities['input']['camera'][index]['vision_range'][1]
+                    min_range = capabilities['input']['camera'][index]['vision_range'][0]
+                    capabilities['input']['camera'][index]["modulation_control"][str(device_id)] = int(((intensity_select / max_depth_of_cortical) * (max_range - min_range)) + min_range)
     return capabilities
 
 
@@ -379,10 +381,11 @@ def fetch_threshold_type(message_from_feagi, capabilities):
 def fetch_mirror_opu(message_from_feagi, capabilities):
     if "ovflph" in message_from_feagi["opu_data"]:
         if message_from_feagi["opu_data"]["ovflph"]:
-            if capabilities['camera']["mirror"]:
-                capabilities['camera']["mirror"] = False
-            else:
-                capabilities['camera']["mirror"] = True
+            for index in capabilities['input']['camera']:
+                if capabilities['input']['camera'][index]["mirror"]:
+                    capabilities['input']['camera'][index]["mirror"] = False
+                else:
+                    capabilities['input']['camera'][index]["mirror"] = True
     return capabilities
 
 
