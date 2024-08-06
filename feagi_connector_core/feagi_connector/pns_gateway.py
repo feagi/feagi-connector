@@ -473,25 +473,24 @@ def create_runtime_default_list(list, capabilities):
         list = camera_config_update(list, capabilities)
     return list
 
-
-def update_dict(d, u):
-    for k, v in u.items():
-        if isinstance(v, dict):
-            d[k] = update_dict(d.get(k, {}), v)
-        else:
-            d[k] = v
-    return d
+# This is why u don't use chatgpt. zzzz
+# def update_dict(d, u):
+#     for k, v in u.items():
+#         if isinstance(v, dict):
+#             d[k] = update_dict(d.get(k, {}), v)
+#         else:
+#             d[k] = v
+#     return d
 
 def camera_config_update(list, capabilities):
     """
     Update the capabilities to overwrite the default generated capabilities.
     """
-    if 'input' in capabilities and 'camera' in capabilities['input']:
-        for device_id, device_config in capabilities['input']['camera'].items():
-            if device_id not in list['input']['camera']:
-                list['input']['camera'][device_id] = {}
-            list['input']['camera'][device_id] = update_dict(list['input']['camera'][device_id], device_config)
-    return list
+    for index in capabilities['input']['camera']:
+        for key in list['input']['camera']['0']:
+            if key not in capabilities['input']['camera'][index]:
+                capabilities['input']['camera'][index][key] = list['input']['camera']['0'][key]
+    return capabilities
 
 
 
