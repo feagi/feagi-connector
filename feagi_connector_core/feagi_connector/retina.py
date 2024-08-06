@@ -191,37 +191,29 @@ def downsize_regions(frame, resize):
     return compressed_dict
 
 
-def create_feagi_data(significant_changes, current, shape, index, cortical_name):
+def create_feagi_data(significant_changes, current, shape, index, cortical_name, grayscale=False):
     # start_time = datetime.now()
     feagi_data = {}
     size_of_frame = shape
     name = 'iv' + cortical_name
     offset_x = (pns.full_template_information_corticals['IPU']['supported_devices'][name][
                     'resolution'][0] * index)
-    for x in range(size_of_frame[0]):
-        for y in range(size_of_frame[1]):
-            for z in range(size_of_frame[2]):
-                if significant_changes[x, y, z]:
-                    key = f'{offset_x + y}-{((int(size_of_frame[0]) - 1) - x)}-{z}'
-                    # key = f'{y}-{((int(size_of_frame[0]) - 1) - x)}-{z}'
-                    feagi_data[key] = int(current[x, y, z])
-    return feagi_data
-
-
-def create_feagi_data_grayscale(significant_changes, current, shape, capabilities, cortical_name):
-    start_time = datetime.now()
-    feagi_data = {}
-    size_of_frame = shape
-    index = capabilities['input']['camera'][str(obtain_raw_data)]['dev_index']
-    name = 'iv' + cortical_name
-    offset_x = (pns.full_template_information_corticals['IPU']['supported_devices'][name][
-                    'resolution'][0] * index)
-    for x in range(size_of_frame[0]):
-        for y in range(size_of_frame[1]):
-            if significant_changes[x, y]:
-                key = f'{offset_x + y}-{((int(size_of_frame[0]) - 1) - x)}-{0}'
-                # key = f'{y}-{(int(size_of_frame[0]) - 1) - x}-{0}'
-                feagi_data[key] = int(current[x, y])
+    if len(significant_changes) > 0:
+        if grayscale:
+            for x in range(size_of_frame[0]):
+                for y in range(size_of_frame[1]):
+                    if significant_changes[x, y]:
+                        key = f'{offset_x + y}-{((int(size_of_frame[0]) - 1) - x)}-{0}'
+                        # key = f'{y}-{(int(size_of_frame[0]) - 1) - x}-{0}'
+                        feagi_data[key] = int(current[x, y])
+        else:
+            for x in range(size_of_frame[0]):
+                for y in range(size_of_frame[1]):
+                    for z in range(size_of_frame[2]):
+                        if significant_changes[x, y, z]:
+                            key = f'{offset_x + y}-{((int(size_of_frame[0]) - 1) - x)}-{z}'
+                            # key = f'{y}-{((int(size_of_frame[0]) - 1) - x)}-{z}'
+                            feagi_data[key] = int(current[x, y, z])
     return feagi_data
 
 
@@ -291,61 +283,6 @@ def change_detector_grayscale_trainer(previous, current, capabilities, compare_i
         return dict(feagi_data), {cortical_name: thresholded}
     else:
         return {}, {}
-
-
-def change_detector_grayscale(previous, current, capabilities, compare_image, cortical_name):
-    """
-    Detects changes between previous and current frames and checks against a threshold.
-
-    Compares the previous and current frames to identify differences. If the difference
-    exceeds a predefined threshold (iso), it records the change in a dictionary for Feagi.
-
-    Inputs:
-    - previous: Dictionary with 'cortical' keys containing NumPy ndarray frames.
-    - current: Dictionary with 'cortical' keys containing NumPy ndarray frames.
-
-    Output:
-    - Dictionary containing changes in the ndarray frames.
-    """
-    # Using cv2.absdiff for optimized difference calculation
-    if compare_image:
-        if current.shape == previous.shape:
-            # start_time = datetime.now()
-            if len(capabilities['input']['camera'][str(obtain_raw_data)]['blink']) == 0:
-                difference = cv2.absdiff(previous, current)  # there is more than 5 types
-                if capabilities['input']['camera'][str(obtain_raw_data)]['threshold_type']:
-                    capabilities['input']['camera'][str(obtain_raw_data)]['threshold_name'] = threshold_detect(capabilities)
-                _, thresholded = cv2.threshold(difference,
-                                               capabilities['input']['camera'][str(obtain_raw_data)]['threshold_default'][0], 255,
-                                               capabilities['input']['camera'][str(obtain_raw_data)]['threshold_name'])
-            else:
-                difference = current
-                thresholded = cv2.threshold(difference, 1, 255, cv2.THRESH_TOZERO)[1]
-
-            # Convert to boolean array for significant changes
-            significant_changes = thresholded > 0
-            feagi_data = create_feagi_data_grayscale(significant_changes, thresholded,
-                                                     previous.shape, capabilities, cortical_name)
-        else:
-            return {}
-        # print("grayscale change detect: ", (datetime.now() - start_time).total_seconds())
-    else:
-        if current.shape == previous.shape:
-            # thresholded = effect(current, capabilities)
-            thresholded = cv2.threshold(thresholded,
-                                        capabilities['input']['camera'][str(obtain_raw_data)]['threshold_default'][0], 255,
-                                        cv2.THRESH_TOZERO)[1]
-        else:
-            return {}
-    if drop_high_frequency_events(thresholded) <= (
-            get_full_dimension_of_cortical_area(cortical_name) * capabilities['input']['camera'][str(obtain_raw_data)][
-        'percentage_to_allow_data']):
-        feagi_data = create_feagi_data_grayscale(thresholded, current, previous.shape, capabilities,
-                                                 cortical_name)
-        return dict(feagi_data)
-    else:
-        return {}
-
 
 def change_detector_trainer(previous, current, capabilities, compare_image, cortical_name):
     """
@@ -430,9 +367,10 @@ def change_detector(previous, current, src, compare_image, cortical_name):
         return {}
 
 
-def generating_rgb_data(percentage, cortical_name, thresholded, current, previous, dev_index):
+def generating_rgb_data(percentage, cortical_name, thresholded, current, previous, dev_index, grayscale=False):
     if drop_high_frequency_events(thresholded) <= (get_full_dimension_of_cortical_area(cortical_name) * percentage):
-        feagi_data = create_feagi_data(thresholded,current, previous.shape, dev_index,cortical_name)
+        feagi_data = create_feagi_data(thresholded, current, previous.shape, dev_index,
+                                       cortical_name, grayscale=grayscale)
         return dict(feagi_data)
     else:
         return {}
@@ -520,8 +458,8 @@ def process_visual_stimuli(raw_frame, capabilities, previous_frame_data, rgb, ac
         # for segment in compressed_data:
         #     if "_C" in segment:
         #         cv2.imshow(segment, compressed_data[segment])
-        if cv2.waitKey(30) & 0xFF == ord('q'):
-            pass
+        # if cv2.waitKey(30) & 0xFF == ord('q'):
+        #     pass
         for get_region in one_data_vision:
             if current_dimension_list[get_region][2] == 3:
                 if previous_frame_data != {}:
@@ -530,8 +468,6 @@ def process_visual_stimuli(raw_frame, capabilities, previous_frame_data, rgb, ac
                             previous_frame_data[get_region],
                             one_data_vision[get_region],
                             capabilities['input']['camera'][str(obtain_raw_data)]['threshold_default'][0], compare_image, get_region)
-                        if "_C" in get_region:
-                            cv2.imshow(get_region, one_data_vision[get_region])
                         vision_dict[get_region] = generating_rgb_data(
                             capabilities['input']['camera'][str(obtain_raw_data)]['percentage_to_allow_data'],
                         get_region, modified_data, one_data_vision[get_region],
@@ -544,10 +480,18 @@ def process_visual_stimuli(raw_frame, capabilities, previous_frame_data, rgb, ac
             else:
                 if previous_frame_data != {}:
                     if get_region in previous_frame_data:
-                        vision_dict[get_region] = change_detector_grayscale(
+                        modified_data = change_detector(
                             previous_frame_data[get_region],
                             one_data_vision[get_region],
-                            capabilities, compare_image, get_region)
+                            capabilities['input']['camera'][str(obtain_raw_data)]['threshold_default'][0], compare_image, get_region)
+
+                        vision_dict[get_region] = generating_rgb_data(
+                            capabilities['input']['camera'][str(obtain_raw_data)][
+                                'percentage_to_allow_data'],
+                            get_region, modified_data, one_data_vision[get_region],
+                            previous_frame_data[get_region],
+                            capabilities['input']['camera'][str(obtain_raw_data)]['dev_index'],
+                            grayscale=True)
                     else:
                         vision_dict[get_region] = change_detector_grayscale(
                             np.zeros((3, 3, 3)),
