@@ -284,62 +284,62 @@ def change_detector_grayscale_trainer(previous, current, capabilities, compare_i
     else:
         return {}, {}
 
-def change_detector_trainer(previous, current, capabilities, compare_image, cortical_name):
-    """
-    Detects changes between previous and current frames and checks against a threshold.
-
-    Compares the previous and current frames to identify differences. If the difference
-    exceeds a predefined threshold (iso), it records the change in a dictionary for Feagi.
-
-    Inputs:
-    - previous: Dictionary with 'cortical' keys containing NumPy ndarray frames.
-    - current: Dictionary with 'cortical' keys containing NumPy ndarray frames.
-
-    Output:
-    - Dictionary containing changes in the ndarray frames.
-    """
-
-    # Using cv2.absdiff for optimized difference calculation
-    start_time = datetime.now()
-    if compare_image:
-        if current.shape == previous.shape:
-            if len(capabilities['input']['camera'][str(obtain_raw_data)]['blink']) == 0:
-                difference = cv2.absdiff(previous, current)  # there is more than 5 types
-                if capabilities['input']['camera'][str(obtain_raw_data)]['threshold_type']:
-                    capabilities['input']['camera'][str(obtain_raw_data)]['threshold_name'] = threshold_detect(capabilities)
-                _, thresholded = cv2.threshold(difference,
-                                               capabilities['input']['camera'][str(obtain_raw_data)]['threshold_default'][0], 255,
-                                               cv2.THRESH_TOZERO)
-            else:
-                difference = current
-                thresholded = cv2.threshold(difference, 0, 255, cv2.THRESH_TOZERO)[1]
-            # cv2.imshow("difference", difference)
-            # Convert to boolean array for significant changes
-            significant_changes = thresholded > 0
-
-            feagi_data = create_feagi_data(significant_changes, thresholded, previous.shape,
-                                           capabilities, cortical_name)
-        else:
-            return {}, {}
-    else:
-        if current.shape == previous.shape:
-            # thresholded = effect(current, capabilities)
-            thresholded = cv2.threshold(thresholded,
-                                        capabilities['input']['camera'][str(obtain_raw_data)]['threshold_default'][0],
-                                        255,
-                                        cv2.THRESH_TOZERO)[1]
-            # thresholded = effect(thresholded, capabilities)
-        else:
-            return {}, {}
-    # print("change detect: ", (datetime.now() - start_time).total_seconds())
-    if drop_high_frequency_events(thresholded) <= (
-            get_full_dimension_of_cortical_area(cortical_name) * capabilities['input']['camera'][str(obtain_raw_data)][
-        'percentage_to_allow_data']):
-        feagi_data = create_feagi_data(thresholded, current, previous.shape, capabilities,
-                                       cortical_name)
-        return dict(feagi_data), {cortical_name: thresholded}
-    else:
-        return {}, {}
+# def change_detector_trainer(previous, current, capabilities, compare_image, cortical_name):
+#     """
+#     Detects changes between previous and current frames and checks against a threshold.
+#
+#     Compares the previous and current frames to identify differences. If the difference
+#     exceeds a predefined threshold (iso), it records the change in a dictionary for Feagi.
+#
+#     Inputs:
+#     - previous: Dictionary with 'cortical' keys containing NumPy ndarray frames.
+#     - current: Dictionary with 'cortical' keys containing NumPy ndarray frames.
+#
+#     Output:
+#     - Dictionary containing changes in the ndarray frames.
+#     """
+#
+#     # Using cv2.absdiff for optimized difference calculation
+#     start_time = datetime.now()
+#     if compare_image:
+#         if current.shape == previous.shape:
+#             if len(capabilities['input']['camera'][str(obtain_raw_data)]['blink']) == 0:
+#                 difference = cv2.absdiff(previous, current)  # there is more than 5 types
+#                 if capabilities['input']['camera'][str(obtain_raw_data)]['threshold_type']:
+#                     capabilities['input']['camera'][str(obtain_raw_data)]['threshold_name'] = threshold_detect(capabilities)
+#                 _, thresholded = cv2.threshold(difference,
+#                                                capabilities['input']['camera'][str(obtain_raw_data)]['threshold_default'][0], 255,
+#                                                cv2.THRESH_TOZERO)
+#             else:
+#                 difference = current
+#                 thresholded = cv2.threshold(difference, 0, 255, cv2.THRESH_TOZERO)[1]
+#             # cv2.imshow("difference", difference)
+#             # Convert to boolean array for significant changes
+#             significant_changes = thresholded > 0
+#
+#             feagi_data = create_feagi_data(significant_changes, thresholded, previous.shape,
+#                                            capabilities, cortical_name)
+#         else:
+#             return {}, {}
+#     else:
+#         if current.shape == previous.shape:
+#             # thresholded = effect(current, capabilities)
+#             thresholded = cv2.threshold(thresholded,
+#                                         capabilities['input']['camera'][str(obtain_raw_data)]['threshold_default'][0],
+#                                         255,
+#                                         cv2.THRESH_TOZERO)[1]
+#             # thresholded = effect(thresholded, capabilities)
+#         else:
+#             return {}, {}
+#     # print("change detect: ", (datetime.now() - start_time).total_seconds())
+#     if drop_high_frequency_events(thresholded) <= (
+#             get_full_dimension_of_cortical_area(cortical_name) * capabilities['input']['camera'][str(obtain_raw_data)][
+#         'percentage_to_allow_data']):
+#         feagi_data = create_feagi_data(thresholded, current, previous.shape, capabilities,
+#                                        cortical_name)
+#         return dict(feagi_data), {cortical_name: thresholded}
+#     else:
+#         return {}, {}
 
 
 def change_detector(previous, current, src, compare_image, cortical_name):
@@ -538,31 +538,45 @@ def process_visual_stimuli_trainer(raw_frame, capabilities, previous_frame_data,
     if isinstance(raw_frame, numpy.ndarray):
         temp_dict = {0: raw_frame}
         raw_frame = temp_dict.copy()
+
     capabilities = pns.create_runtime_default_list(capabilities, actual_capabilities)
-    if not capabilities['input']['camera'][str(obtain_raw_data)]['disabled']:
-        if pns.resize_list:
-            current_dimension_list = pns.resize_list
-            one_data_vision = {}
-            for obtain_raw_data in raw_frame:
-                if capabilities["camera"]["mirror"]:
+    if pns.resize_list:
+        current_dimension_list = pns.resize_list
+        one_data_vision = {}
+        for obtain_raw_data in raw_frame:
+            if not capabilities['input']['camera'][str(obtain_raw_data)]['disabled']:
+                if 0 in capabilities['input']['camera'][str(obtain_raw_data)]['blink']:
+                    raw_frame[obtain_raw_data] = vision_blink(raw_frame,
+                                                              capabilities['input']['camera'][
+                                                                  str(obtain_raw_data)]['blink'][0])
+                if capabilities['input']['camera'][str(obtain_raw_data)]["mirror"]:
                     raw_frame[obtain_raw_data] = cv2.flip(raw_frame[obtain_raw_data], 1)
                 region_coordinates = vision_region_coordinates(
                     frame_width=raw_frame[obtain_raw_data].shape[1],
                     frame_height=raw_frame[obtain_raw_data].shape[0],
-                    x1=abs(capabilities['input']['camera'][str(obtain_raw_data)]['eccentricity_control']['0']),
-                    x2=abs(capabilities['input']['camera'][str(obtain_raw_data)]['modulation_control']['0']),
-                    y1=abs(capabilities['input']['camera'][str(obtain_raw_data)]['eccentricity_control']['1']),
-                    y2=abs(capabilities['input']['camera'][str(obtain_raw_data)]['modulation_control']['1']),
+                    x1=abs(capabilities['input']['camera'][str(obtain_raw_data)][
+                               'eccentricity_control']['0']),
+                    x2=abs(
+                        capabilities['input']['camera'][str(obtain_raw_data)]['modulation_control'][
+                            '0']),
+                    y1=abs(capabilities['input']['camera'][str(obtain_raw_data)][
+                               'eccentricity_control']['1']),
+                    y2=abs(
+                        capabilities['input']['camera'][str(obtain_raw_data)]['modulation_control'][
+                            '1']),
                     camera_index=capabilities['input']['camera'][str(obtain_raw_data)]['index'],
                     size_list=current_dimension_list)
+
                 if not region_coordinates:
-                    if not (capabilities['input']['camera'][str(obtain_raw_data)]['index'] + '_C') in current_dimension_list:
-                        pns.resize_list.update(
-                            obtain_cortical_vision_size(capabilities['input']['camera'][str(obtain_raw_data)]['index'],
-                                                        pns.full_list_dimension))
+                    if not (capabilities['input']['camera'][str(obtain_raw_data)][
+                                'index'] + '_C') in current_dimension_list:
+                        pns.resize_list.update(obtain_cortical_vision_size(
+                            capabilities['input']['camera'][str(obtain_raw_data)]['index'],
+                            pns.full_list_dimension))
                 segmented_frame_data = split_vision_regions(coordinates=region_coordinates,
                                                             raw_frame_data=raw_frame[
                                                                 obtain_raw_data])
+
                 if len(one_data_vision) == 0:
                     for region in segmented_frame_data:
                         one_data_vision[region] = []
@@ -570,12 +584,25 @@ def process_visual_stimuli_trainer(raw_frame, capabilities, previous_frame_data,
 
                 for cortical in segmented_frame_data:
                     name = 'iv' + cortical
-                    updated_size = [
-                        pns.full_template_information_corticals['IPU']['supported_devices'][name][
-                            'resolution'][0],
-                        pns.full_template_information_corticals['IPU']['supported_devices'][name][
-                            'resolution'][1], current_dimension_list[cortical][2]]
-                    compressed_data[cortical] = downsize_regions(segmented_frame_data[cortical], updated_size)
+                    updated_size = grab_cortical_resolution(name, cortical)
+                    compressed_data[cortical] = downsize_regions(segmented_frame_data[cortical],
+                                                                 updated_size)
+                    if 0 in capabilities['input']['camera'][str(obtain_raw_data)]['enhancement']:
+                        compressed_data[cortical] = adjust_brightness(compressed_data[cortical],
+                                                                      capabilities['input'][
+                                                                          'camera'][
+                                                                          str(obtain_raw_data)][
+                                                                          'enhancement'][0])
+                    if 1 in capabilities['input']['camera'][str(obtain_raw_data)]['enhancement']:
+                        compressed_data[cortical] = adjust_contrast(compressed_data[cortical],
+                                                                    capabilities['input']['camera'][
+                                                                        str(obtain_raw_data)][
+                                                                        'enhancement'][1])
+                    if 2 in capabilities['input']['camera'][str(obtain_raw_data)]['enhancement']:
+                        compressed_data[cortical] = adjust_shadow(compressed_data[cortical],
+                                                                  capabilities['input']['camera'][
+                                                                      str(obtain_raw_data)][
+                                                                      'enhancement'][2])
                     if len(one_data_vision[
                                cortical]) == 0:  # update the newest data into empty one_data_vision
                         one_data_vision[cortical] = compressed_data[cortical]
@@ -585,65 +612,112 @@ def process_visual_stimuli_trainer(raw_frame, capabilities, previous_frame_data,
                         if (
                                 len(raw_frame) - 1) == obtain_raw_data:  # Reach to end of the list for camera
                             one_data_vision[cortical] = cv2.resize(one_data_vision[cortical],
-                                                                   [
-                                                                       pns.full_template_information_corticals[
-                                                                           'IPU'][
-                                                                           'supported_devices'][
-                                                                           name]['resolution'][0],
-                                                                       pns.full_template_information_corticals[
-                                                                           'IPU'][
-                                                                           'supported_devices'][
-                                                                           name]['resolution'][1]],
+                                                                   grab_XY_cortical_resolution(
+                                                                       name),
                                                                    interpolation=cv2.INTER_AREA)
 
-            vision_dict = dict()
+        vision_dict = dict()
+        # for segment in compressed_data:
+        #     if "_C" in segment:
+        #         cv2.imshow(segment, compressed_data[segment])
+        # if cv2.waitKey(30) & 0xFF == ord('q'):
+        #     pass
+        modified_data_dict = {}
+        for get_region in one_data_vision:
+            if current_dimension_list[get_region][2] == 3:
+                if previous_frame_data != {}:
+                    if get_region in previous_frame_data:
+                        modified_data = change_detector(
+                            previous_frame_data[get_region],
+                            one_data_vision[get_region],
+                            capabilities['input']['camera'][str(obtain_raw_data)][
+                                'threshold_default'][0], compare_image, get_region)
+                        vision_dict[get_region] = generating_rgb_data(
+                            capabilities['input']['camera'][str(obtain_raw_data)][
+                                'percentage_to_allow_data'],
+                            get_region, modified_data, one_data_vision[get_region],
+                            previous_frame_data[get_region],
+                            capabilities['input']['camera'][str(obtain_raw_data)]['dev_index'])
+                        modified_data_dict[get_region] = modified_data
+                    else:
+                        vision_dict[get_region] = change_detector(
+                            np.zeros((3, 3, 3)),
+                            one_data_vision[get_region],
+                            capabilities['input']['camera'][str(obtain_raw_data)][
+                                'threshold_default'][0], compare_image, get_region)
+            else:
+                if previous_frame_data != {}:
+                    if get_region in previous_frame_data:
+                        modified_data = change_detector(
+                            previous_frame_data[get_region],
+                            one_data_vision[get_region],
+                            capabilities['input']['camera'][str(obtain_raw_data)][
+                                'threshold_default'][0], compare_image, get_region)
 
-            # for segment in compressed_data:
-            #     cv2.imshow(segment, compressed_data[segment])
-            # if cv2.waitKey(30) & 0xFF == ord('q'):
-            #     pass
-            modified_data = {}
-            for get_region in one_data_vision:
-                if current_dimension_list[get_region][2] == 3:
-                    if previous_frame_data != {}:
-                        if get_region in previous_frame_data:
-                            vision_dict[get_region], modified_output_data = change_detector_trainer(
-                                previous_frame_data[get_region],
-                                one_data_vision[get_region],
-                                capabilities, compare_image, get_region)
-                            modified_data.update(modified_output_data)
-                        else:
-                            vision_dict[get_region], modified_output_data = change_detector_trainer(
-                                np.zeros((3, 3, 3)),
-                                one_data_vision[get_region],
-                                capabilities, compare_image, get_region)
-                            modified_data.update(modified_output_data)
-                else:
-                    if previous_frame_data != {}:
-                        if get_region in previous_frame_data:
-                            vision_dict[
-                                get_region], modified_output_data = change_detector_grayscale_trainer(
-                                previous_frame_data[get_region],
-                                one_data_vision[get_region],
-                                capabilities, compare_image, get_region)
-                            modified_data.update(modified_output_data)
-                        else:
-                            vision_dict[
-                                get_region], modified_output_data = change_detector_grayscale_trainer(
-                                np.zeros((3, 3, 3)),
-                                one_data_vision[get_region],
-                                capabilities, compare_image, get_region)
-                            modified_data.update(modified_output_data)
-            if previous_frame_data:
-                previous_frame_data.update(one_data_vision)
-            else:
-                previous_frame_data = one_data_vision
-            if 'camera' in rgb:
-                rgb['camera'].update(vision_dict)
-            else:
-                rgb['camera'] = vision_dict
-            return previous_frame_data, rgb, capabilities, modified_data
+                        vision_dict[get_region] = generating_rgb_data(
+                            capabilities['input']['camera'][str(obtain_raw_data)][
+                                'percentage_to_allow_data'],
+                            get_region, modified_data, one_data_vision[get_region],
+                            previous_frame_data[get_region],
+                            capabilities['input']['camera'][str(obtain_raw_data)]['dev_index'],
+                            grayscale=True)
+                        modified_data_dict[get_region] = modified_data
+                    else:
+                        vision_dict[get_region] = change_detector_grayscale(
+                            np.zeros((3, 3, 3)),
+                            one_data_vision[get_region],
+                            capabilities, compare_image, get_region)
+        if previous_frame_data:
+            previous_frame_data.update(one_data_vision)
+        else:
+            previous_frame_data = one_data_vision
+        if 'camera' in rgb:
+            rgb['camera'].update(vision_dict)
+        else:
+            rgb['camera'] = vision_dict
+        return previous_frame_data, rgb, capabilities, modified_data_dict
     return pns.resize_list, pns.resize_list, capabilities, {}  # sending empty dict
+    #     for get_region in one_data_vision:
+    #         if current_dimension_list[get_region][2] == 3:
+    #             if previous_frame_data != {}:
+    #                 if get_region in previous_frame_data:
+    #                     vision_dict[get_region], modified_output_data = change_detector_trainer(
+    #                         previous_frame_data[get_region],
+    #                         one_data_vision[get_region],
+    #                         capabilities, compare_image, get_region)
+    #                     modified_data.update(modified_output_data)
+    #                 else:
+    #                     vision_dict[get_region], modified_output_data = change_detector_trainer(
+    #                         np.zeros((3, 3, 3)),
+    #                         one_data_vision[get_region],
+    #                         capabilities, compare_image, get_region)
+    #                     modified_data.update(modified_output_data)
+    #         else:
+    #             if previous_frame_data != {}:
+    #                 if get_region in previous_frame_data:
+    #                     vision_dict[
+    #                         get_region], modified_output_data = change_detector_grayscale_trainer(
+    #                         previous_frame_data[get_region],
+    #                         one_data_vision[get_region],
+    #                         capabilities, compare_image, get_region)
+    #                     modified_data.update(modified_output_data)
+    #                 else:
+    #                     vision_dict[
+    #                         get_region], modified_output_data = change_detector_grayscale_trainer(
+    #                         np.zeros((3, 3, 3)),
+    #                         one_data_vision[get_region],
+    #                         capabilities, compare_image, get_region)
+    #                     modified_data.update(modified_output_data)
+    #         if previous_frame_data:
+    #             previous_frame_data.update(one_data_vision)
+    #         else:
+    #             previous_frame_data = one_data_vision
+    #         if 'camera' in rgb:
+    #             rgb['camera'].update(vision_dict)
+    #         else:
+    #             rgb['camera'] = vision_dict
+    #         return previous_frame_data, rgb, capabilities, modified_data
+    # return pns.resize_list, pns.resize_list, capabilities, {}  # sending empty dict
 
 
 def vision_progress(capabilities, feagi_settings, raw_frame):
