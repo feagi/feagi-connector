@@ -31,6 +31,7 @@ from time import sleep
 from feagi_connector import pns_gateway as pns
 from websockets.sync.client import connect
 
+asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy()) # For windows
 global_feagi_opu_channel = ''  # Updated by feagi.connect_to_feagi()
 global_api_address = ''  # Updated by feagi.connect_to_feagi
 global_websocket_address = ''  # Just a full address stored
