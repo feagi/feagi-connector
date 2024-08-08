@@ -15,23 +15,24 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================
 """
-import json
-
 import zmq
+import json
 import time
-import socket
 import pickle
+import socket
 import asyncio
 import requests
-import lz4.frame
+import platform
 import traceback
+import lz4.frame
 import websockets
 import zmq.asyncio
 from time import sleep
-from feagi_connector import pns_gateway as pns
 from websockets.sync.client import connect
+from feagi_connector import pns_gateway as pns
 
-asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy()) # For windows
+if platform.system() == "Windows":
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy()) # For windows
 global_feagi_opu_channel = ''  # Updated by feagi.connect_to_feagi()
 global_api_address = ''  # Updated by feagi.connect_to_feagi
 global_websocket_address = ''  # Just a full address stored
