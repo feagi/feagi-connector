@@ -315,8 +315,8 @@ def process_visual_stimuli(raw_frame, capabilities, previous_frame_data, rgb, ac
         one_data_vision = {}
         for obtain_raw_data in raw_frame:
             if not capabilities['input']['camera'][str(obtain_raw_data)]['disabled']:
-                if 0 in capabilities['input']['camera'][str(obtain_raw_data)]['blink']:
-                    raw_frame[obtain_raw_data] = vision_blink(raw_frame, capabilities['input']['camera'][str(obtain_raw_data)]['blink'][0])
+                if obtain_raw_data in capabilities['input']['camera'][str(obtain_raw_data)]['blink']:
+                    raw_frame[obtain_raw_data] = vision_blink(raw_frame, capabilities['input']['camera'][str(obtain_raw_data)]['blink'])
                 if capabilities['input']['camera'][str(obtain_raw_data)]["mirror"]:
                     raw_frame[obtain_raw_data] = cv2.flip(raw_frame[obtain_raw_data], 1)
                 region_coordinates = vision_region_coordinates(
@@ -408,6 +408,10 @@ def process_visual_stimuli(raw_frame, capabilities, previous_frame_data, rgb, ac
             rgb['camera'].update(vision_dict)
         else:
             rgb['camera'] = vision_dict
+
+        for index in capabilities['input']['camera']:
+            if capabilities['input']['camera'][index]['blink'] != []:
+                capabilities['input']['camera'][index]['blink'] = []
         return previous_frame_data, rgb, capabilities
     return pns.resize_list, pns.resize_list, capabilities  # sending empty dict
 
