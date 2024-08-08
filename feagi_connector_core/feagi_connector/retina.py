@@ -410,7 +410,7 @@ def process_visual_stimuli(raw_frame, capabilities, previous_frame_data, rgb, ac
             rgb['camera'] = vision_dict
 
         for index in capabilities['input']['camera']:
-            if capabilities['input']['camera'][index]['blink'] != []:
+            if len(capabilities['input']['camera'][index]['blink']) > 0:
                 capabilities['input']['camera'][index]['blink'] = []
         return previous_frame_data, rgb, capabilities
     return pns.resize_list, pns.resize_list, capabilities  # sending empty dict
