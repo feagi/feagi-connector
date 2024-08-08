@@ -15,6 +15,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================
 """
+import json
+
 import zmq
 import time
 import socket
@@ -223,15 +225,15 @@ def register_with_feagi(feagi_auth_url, feagi_settings, agent_settings, agent_ca
                 print("No feagi settings!")
 
             agent_registration_data = dict()
+            agent_registration_data['capabilities'] = agent_capabilities
             agent_registration_data["agent_type"] = str(agent_settings['agent_type'])
             agent_registration_data["agent_id"] = str(agent_settings['agent_id'])
             agent_registration_data["agent_ip"] = str(agent_settings['agent_ip'])  # str("127.0.0.1")
             agent_registration_data["agent_data_port"] = int(agent_settings['agent_data_port'])
             agent_registration_data["controller_version"] = str(controller_version)
             agent_registration_data["agent_version"] = str(agent_version)
-
             response = requests.post(feagi_url + registration_endpoint,
-                                     params=agent_registration_data)
+                                     data=json.dumps(agent_registration_data))
             if response.status_code == 200:
                 feagi_settings['agent_state'] = response.json()
                 print("Agent successfully registered with FEAGI!")
