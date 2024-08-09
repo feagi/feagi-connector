@@ -181,8 +181,7 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, mes
     default_capabilities = {}  # It will be generated in process_visual_stimuli. See the
     # overwrite manual
     default_capabilities = pns.create_runtime_default_list(default_capabilities, capabilities)
-    default_capabilities = retina.convert_new_json_to_old_json(default_capabilities)
-    threading.Thread(target=retina.vision_progress, args=(default_capabilities,feagi_settings, camera_data['vision'],), daemon=True).start()
+    threading.Thread(target=retina.vision_progress, args=(default_capabilities,feagi_settings, camera_data,), daemon=True).start()
     while True:
         # Decompression section starts
         message_from_feagi = pns.message_from_feagi
@@ -192,10 +191,6 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, mes
         # OPU section ENDS
         if camera_data['vision'] is not None and camera_data['vision'].any():
             raw_frame = camera_data['vision']
-            default_capabilities['camera']['blink'] = []
-            if 'camera' in default_capabilities:
-                if default_capabilities['camera']['blink'] != []:
-                    raw_frame = default_capabilities['camera']['blink']
             previous_frame_data, rgb, default_capabilities = retina.process_visual_stimuli(
                 raw_frame,
                 default_capabilities,
