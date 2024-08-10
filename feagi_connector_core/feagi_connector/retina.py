@@ -205,8 +205,7 @@ def create_feagi_data(significant_changes, current, shape, index, cortical_name,
     feagi_data = {}
     size_of_frame = shape
     name = 'iv' + cortical_name
-    offset_x = (pns.full_template_information_corticals['IPU']['supported_devices'][name][
-                    'resolution'][0] * index)
+    offset_x = (pns.full_list_dimension[name]['cortical_dimensions_per_device'][0] * index)
     if len(significant_changes) > 0:
         if grayscale:
             for x in range(size_of_frame[0]):
@@ -286,14 +285,14 @@ def flip_the_camera(data):
 
 
 def grab_cortical_resolution(name, cortical):
-    return [pns.full_template_information_corticals['IPU']['supported_devices'][name]['resolution'][0],
-            pns.full_template_information_corticals['IPU']['supported_devices'][name]['resolution'][1],
+    return [pns.full_list_dimension[name]['cortical_dimensions_per_device'][0],
+            pns.full_list_dimension[name]['cortical_dimensions_per_device'][1],
             current_dimension_list[cortical][2]]
 
 
 def grab_XY_cortical_resolution(name):
-    return pns.full_template_information_corticals['IPU']['supported_devices'][name]['resolution'][0],\
-           pns.full_template_information_corticals['IPU']['supported_devices'][name]['resolution'][1]
+    return pns.full_list_dimension[name]['cortical_dimensions_per_device'][0],\
+           pns.full_list_dimension[name]['cortical_dimensions_per_device'][1]
 
 
 def get_full_dimension_of_cortical_area(cortical_name):
