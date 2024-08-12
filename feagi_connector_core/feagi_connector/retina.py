@@ -45,7 +45,7 @@ def get_device_of_vision(device):
     return cv2.VideoCapture(device)
 
 
-def vision_frame_capture(device, RGB_flag=True):
+def vision_frame_capture(device=0, RGB_flag=True):
     """
     Capture frames from the specified `device`, which represents the camera source.
 
@@ -123,7 +123,7 @@ def vision_region_coordinates(frame_width=None, frame_height=None, x1=None, x2=N
     return region_coordinates
 
 
-def split_vision_regions(coordinates, raw_frame_data):
+def split_vision_regions(coordinates={}, raw_frame_data=[]):
     """
     Split a frame into separate regions based on provided coordinates.
 
@@ -149,7 +149,7 @@ def split_vision_regions(coordinates, raw_frame_data):
     return frame_segments
 
 
-def downsize_regions(frame, resize):
+def downsize_regions(frame=[], resize=[]):
     """
     Downsize regions within a frame using specified width and height for compression.
 
@@ -191,7 +191,7 @@ def downsize_regions(frame, resize):
     return compressed_dict
 
 
-def create_feagi_data(significant_changes, current, shape, index, cortical_name, grayscale=False):
+def create_feagi_data(significant_changes=[], current=[], shape=[], index=[], cortical_name="", grayscale=False):
     """
         :param significant_changes: An array of modified data derived from the raw data.
         :param current: The current raw data.
@@ -225,14 +225,14 @@ def create_feagi_data(significant_changes, current, shape, index, cortical_name,
     return feagi_data
 
 
-def get_difference_from_two_images(previous, current):
+def get_difference_from_two_images(previous=[], current=[]):
     """
     Compare two images and detect which pixel changed using cv2 functions.
     """
     return cv2.absdiff(previous, current)
 
 
-def vision_blink(image, blink):
+def vision_blink(image=[], blink=[]):
     """
     Blink to turn the whole screen briight until next burst
     """
@@ -242,11 +242,11 @@ def vision_blink(image, blink):
     return image[1]
 
 
-def apply_threshold(difference, src=50):
+def apply_threshold(difference=[], src=50):
     return cv2.threshold(difference, src, 255,cv2.THRESH_TOZERO)
 
 
-def change_detector(previous, current, src, compare_image, cortical_name):
+def change_detector(previous=[], current=[], src=50, compare_image=True, cortical_name=""):
     """
     Detects changes between previous and current frames and checks against a threshold.
 
@@ -271,7 +271,7 @@ def change_detector(previous, current, src, compare_image, cortical_name):
         return {}
 
 
-def generating_rgb_data(percentage, cortical_name, thresholded, current, previous, dev_index, grayscale=False):
+def generating_rgb_data(percentage=1.0, cortical_name="", thresholded=[], current=[], previous=[], dev_index=0, grayscale=False):
     if drop_high_frequency_events(thresholded) <= (get_full_dimension_of_cortical_area(cortical_name) * percentage):
         feagi_data = create_feagi_data(thresholded, current, previous.shape, dev_index,
                                        cortical_name, grayscale=grayscale)
@@ -280,28 +280,28 @@ def generating_rgb_data(percentage, cortical_name, thresholded, current, previou
         return {}
 
 
-def flip_the_camera(data):
+def flip_the_camera(data=[]):
     return cv2.flip(data, 1)
 
 
-def grab_cortical_resolution(name, cortical):
+def grab_cortical_resolution(name="", cortical=""):
     return [pns.full_list_dimension[name]['cortical_dimensions_per_device'][0],
             pns.full_list_dimension[name]['cortical_dimensions_per_device'][1],
             current_dimension_list[cortical][2]]
 
 
-def grab_XY_cortical_resolution(name):
+def grab_XY_cortical_resolution(name=""):
     return pns.full_list_dimension[name]['cortical_dimensions_per_device'][0],\
            pns.full_list_dimension[name]['cortical_dimensions_per_device'][1]
 
 
-def get_full_dimension_of_cortical_area(cortical_name):
+def get_full_dimension_of_cortical_area(cortical_name=""):
     global current_dimension_list
     return current_dimension_list[cortical_name][0] * current_dimension_list[cortical_name][1] * \
            current_dimension_list[cortical_name][2]
 
 
-def process_visual_stimuli(raw_frame, capabilities, previous_frame_data, rgb, actual_capabilities, compare_image=True):
+def process_visual_stimuli(raw_frame=[], capabilities={}, previous_frame_data={}, rgb={}, actual_capabilities={}, compare_image=True):
     global current_dimension_list
 
     if isinstance(raw_frame, numpy.ndarray):
@@ -415,7 +415,7 @@ def process_visual_stimuli(raw_frame, capabilities, previous_frame_data, rgb, ac
     return pns.resize_list, pns.resize_list, capabilities  # sending empty dict
 
 
-def obtain_cortical_vision_size(camera_index, response):
+def obtain_cortical_vision_size(camera_index="00", response=""):
     size_list = {}
     data = response
     items = [camera_index + "_C", camera_index + "LL", camera_index + "LM", camera_index + "LR",
@@ -433,12 +433,12 @@ def obtain_cortical_vision_size(camera_index, response):
     return size_list
 
 
-def drop_high_frequency_events(data):
+def drop_high_frequency_events(data=[]):
     return np.count_nonzero(data)
 
 
-def process_visual_stimuli_trainer(raw_frame, capabilities, previous_frame_data, rgb,
-                                   actual_capabilities, compare_image=True):
+def process_visual_stimuli_trainer(raw_frame={}, capabilities={}, previous_frame_data={}, rgb={},
+                                   actual_capabilities={}, compare_image=False):
     global current_dimension_list
 
     if isinstance(raw_frame, numpy.ndarray):
@@ -551,7 +551,7 @@ def process_visual_stimuli_trainer(raw_frame, capabilities, previous_frame_data,
     return pns.resize_list, pns.resize_list, capabilities, {}  # sending empty dict
 
 
-def vision_progress(capabilities, feagi_settings, raw_frame):
+def vision_progress(capabilities={}, feagi_settings={}, raw_frame={}):
     global genome_tracker, previous_genome_timestamp
     while True:
         message_from_feagi = pns.message_from_feagi
@@ -578,21 +578,21 @@ def vision_progress(capabilities, feagi_settings, raw_frame):
     # return capabilities, feagi_settings['feagi_burst_speed']
 
 
-def update_astype(data):
+def update_astype(data=[]):
     return data.astype(np.uint8)
 
 
-def RGB_list_to_ndarray(data, size):
+def RGB_list_to_ndarray(data=[], size=[]):
     new_rgb = np.array(data)
     new_rgb = new_rgb.reshape(size[1], size[0], 3)
     return new_rgb
 
 
-def flip_video(data):
+def flip_video(data=[]):
     return cv2.flip(data, 1)
 
 
-def check_brightness(frame):
+def check_brightness(frame=[]):
     # Calculate the average pixel intensity (brightness)
     average_intensity = cv2.mean(frame)[0]
 
@@ -608,7 +608,7 @@ def check_brightness(frame):
         return "Image is neither too bright nor too dark"
 
 
-def threshold_detect(capabilities):
+def threshold_detect(capabilities={}):
     threshold_type = [cv2.THRESH_BINARY, cv2.THRESH_BINARY_INV, cv2.THRESH_TRUNC, cv2.THRESH_TOZERO, cv2.THRESH_TOZERO_INV, cv2.THRESH_OTSU]
     threshold_total = cv2.THRESH_BINARY
     if capabilities['input']['camera'][str(obtain_raw_data)]['threshold_type']:
@@ -617,7 +617,7 @@ def threshold_detect(capabilities):
     capabilities['input']['camera'][str(obtain_raw_data)]['threshold_type'].clear()
     return threshold_total
 
-def adjust_brightness(image, bright=None):
+def adjust_brightness(image=[], bright=None):
     if bright:
         highlight = 255
         alpha_b = (highlight - bright) / 255
@@ -625,12 +625,12 @@ def adjust_brightness(image, bright=None):
         image = cv2.addWeighted(image, alpha_b, image, 0, gamma_b)
     return image
 
-def adjust_contrast(image, contrast=None):
+def adjust_contrast(image=[], contrast=None):
     if contrast:
         image = cv2.convertScaleAbs(image, alpha=contrast, beta=0)
     return image
 
-def adjust_shadow(image, shadow=None):
+def adjust_shadow(image=[], shadow=None):
     if shadow:
         maxIntensity = 255.0
         phi = 1
