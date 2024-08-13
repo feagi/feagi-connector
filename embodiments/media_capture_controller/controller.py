@@ -117,7 +117,6 @@ if __name__ == "__main__":
     feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
     feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
     agent_settings['godot_websocket_port'] = os.environ.get('WS_WEBCAM_PORT', "9051")
-    # agent_settings['godot_websocket_ip'] = os.environ.get('WS_MICROBIT_PORT', "9052")
     f.close()
     message_to_feagi = {"data": {}}
     # END JSON UPDATE
@@ -153,7 +152,6 @@ if __name__ == "__main__":
         # overwrite manual
         previous_burst = 0
         default_capabilities = pns.create_runtime_default_list(default_capabilities, capabilities)
-        default_capabilities = retina.convert_new_json_to_old_json(default_capabilities)  # temporary
         threading.Thread(target=pns.feagi_listener, args=(feagi_opu_channel,), daemon=True).start()
         threading.Thread(target=retina.vision_progress,
                          args=(default_capabilities,
@@ -168,16 +166,12 @@ if __name__ == "__main__":
                                                            webcam_size['size'])
                     raw_frame = retina.update_astype(raw_frame)
                     camera_data["vision"] = raw_frame
-                    if 'camera' in default_capabilities:
-                        if len(default_capabilities['camera']['blink']) != 0:
-                            raw_frame = default_capabilities['camera']['blink']
                     previous_frame_data, rgb, default_capabilities = \
                         retina.process_visual_stimuli(
                             raw_frame,
                             default_capabilities,
                             previous_frame_data,
                             rgb, capabilities)
-                    default_capabilities['camera']['blink'] = []
                     message_to_feagi = pns.generate_feagi_data(rgb, message_to_feagi)
                 message_to_feagi = sensors.add_agent_status(connected_agents['0'],
                                                             message_to_feagi,
