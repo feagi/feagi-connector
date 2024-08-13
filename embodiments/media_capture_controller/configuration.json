@@ -1,33 +1,45 @@
 {
+
     "description": "media_capture_controller",
     "version": "v0.0.0",
     "feagi_settings": {
         "feagi_url": null,
-        "feagi_dns": null,
-        "feagi_host": "127.0.0.1",
-        "feagi_api_port": 8000
-    },
+            "feagi_dns": null,
+            "feagi_host": "127.0.0.1",
+            "feagi_api_port": 8000
+    }
+
+    ,
     "agent_settings": {
         "agent_data_port": 10006,
-        "agent_id": "media_capture_ctrl",
-        "godot_websocket_ip": "0.0.0.0",
-        "godot_websocket_port": 9051,
-        "agent_type": "embodiment",
-        "compression": true
-    },
+            "agent_id": "media_capture_ctrl",
+            "godot_websocket_ip": "0.0.0.0",
+            "godot_websocket_port": 9051,
+            "agent_type": "embodiment",
+            "compression": true
+    }
+
+    ,
     "capabilities": {
-        "camera": {
-            "type": "ipu",
-            "disabled": false,
-            "index": "00",
-            "mirror": true,
-            "eccentricity_control": {
-                "0": 1,
-                "1": 1
-            },
-            "modulation_control": {
-                "0": 99,
-                "1": 99
+        "input": {
+            "camera": {
+                "0": {
+
+                    "type": "ipu",
+                    "disabled": false,
+                    "index": "00",
+                    "mirror": true,
+                    "eccentricity_control": {
+                        "0": 1,
+                            "1": 1
+                    }
+
+                    ,
+                    "modulation_control": {
+                        "0": 99,
+                            "1": 99
+                    }
+                }
             }
         }
     }
