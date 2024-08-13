@@ -184,7 +184,7 @@ def downsize_regions(frame=[], resize=[]):
             compressed_dict = cv2.resize(frame, [resize[0], resize[1]],
                                          interpolation=cv2.INTER_AREA)
         except Exception as e:
-            print(e)
+            # print(e)
             compressed_dict = np.zeros(resize, dtype=np.uint8)
             compressed_dict = update_astype(compressed_dict)
     # print("downsize_regions time total: ", (datetime.now() - start_time).total_seconds())
