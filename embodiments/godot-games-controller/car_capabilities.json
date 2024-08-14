@@ -1,0 +1,49 @@
+{
+    "description": "car",
+    "version": "v0.0.0",
+    "feagi_settings": {
+        "feagi_url": null,
+        "feagi_dns": null,
+        "feagi_host": "127.0.0.1",
+        "feagi_api_port": 8000
+    },
+    "agent_settings": {
+        "agent_data_port": 10005,
+        "agent_id": "car",
+        "agent_type": "embodiment",
+        "compression": true,
+        "godot_websocket_port": 9055,
+        "godot_websocket_ip": "0.0.0.0"
+    },
+    "capabilities": {
+        "output": {
+            "motor": {
+                "0": {
+                    "max_power": 1,
+                    "disabled":false,
+                    "custom_name": "motor_0"
+                }
+            }
+        },
+        "input": {
+            "gyro": {
+                "0": {
+                    "feagi_index": 0,
+                    "disable": false,
+                    "max_value": [
+                        0.5,
+                        0.5,
+                        0.5
+                    ],
+                    "min_value": [
+                        -0.5,
+                        -0.5,
+                        -0.5
+                    ],
+                    "cortical_id": "i__gyr",
+                    "custom_name": "gyro_0"
+                }
+            }
+        }
+    }
+}
