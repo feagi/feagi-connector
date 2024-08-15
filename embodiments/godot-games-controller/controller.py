@@ -15,14 +15,12 @@ limitations under the License.
 import os
 import json
 import zlib
-import array
 import asyncio
 import traceback
 import threading
 import websockets
 import numpy as np
 from time import sleep
-from datetime import datetime
 from collections import deque
 from version import __version__
 from feagi_connector import sensors
@@ -37,6 +35,8 @@ runtime_data = {"cortical_data": {}, "current_burst_id": None, "stimulation_peri
 camera_data = {"vision": None}
 connected_agents = dict() # Initalize
 connected_agents['0'] = False  # By default, it is not connected by client's websocket
+device_capabilities = {}  # this will be done on this controller only for multiple configurations in one folder
+device_capabilities['0'] = {}
 
 
 async def echo(websocket):
@@ -72,6 +72,16 @@ def godot_to_feagi():
             message = zmq_queue[0]
             obtain_list = zlib.decompress(message)
             new_data = json.loads(obtain_list)
+            if 'device' in new_data:
+                if not new_data['device'] in device_capabilities:
+                    try:
+                        file_name = new_data['device'] + "_capabilities.json"
+                        with open(file_name, 'r') as file:
+                            data = json.load(file)  # Load the JSON content into a dictionary
+                            device_capabilities['0'] = data
+                            device_capabilities[new_data['device']] = True
+                    except Exception as e:
+                        print(e)
             if 'gyro' in new_data:
                 gyro['gyro'] = new_data['gyro']
             if 'vision' in new_data:
@@ -166,7 +176,9 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, mes
             os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1"),
             int(os.environ.get('FEAGI_OPU_PORT', "3000")))
         sleep(2)
-
+    print("Waiting on a device to connect....")
+    while not connected_agents['0']:
+        sleep(2)
     # # # FEAGI registration # # # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     # - - - - - - - - - - - - - - - - - - #
     feagi_settings, runtime_data, api_address, feagi_ipu_channel, feagi_opu_channel = \
@@ -182,7 +194,7 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, mes
     # overwrite manual
     default_capabilities = pns.create_runtime_default_list(default_capabilities, capabilities)
     threading.Thread(target=retina.vision_progress, args=(default_capabilities,feagi_settings, camera_data,), daemon=True).start()
-    while True:
+    while connected_agents['0']:
         # Decompression section starts
         message_from_feagi = pns.message_from_feagi
         if message_from_feagi:
@@ -318,7 +330,7 @@ if __name__ == '__main__':
     agent_settings['godot_websocket_port'] = os.environ.get('WS_GODOT_GENERIC_PORT', "9055")
     f.close()
     message_to_feagi = {"data": {}}
-    # END JSON UPDATE
+    # # END JSON UPDATE
 
 
     ws_operation = deque()
@@ -327,11 +339,21 @@ if __name__ == '__main__':
     prox = {}
     acc['accelerator'] = {}
     prox['proximity'] = {}
+
+
     # gyro['gyro'] = []
     threading.Thread(target=websocket_operation, daemon=True).start()
     threading.Thread(target=bridge_operation, daemon=True).start()
     threading.Thread(target=godot_to_feagi, daemon=True).start()
     while True:
+        print("HERE: ", device_capabilities['0'])
+        if device_capabilities['0']:
+            feagi_settings = device_capabilities['0']["feagi_settings"]
+            agent_settings = device_capabilities['0']['agent_settings']
+            capabilities = device_capabilities['0']['capabilities']
+            feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
+            feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
+            agent_settings['godot_websocket_port'] = os.environ.get('WS_GODOT_GENERIC_PORT', "9055")
         feagi_auth_url = feagi_settings.pop('feagi_auth_url', None)
         print("FEAGI AUTH URL ------- ", feagi_auth_url)
         try:
