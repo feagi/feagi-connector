@@ -35,8 +35,8 @@ runtime_data = {"cortical_data": {}, "current_burst_id": None, "stimulation_peri
 camera_data = {"vision": None}
 connected_agents = dict() # Initalize
 connected_agents['0'] = False  # By default, it is not connected by client's websocket
-device_capabilities = {}  # this will be done on this controller only for multiple configurations in one folder
-device_capabilities['0'] = {}
+connected_agents['capabilities'] = {}
+connected_agents['device'] = ""
 
 
 async def echo(websocket):
@@ -60,8 +60,6 @@ async def echo(websocket):
         # print("ERROR!: ", error)
         # traceback.print_exc()
     connected_agents['0'] = False # Once client disconnects, mark it as false
-    device_capabilities['0'] = {} #LITERALLY ONE LINE to clear capabilities whenever device disconnected
-
 
 def godot_to_feagi():
     while True:
@@ -74,13 +72,13 @@ def godot_to_feagi():
             obtain_list = zlib.decompress(message)
             new_data = json.loads(obtain_list)
             if 'device' in new_data:
-                if not new_data['device'] in device_capabilities:
+                if new_data['device'] != connected_agents['device']:
                     try:
                         file_name = new_data['device'] + "_capabilities.json"
                         with open(file_name, 'r') as file:
                             data = json.load(file)  # Load the JSON content into a dictionary
-                            device_capabilities['0'] = data
-                            device_capabilities[new_data['device']] = True
+                            connected_agents['capabilities'] = data
+                            connected_agents['device'] = new_data['device']
                     except Exception as e:
                         print(e)
             if 'gyro' in new_data:
@@ -155,7 +153,6 @@ def action(obtained_data):
         for data_point in obtained_data['motion_control']:
             if data_point in ["move_left", "move_right", "move_up", "move_down"]:
                 WS_STRING['motion_control'][str(data_point)] = obtained_data['motion_control'][data_point]
-                print(WS_STRING)
     if 'motor' in obtained_data:
         WS_STRING['motor'] = {}
         for data_point in obtained_data['motor']:
@@ -193,7 +190,6 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, mes
     default_capabilities = pns.create_runtime_default_list(default_capabilities, capabilities)
     threading.Thread(target=retina.vision_progress, args=(default_capabilities,feagi_settings, camera_data,), daemon=True).start()
     while connected_agents['0']:
-        print(connected_agents)
         # Decompression section starts
         message_from_feagi = pns.message_from_feagi
         if message_from_feagi:
@@ -262,7 +258,6 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, mes
                                 gyro['gyro'][inner_device_id],
                                 capabilities['input']['gyro'][device_id]['max_value'][inner_device_id],
                                 capabilities['input']['gyro'][device_id]['min_value'][inner_device_id])
-
                             position_in_feagi_location = sensors.convert_sensor_to_ipu_data(
                                 capabilities['input']['gyro'][device_id]['min_value'][inner_device_id],
                                 capabilities['input']['gyro'][device_id]['max_value'][inner_device_id],
@@ -345,16 +340,15 @@ if __name__ == '__main__':
     threading.Thread(target=bridge_operation, daemon=True).start()
     threading.Thread(target=godot_to_feagi, daemon=True).start()
     print("Waiting on a device to connect....")
-    while not device_capabilities['0']:
+    while not connected_agents['capabilities']:
         sleep(2)
     while True:
-        while not device_capabilities['0']:
-            sleep(2) # Repeated but inside loop
-        print("HERE: ", device_capabilities['0'])
-        if device_capabilities['0']:
-            feagi_settings = device_capabilities['0']["feagi_settings"]
-            agent_settings = device_capabilities['0']['agent_settings']
-            capabilities = device_capabilities['0']['capabilities']
+        while not connected_agents['capabilities']:
+            sleep(0.1) # Repeated but inside loop
+        if connected_agents['capabilities']:
+            feagi_settings = connected_agents['capabilities']["feagi_settings"]
+            agent_settings = connected_agents['capabilities']['agent_settings']
+            capabilities = connected_agents['capabilities']['capabilities']
             feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
             feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
             agent_settings['godot_websocket_port'] = os.environ.get('WS_GODOT_GENERIC_PORT', "9055")
@@ -367,3 +361,6 @@ if __name__ == '__main__':
             print(f"Controller run failed", e)
             traceback.print_exc()
             sleep(2)
+        connected_agents['device'] = ""
+        connected_agents['capabilities'] = {}
+
