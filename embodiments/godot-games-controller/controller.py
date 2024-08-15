@@ -60,6 +60,7 @@ async def echo(websocket):
         # print("ERROR!: ", error)
         # traceback.print_exc()
     connected_agents['0'] = False # Once client disconnects, mark it as false
+    device_capabilities['0'] = {} #LITERALLY ONE LINE to clear capabilities whenever device disconnected
 
 
 def godot_to_feagi():
@@ -176,9 +177,6 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, mes
             os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1"),
             int(os.environ.get('FEAGI_OPU_PORT', "3000")))
         sleep(2)
-    print("Waiting on a device to connect....")
-    while not connected_agents['0']:
-        sleep(2)
     # # # FEAGI registration # # # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     # - - - - - - - - - - - - - - - - - - #
     feagi_settings, runtime_data, api_address, feagi_ipu_channel, feagi_opu_channel = \
@@ -195,6 +193,7 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, mes
     default_capabilities = pns.create_runtime_default_list(default_capabilities, capabilities)
     threading.Thread(target=retina.vision_progress, args=(default_capabilities,feagi_settings, camera_data,), daemon=True).start()
     while connected_agents['0']:
+        print(connected_agents)
         # Decompression section starts
         message_from_feagi = pns.message_from_feagi
         if message_from_feagi:
@@ -345,7 +344,12 @@ if __name__ == '__main__':
     threading.Thread(target=websocket_operation, daemon=True).start()
     threading.Thread(target=bridge_operation, daemon=True).start()
     threading.Thread(target=godot_to_feagi, daemon=True).start()
+    print("Waiting on a device to connect....")
+    while not device_capabilities['0']:
+        sleep(2)
     while True:
+        while not device_capabilities['0']:
+            sleep(2) # Repeated but inside loop
         print("HERE: ", device_capabilities['0'])
         if device_capabilities['0']:
             feagi_settings = device_capabilities['0']["feagi_settings"]
