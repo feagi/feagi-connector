@@ -1,5 +1,5 @@
 {
-    "description": "car",
+    "description": "dodge",
     "version": "v0.0.0",
     "feagi_settings": {
         "feagi_url": null,
@@ -9,7 +9,7 @@
     },
     "agent_settings": {
         "agent_data_port": 10005,
-        "agent_id": "car",
+        "agent_id": "dodge",
         "agent_type": "embodiment",
         "compression": true,
         "godot_websocket_port": 9055,
@@ -17,11 +17,10 @@
     },
     "capabilities": {
         "output": {
-            "motor": {
+            "motion": {
                 "0": {
-                    "max_power": 1,
                     "disabled":false,
-                    "custom_name": "motor_0"
+                    "custom_name": "motion_control_0"
                 }
             }
         },
