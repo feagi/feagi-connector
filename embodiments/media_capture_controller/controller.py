@@ -39,6 +39,8 @@ webcam_size = {'size': []}
 connected_agents = dict()  # Initalize
 connected_agents['0'] = False  # By default, it is not connected by client's websocket
 camera_data = {"vision": {}}
+feagi.validate_requirements('requirements.txt')  # you should get it from the boilerplate generator
+
 
 
 async def bridge_to_godot(runtime_data):

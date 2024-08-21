@@ -24,7 +24,7 @@
         "input": {
             "camera": {
                 "0": {
-
+                    "dev_index": 1,
                     "type": "ipu",
                     "disabled": false,
                     "index": "00",
