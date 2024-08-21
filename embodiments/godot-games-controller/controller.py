@@ -37,6 +37,8 @@ connected_agents = dict() # Initalize
 connected_agents['0'] = False  # By default, it is not connected by client's websocket
 connected_agents['capabilities'] = {}
 connected_agents['device'] = ""
+feagi.validate_requirements('requirements.txt')  # you should get it from the boilerplate generator
+
 
 
 async def echo(websocket):
