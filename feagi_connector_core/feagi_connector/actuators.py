@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-import asyncio
-from time import sleep
 from collections import deque
 from feagi_connector import pns_gateway as pns
 from feagi_connector import feagi_interface as feagi
+
 
 def window_average(sequence):
     return sum(sequence) // len(sequence)
@@ -62,6 +61,7 @@ def power_convert(motor_id, power):
     else:
         return -1 * power
 
+
 # Motor section
 
 def get_motor_data(obtained_data, moving_average):
@@ -79,12 +79,14 @@ def get_motor_data(obtained_data, moving_average):
                     motor_data[device_id] = device_power
     return motor_data
 
+
 def pass_the_power_to_motor(power_maximum, device_power, device_id, moving_average_len):
     device_power = int(motor_generate_power(power_maximum, device_power, device_id))
     if device_id in moving_average_len:
         moving_average_len = update_moving_average(moving_average_len, device_id, device_power)
     moving_average_len[device_id].append(window_average(moving_average_len[device_id]))
     moving_average_len[device_id].popleft()
+
 
 def rolling_window_update(stored_rolling_window_dict):
     for _ in stored_rolling_window_dict:
@@ -103,10 +105,12 @@ def create_motor_rolling_window_len(length_window=0, current_rolling_window_dict
         rolling_window[motor_id] = deque([0] * rolling_window_len)
     return rolling_window
 
+
 def update_moving_average(moving_average, device_id, device_power):
     moving_average[device_id].append(device_power)
     moving_average[device_id].popleft()
     return moving_average
+
 
 # Motor section ends
 
@@ -126,6 +130,7 @@ def get_servo_data(obtained_data, converter_id=False):
             else:
                 servo_data[device_id] = device_power
     return servo_data
+
 
 def get_servo_position_data(obtained_data):
     servo_position_data = dict()
@@ -210,3 +215,40 @@ def check_convert_gpio_to_input(obtained_data):
 def get_position_data(power, min_output, max_output):
     max_input = pns.full_list_dimension['o_spos']['cortical_dimensions'][2]
     return (power / max_input) * (max_output - min_output) + min_output
+
+
+def actuator_to_feagi_map(capabilities):
+    """
+    This function enables you to easily map between FEAGI and physical motors without requiring any manual edits.
+
+    After using this function, you should be able to directly retrieve data from FEAGI and pass it to your function
+    to control the robot's movement.
+
+    The 'capabilities' parameter should follow the template below:
+        "output": {
+            "motor": {
+                "0": {
+                    "custom_name": "Motor_0",
+                    "disabled": false,
+                    "max_power": 4094,
+                    "rolling_window_len": 2,
+                    "feagi_index": 0
+                },
+                "1": {
+                    "custom_name": "Motor_1",
+                    "disabled": false,
+                    "max_power": 4094,
+                    "rolling_window_len": 2,
+                    "feagi_index": 3
+                },
+    """
+    feagi_to_actuator = {}
+    for actuator_name in capabilities['output']:
+        feagi_to_actuator[actuator_name] = {}
+        for dev_index in capabilities['output'][actuator_name]:
+            feagi_index = capabilities['output'][actuator_name][dev_index]['feagi_index']
+            dev_index = int(dev_index)
+            if feagi_index not in feagi_to_actuator[actuator_name]:
+                feagi_to_actuator[actuator_name][feagi_index] = []
+            feagi_to_actuator[actuator_name][feagi_index].append(dev_index)
+    return feagi_to_actuator
