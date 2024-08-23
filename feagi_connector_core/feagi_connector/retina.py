@@ -271,9 +271,9 @@ def change_detector(previous=[], current=[], src=50, compare_image=True, cortica
         return {}
 
 
-def generating_rgb_data(percentage=1.0, cortical_name="", thresholded=[], current=[], previous=[], dev_index=0, grayscale=False):
+def generating_rgb_data(percentage=1.0, cortical_name="", thresholded=[], current=[], previous=[], feagi_index=0, grayscale=False):
     if drop_high_frequency_events(thresholded) <= (get_full_dimension_of_cortical_area(cortical_name) * percentage):
-        feagi_data = create_feagi_data(thresholded, current, previous.shape, dev_index,
+        feagi_data = create_feagi_data(thresholded, current, previous.shape, feagi_index,
                                        cortical_name, grayscale=grayscale)
         return dict(feagi_data)
     else:
@@ -321,10 +321,10 @@ def process_visual_stimuli(raw_frame=[], capabilities={}, previous_frame_data={}
                 region_coordinates = vision_region_coordinates(
                     frame_width=raw_frame[obtain_raw_data].shape[1],
                     frame_height=raw_frame[obtain_raw_data].shape[0],
-                    x1=abs(capabilities['input']['camera'][str(obtain_raw_data)]['eccentricity_control']['0']),
-                    x2=abs(capabilities['input']['camera'][str(obtain_raw_data)]['modulation_control']['0']),
-                    y1=abs(capabilities['input']['camera'][str(obtain_raw_data)]['eccentricity_control']['1']),
-                    y2=abs(capabilities['input']['camera'][str(obtain_raw_data)]['modulation_control']['1']),
+                    x1=abs(capabilities['input']['camera'][str(obtain_raw_data)]['eccentricity_control']['X offset percentage']),
+                    x2=abs(capabilities['input']['camera'][str(obtain_raw_data)]['modulation_control']['X offset percentage']),
+                    y1=abs(capabilities['input']['camera'][str(obtain_raw_data)]['eccentricity_control']['Y offset percentage']),
+                    y2=abs(capabilities['input']['camera'][str(obtain_raw_data)]['modulation_control']['Y offset percentage']),
                     camera_index=capabilities['input']['camera'][str(obtain_raw_data)]['index'],
                     size_list=current_dimension_list)
 
@@ -370,29 +370,29 @@ def process_visual_stimuli(raw_frame=[], capabilities={}, previous_frame_data={}
                         modified_data = change_detector(
                             previous_frame_data[get_region],
                             one_data_vision[get_region],
-                            capabilities['input']['camera'][str(obtain_raw_data)]['threshold_default'][0], compare_image, get_region)
+                            capabilities['input']['camera'][str(obtain_raw_data)]['threshold_default'], compare_image, get_region)
                         vision_dict[get_region] = generating_rgb_data(
                             capabilities['input']['camera'][str(obtain_raw_data)]['percentage_to_allow_data'],
                         get_region, modified_data, one_data_vision[get_region],
-                            previous_frame_data[get_region], capabilities['input']['camera'][str(obtain_raw_data)]['dev_index'])
+                            previous_frame_data[get_region], capabilities['input']['camera'][str(obtain_raw_data)]['feagi_index'])
                     else:
                         vision_dict[get_region] = change_detector(
                             np.zeros((3, 3, 3)),
                             one_data_vision[get_region],
-                            capabilities['input']['camera'][str(obtain_raw_data)]['threshold_default'][0], compare_image, get_region)
+                            capabilities['input']['camera'][str(obtain_raw_data)]['threshold_default'], compare_image, get_region)
             else:
                 if previous_frame_data != {}:
                     if get_region in previous_frame_data:
                         modified_data = change_detector(
                             previous_frame_data[get_region],
                             one_data_vision[get_region],
-                            capabilities['input']['camera'][str(obtain_raw_data)]['threshold_default'][0], compare_image, get_region)
+                            capabilities['input']['camera'][str(obtain_raw_data)]['threshold_default'], compare_image, get_region)
 
                         vision_dict[get_region] = generating_rgb_data(
                             capabilities['input']['camera'][str(obtain_raw_data)]['percentage_to_allow_data'],
                             get_region, modified_data, one_data_vision[get_region],
                             previous_frame_data[get_region],
-                            capabilities['input']['camera'][str(obtain_raw_data)]['dev_index'],
+                            capabilities['input']['camera'][str(obtain_raw_data)]['feagi_index'],
                             grayscale=True)
                     else:
                         vision_dict[get_region] = change_detector(
@@ -458,10 +458,10 @@ def process_visual_stimuli_trainer(raw_frame={}, capabilities={}, previous_frame
                 region_coordinates = vision_region_coordinates(
                     frame_width=raw_frame[obtain_raw_data].shape[1],
                     frame_height=raw_frame[obtain_raw_data].shape[0],
-                    x1=abs(capabilities['input']['camera'][str(obtain_raw_data)]['eccentricity_control']['0']),
-                    x2=abs(capabilities['input']['camera'][str(obtain_raw_data)]['modulation_control']['0']),
-                    y1=abs(capabilities['input']['camera'][str(obtain_raw_data)]['eccentricity_control']['1']),
-                    y2=abs(capabilities['input']['camera'][str(obtain_raw_data)]['modulation_control']['1']),
+                    x1=abs(capabilities['input']['camera'][str(obtain_raw_data)]['eccentricity_control']['X offset percentage']),
+                    x2=abs(capabilities['input']['camera'][str(obtain_raw_data)]['modulation_control']['X offset percentage']),
+                    y1=abs(capabilities['input']['camera'][str(obtain_raw_data)]['eccentricity_control']['Y offset percentage']),
+                    y2=abs(capabilities['input']['camera'][str(obtain_raw_data)]['modulation_control']['Y offset percentage']),
                     camera_index=capabilities['input']['camera'][str(obtain_raw_data)]['index'],
                     size_list=current_dimension_list)
 
@@ -511,21 +511,21 @@ def process_visual_stimuli_trainer(raw_frame={}, capabilities={}, previous_frame
                         modified_data = change_detector(
                             previous=previous_frame_data[get_region],
                             current=one_data_vision[get_region],
-                            src=capabilities['input']['camera'][str(obtain_raw_data)]['threshold_default'][0], compare_image=compare_image, cortical_name=get_region)
+                            src=capabilities['input']['camera'][str(obtain_raw_data)]['threshold_default'], compare_image=compare_image, cortical_name=get_region)
 
                         vision_dict[get_region] = generating_rgb_data(percentage=capabilities['input']['camera'][str(obtain_raw_data)]['percentage_to_allow_data'],
                                                                       cortical_name=get_region,
                                                                       thresholded=modified_data,
                                                                       current=one_data_vision[get_region],
                                                                       previous=previous_frame_data[get_region],
-                                                                      dev_index=capabilities['input']['camera'][str(obtain_raw_data)]['dev_index'])
+                                                                      feagi_index=capabilities['input']['camera'][str(obtain_raw_data)]['feagi_index'])
 
                         modified_data_dict[get_region] = modified_data
                     else:
                         vision_dict[get_region] = change_detector(
                             previous=np.zeros((3, 3, 3)),
                             current=one_data_vision[get_region],
-                            src=capabilities['input']['camera'][str(obtain_raw_data)]['threshold_default'][0],
+                            src=capabilities['input']['camera'][str(obtain_raw_data)]['threshold_default'],
                             compare_image=compare_image,
                             cortical_name=get_region)
             else:
@@ -534,7 +534,7 @@ def process_visual_stimuli_trainer(raw_frame={}, capabilities={}, previous_frame
                         modified_data = change_detector(
                             previous=previous_frame_data[get_region],
                             current=one_data_vision[get_region],
-                            src=capabilities['input']['camera'][str(obtain_raw_data)]['threshold_default'][0],
+                            src=capabilities['input']['camera'][str(obtain_raw_data)]['threshold_default'],
                             compare_image=compare_image,
                             cortical_name=get_region)
 
@@ -544,14 +544,14 @@ def process_visual_stimuli_trainer(raw_frame={}, capabilities={}, previous_frame
                             thresholded=modified_data,
                             current=one_data_vision[get_region],
                             previous=previous_frame_data[get_region],
-                            dev_index=capabilities['input']['camera'][str(obtain_raw_data)]['dev_index'],
+                            feagi_index=capabilities['input']['camera'][str(obtain_raw_data)]['feagi_index'],
                             grayscale=True)
                         modified_data_dict[get_region] = modified_data
                     else:
                         vision_dict[get_region] = change_detector(
                             previous=np.zeros((3, 3, 3)),
                             current=one_data_vision[get_region],
-                            src=capabilities['input']['camera'][str(obtain_raw_data)]['threshold_default'][0],
+                            src=capabilities['input']['camera'][str(obtain_raw_data)]['threshold_default'],
                             compare_image=compare_image,
                             cortical_name=get_region)
         if previous_frame_data:
