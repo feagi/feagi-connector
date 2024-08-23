@@ -19,6 +19,43 @@ import traceback
 import time
 from feagi_connector import pns_gateway as pns
 
+#
+# def add_infrared_to_feagi_data(ir_list, message_to_feagi, capabilities):
+#     formatted_ir_data = {sensor: True for sensor in ir_list}
+#     for ir_sensor in range(int(capabilities['infrared']['count'])):
+#         if ir_sensor not in formatted_ir_data:
+#             formatted_ir_data[ir_sensor] = False
+#     return pns.append_sensory_data_for_feagi('ir', formatted_ir_data, message_to_feagi)
+#
+#
+# def add_ultrasonic_to_feagi_data(ultrasonic_list, message_to_feagi):
+#     formatted_ultrasonic_data = {sensor: data for sensor, data in enumerate([ultrasonic_list])}
+#     return pns.append_sensory_data_for_feagi('ultrasonic', formatted_ultrasonic_data,
+#                                              message_to_feagi)
+#
+#
+# def add_battery_to_feagi_data(battery_list, message_to_feagi):
+#     formatted_battery_data = {sensor: data for sensor, data in enumerate([battery_list])}
+#     return pns.append_sensory_data_for_feagi('battery', formatted_battery_data,
+#                                              message_to_feagi)
+#
+#
+# def add_gyro_to_feagi_data(gyro_list, message_to_feagi):
+#     return pns.append_sensory_data_for_feagi('gyro', gyro_list, message_to_feagi)
+#
+#
+# def add_acc_to_feagi_data(accelerator_list, message_to_feagi):
+#     return pns.append_sensory_data_for_feagi('accelerator', accelerator_list, message_to_feagi)
+#
+#
+# def add_encoder_to_feagi_data(encoder_list, message_to_feagi):
+#     return pns.append_sensory_data_for_feagi('encoder_data', encoder_list, message_to_feagi)
+#
+#
+# def add_sound_to_feagi_data(hear_list, message_to_feagi):
+#     return pns.append_sensory_data_for_feagi('hearing', hear_list, message_to_feagi)
+
+
 def add_generic_input_to_feagi_data(generic_list, message_to_feagi):
     message_to_feagi['created_at'] = time.time()
     return pns.append_sensory_data_for_feagi('generic_ipu', generic_list, message_to_feagi)
@@ -34,21 +71,22 @@ def add_agent_status(status, message_to_feagi, agent_settings):
     return message_to_feagi
 
 
-def convert_sensor_to_ipu_data(min_output, max_output, raw_data, device_id, cortical_id='iaqpio', symmetric=False):
+def convert_sensor_to_ipu_data(min_output=[], max_output=[], current_data=0, device_id=0, sensor_name='', symmetric=False):
     if pns.full_list_dimension:
+        cortical_id = pns.name_to_feagi_id(sensor_name=sensor_name)
         if cortical_id in pns.full_list_dimension:
             max_input = pns.full_list_dimension[cortical_id]['cortical_dimensions'][2] - 1
             total_range = max_output - min_output
             if not symmetric:
                 current_position = (raw_data / total_range) * max_input
             else:
-                current_position = pns.get_map_value(raw_data, min_output, max_output, 0, max_input)
+                current_position = pns.get_map_value(current_data, min_output, max_output, 0, max_input)
             data = str(device_id) + '-0-' + str(int(round(current_position)))
             return data
     return None
 
 
-def measuring_max_and_min_range(current_data, max_value, min_value):
+def measuring_max_and_min_range(current_data=0, max_value=0.1, min_value=0.0):
     """
     This function is useful if you don't know the range of maximum and minimum values for a sensor.
     It will measure and update the maximum and minimum values over time.
@@ -83,25 +121,22 @@ def convert_ir_to_ipu_data(obtain_ir_list_from_robot, count, message_to_feagi):
     return message_to_feagi
 
 
-def create_data_for_feagi(cortical_id='', robot_data=[], maximum_value=0.1, minimum_value=0, enable_symmetric=False, index=1, count = 0, message_to_feagi={}):
+def create_data_for_feagi(sensor_name='', robot_data=[], maximum_value=0.1, minimum_value=0, enable_symmetric=False, index=1, count = 0, message_to_feagi={}):
 
+    cortical_id = pns.name_to_feagi_id(sensor_name=sensor_name)
     create_data_list = dict()
     create_data_list[cortical_id] = dict()
     start_point = (index * count)
     feagi_data_position = start_point
     new_feagi_data_position = position + feagi_data_position
-    maximum_value, minimum_value = (measuring_max_and_min_range(robot_data[position],
-                                                                position,
-                                                                maximum_value,
-                                                                minimum_value))
+    maximum_value, minimum_value = measuring_max_and_min_range(robot_data, maximum_value, minimum_value)
     try:
-        position_in_feagi_location = convert_sensor_to_ipu_data(
-            minimum_value,
-            maximum_value,
-            robot_data[position],
-            new_feagi_data_position,
-            cortical_id=cortical_id,
-            symmetric=enable_symmetric)
+        position_in_feagi_location = convert_sensor_to_ipu_data(min_output=minimum_value,
+                                                                max_output=maximum_value,
+                                                                current_data=robot_data,
+                                                                feagi_index=index,
+                                                                sensor_name=sensor_name,
+                                                                symmetric=enable_symmetric)
         create_data_list[cortical_id][position_in_feagi_location] = 100
     except Exception as e:
         pass
