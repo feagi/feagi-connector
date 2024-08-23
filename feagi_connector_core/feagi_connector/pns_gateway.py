@@ -325,7 +325,9 @@ def check_genome_status(message_from_feagi, capabilities):
         if len(resize_list) == 0:
             response = full_list_dimension
             if 'camera' in capabilities['input']:
-                resize_list = retina.obtain_cortical_vision_size(capabilities['camera']["index"], response)
+                if 'camera' in capabilities['input']:
+                    for index in capabilities['input']['camera']:
+                        resize_list = retina.obtain_cortical_vision_size(capabilities['input']['camera'][index]["index"], response)
         if genome_tracker != current_tracker:
             full_list_dimension = fetch_full_dimensions()
             genome_tracker = current_tracker
