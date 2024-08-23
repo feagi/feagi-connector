@@ -33,7 +33,7 @@
 						"X offset percentage": 1,
 						"Y offset percentage": 1
 					},
-					"feagi_index": 0,
+					"feagi_index": 1,
 					"index": "00",
 					"mirror": false,
 					"modulation_control": {

@@ -26,28 +26,24 @@
             }
         },
         "input": {
-            "camera": {
-                "0": {
-                    "type": "ipu",
-                    "disabled": false,
-                    "index": "00",
-                    "mirror": false,
-                    "dev_index": 0,
-                    "eccentricity_control": {
-                        "0": 1,
-                        "1": 1
-                    },
-                    "modulation_control": {
-                        "0": 99,
-                        "1": 99
-                    },
-                    "threshold_default": [
-                        0,
-                        255
-                    ],
-                    "percentage_to_allow_data": 1
-                }
-            }
+			"camera": {
+				"0": {
+					"custom_name": "vision_0",
+					"disabled": false,
+					"eccentricity_control": {
+						"X offset percentage": 1,
+						"Y offset percentage": 1
+					},
+					"feagi_index": 1,
+					"index": "00",
+					"mirror": false,
+					"modulation_control": {
+						"X offset percentage": 99,
+						"Y offset percentage": 99
+					},
+					"threshold_default": 0
+				}
+			}
         }
     }
 }
