@@ -95,6 +95,8 @@ def godot_to_feagi():
                     image = new_cam.reshape(32, 32, 3)
                 if len(new_cam) == 1228800:
                     image = new_cam.reshape(640, 640, 3)
+                if 'vision_size' in new_data:
+                    image = new_cam.reshape(new_data['vision_size'][0], new_data['vision_size'][1], 3)
                 camera_data['vision'] = image
             if 'acceleration' in new_data:
                 acc['accelerator'] = new_data['acceleration']
