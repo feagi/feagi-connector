@@ -19,9 +19,12 @@ limitations under the License.
 import time
 import asyncio
 import threading
+import traceback
+
 from feagi_connector import router
 from feagi_connector import retina
 from feagi_connector import feagi_interface as feagi
+from feagi_connector import pns_gateway as pns
 
 # Variable storage #
 raw_aptr = -1
@@ -503,7 +506,13 @@ def camera_config_update(list, capabilities):
                     capabilities['input']['camera'][index][key] = list['input']['camera']['0'][key]
     return capabilities
 
-
+def name_to_feagi_id(sensor_name):
+    try:
+        return pns.full_template_information_corticals['IPU']['name_to_id_mapping'][sensor_name][0]
+    except:
+        print(f"This sensor, {sensor_name}, is not available at the moment.")
+        traceback.print_exc()
+        return None
 
 def feagi_listener(feagi_opu_channel):
     """
