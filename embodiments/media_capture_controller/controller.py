@@ -86,9 +86,13 @@ async def echo(websocket):
             ws_operation.append(websocket)
         else:
             ws_operation[0] = websocket
-        rgb_array['current'] = list(lz4.frame.decompress(message))
-        webcam_size['size'] = []
+        decompressed_data = lz4.frame.decompress(message)
+        new_data = json.loads(decompressed_data)
+        rgb_array['current'] = new_data['vision']
+        webcam_size['size'] = new_data['vision_size']
     connected_agents['0'] = False  # Once client disconnects, mark it as false
+    rgb_array['current'] = None
+    webcam_size['size'] = []
 
 
 async def main():
@@ -161,9 +165,6 @@ if __name__ == "__main__":
         while True:
             try:
                 if np.any(rgb_array['current']):
-                    if not webcam_size['size']:
-                        webcam_size['size'].append(rgb_array['current'].pop(0))
-                        webcam_size['size'].append(rgb_array['current'].pop(0))
                     raw_frame = retina.RGB_list_to_ndarray(rgb_array['current'],
                                                            webcam_size['size'])
                     raw_frame = retina.update_astype(raw_frame)
