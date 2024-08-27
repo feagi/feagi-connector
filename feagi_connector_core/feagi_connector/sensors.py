@@ -78,7 +78,7 @@ def convert_sensor_to_ipu_data(min_output=0, max_output=0.1, current_data=0, dev
             max_input = pns.full_list_dimension[cortical_id]['cortical_dimensions'][2] - 1
             total_range = max_output - min_output
             if not symmetric:
-                current_position = (raw_data / total_range) * max_input
+                current_position = (current_data / total_range) * max_input
             else:
                 current_position = pns.get_map_value(current_data, min_output, max_output, 0, max_input)
             data = str(device_id) + '-0-' + str(int(round(current_position)))

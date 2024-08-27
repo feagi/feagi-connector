@@ -121,10 +121,7 @@ def get_servo_data(obtained_data, converter_id=False):
         for data_point in obtained_data['servo']:
             device_power = servo_negative_or_positive(data_point, obtained_data['servo'][
                 data_point])
-            if converter_id:
-                device_id = feagi_id_converter(data_point)
-            else:
-                device_id = data_point
+            device_id = feagi_id_converter(data_point)
             if device_id in servo_data:
                 servo_data[device_id] += device_power
             else:
@@ -252,3 +249,10 @@ def actuator_to_feagi_map(capabilities):
                 feagi_to_actuator[actuator_name][feagi_index] = []
             feagi_to_actuator[actuator_name][feagi_index].append(dev_index)
     return feagi_to_actuator
+
+
+def feagi_mapped_to_dev_index(dev_id, feagi_index, mapped_dict):
+    if feagi_index not in mapped_dict:
+        return []
+    return mapped_dict[dev_id][feagi_index]
+
