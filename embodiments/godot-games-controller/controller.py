@@ -74,6 +74,16 @@ def godot_to_feagi():
             message = zmq_queue[0]
             obtain_list = zlib.decompress(message)
             new_data = json.loads(obtain_list)
+            # if 'device' in new_data:
+            #     if new_data['device'] != connected_agents['device']:
+            #         try:
+            #             file_name = new_data['device'] + "_capabilities.json"
+            #             with open(file_name, 'r') as file:
+            #                 data = json.load(file)  # Load the JSON content into a dictionary
+            #                 connected_agents['capabilities'] = data['capabilities']
+            #                 connected_agents['device'] = new_data['device']
+            #         except Exception as e:
+            #             print("error at 85 lines: ", e)
             if 'capabilities' in new_data:
                 connected_agents['capabilities'] = new_data['capabilities']
             if 'gyro' in new_data:
@@ -205,64 +215,16 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, mes
         if 'accelerator' in acc:
             if pns.full_template_information_corticals:
                 if acc['accelerator']:
-                    for device_id in capabilities['input']['accelerometer']:
-                        if not capabilities['input']['accelerometer'][device_id]['disabled']:
-                            cortical_id = pns.name_to_feagi_id(sensor_name='accelerometer')
-                            create_data_list = dict()
-                            create_data_list[cortical_id] = dict()
-                            try:
-                                for inner_device_id in range(len(capabilities['input']['accelerometer'][device_id]['max_value'])):
-                                    capabilities['input']['accelerometer'][device_id]['max_value'][inner_device_id], \
-                                    capabilities['input']['accelerometer'][device_id]['min_value'][
-                                        inner_device_id] = sensors.measuring_max_and_min_range(
-                                        acc['accelerator'][inner_device_id],
-                                        capabilities['input']['accelerometer'][device_id]['max_value'][inner_device_id],
-                                        capabilities['input']['accelerometer'][device_id]['min_value'][inner_device_id])
-                                    position_in_feagi_location = sensors.convert_sensor_to_ipu_data(
-                                        capabilities['input']['accelerometer'][device_id]['min_value'][inner_device_id],
-                                        capabilities['input']['accelerometer'][device_id]['max_value'][inner_device_id],
-                                        acc['accelerator'][inner_device_id],
-                                        capabilities['input']['accelerometer'][device_id]['feagi_index'] + inner_device_id,
-                                        sensor_name='accelerometer',
-                                        symmetric=True)
-                                    create_data_list[cortical_id][position_in_feagi_location] = 100
-                                if create_data_list[cortical_id]:
-                                    message_to_feagi = sensors.add_generic_input_to_feagi_data(
-                                        create_data_list, message_to_feagi)
-                            except Exception as e:
-                                pass
+                    message_to_feagi = sensors.create_data_for_feagi('accelerometer', capabilities, message_to_feagi,
+                                                                     acc['accelerator'], symmetric=True)
 
         if 'gyro' in gyro:
             if pns.full_template_information_corticals:
                 if gyro['gyro']:
-                    for device_id in capabilities['input']['gyro']:
-                        if not capabilities['input']['gyro'][device_id]['disabled']:
-                            cortical_id = pns.name_to_feagi_id(sensor_name='gyro')
-                            create_data_list = dict()
-                            create_data_list[cortical_id] = dict()
-                            try:
-                                for inner_device_id in range(len(capabilities['input']['gyro'][device_id]['max_value'])):
-                                    capabilities['input']['gyro'][device_id]['max_value'][inner_device_id], capabilities['input']['gyro'][device_id]['min_value'][
-                                        inner_device_id] = sensors.measuring_max_and_min_range(
-                                        gyro['gyro'][inner_device_id],
-                                        capabilities['input']['gyro'][device_id]['max_value'][inner_device_id],
-                                        capabilities['input']['gyro'][device_id]['min_value'][inner_device_id])
-                                    position_in_feagi_location = sensors.convert_sensor_to_ipu_data(
-                                        capabilities['input']['gyro'][device_id]['min_value'][inner_device_id],
-                                        capabilities['input']['gyro'][device_id]['max_value'][inner_device_id],
-                                        gyro['gyro'][inner_device_id],
-                                        capabilities['input']['gyro'][device_id]['feagi_index'] + inner_device_id,
-                                        sensor_name='gyro',
-                                        symmetric=True)
-                                    create_data_list[cortical_id][position_in_feagi_location] = 100
-                                if create_data_list[cortical_id]:
-                                    message_to_feagi = sensors.add_generic_input_to_feagi_data(
-                                        create_data_list, message_to_feagi)
-                            except Exception as e:
-                                print("here: ", e)
-                                traceback.print_exc()
+                    message_to_feagi = sensors.create_data_for_feagi('gyro', capabilities, message_to_feagi,
+                                                                     gyro['gyro'], symmetric=True, measure_enable=True)
 
-        if 'proximity' in prox:
+        if 'proximity' in prox: # this is exception due to unique case
             if prox['proximity']:
                 if pns.full_template_information_corticals:
                     cortical_id = pns.name_to_feagi_id(sensor_name='proximity')
@@ -270,16 +232,16 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, mes
                         if not capabilities['input']['proximity'][device_id]['disabled']:
                             create_data_list = dict()
                             create_data_list[cortical_id] = dict()
-                            capabilities['input']['proximity'][device_id]['proximity_max_distance'], \
+                            capabilities['input']['proximity'][device_id]['max_value'], \
                             capabilities['input']['proximity'][device_id][
-                                'proximity_min_distance'] = sensors.measuring_max_and_min_range(
+                                'min_value'] = sensors.measuring_max_and_min_range(
                                 prox['proximity'][int(device_id)],
-                                capabilities['input']['proximity'][device_id]['proximity_max_distance'],
-                                capabilities['input']['proximity'][device_id]['proximity_min_distance'])
+                                capabilities['input']['proximity'][device_id]['max_value'],
+                                capabilities['input']['proximity'][device_id]['min_value'])
 
                             position_in_feagi_location = sensors.convert_sensor_to_ipu_data(
-                                capabilities['input']['proximity'][device_id]['proximity_min_distance'],
-                                capabilities['input']['proximity'][device_id]['proximity_max_distance'],
+                                capabilities['input']['proximity'][device_id]['min_value'],
+                                capabilities['input']['proximity'][device_id]['max_value'],
                                 prox['proximity'][int(device_id)],
                                 capabilities['input']['proximity'][device_id]['feagi_index'],
                                 sensor_name='proximity',
