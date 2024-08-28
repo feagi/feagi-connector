@@ -337,7 +337,7 @@ if __name__ == '__main__':
         if connected_agents['capabilities']:
             # feagi_settings = connected_agents['capabilities']["feagi_settings"]
             # agent_settings = connected_agents['capabilities']['agent_settings']
-            capabilities = connected_agents['capabilities']['capabilities']
+            capabilities = connected_agents['capabilities']
             feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
             feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
             agent_settings['godot_websocket_port'] = os.environ.get('WS_GODOT_GENERIC_PORT', "9055")
