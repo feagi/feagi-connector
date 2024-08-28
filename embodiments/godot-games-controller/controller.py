@@ -74,16 +74,8 @@ def godot_to_feagi():
             message = zmq_queue[0]
             obtain_list = zlib.decompress(message)
             new_data = json.loads(obtain_list)
-            if 'device' in new_data:
-                if new_data['device'] != connected_agents['device']:
-                    try:
-                        file_name = new_data['device'] + "_capabilities.json"
-                        with open(file_name, 'r') as file:
-                            data = json.load(file)  # Load the JSON content into a dictionary
-                            connected_agents['capabilities'] = data
-                            connected_agents['device'] = new_data['device']
-                    except Exception as e:
-                        print("error at 85 lines: ", e)
+            if 'capabilities' in new_data:
+                connected_agents['capabilities'] = new_data['capabilities']
             if 'gyro' in new_data:
                 gyro['gyro'] = new_data['gyro']
             if 'vision' in new_data:
