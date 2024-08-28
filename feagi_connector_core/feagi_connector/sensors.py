@@ -71,7 +71,7 @@ def add_agent_status(status, message_to_feagi, agent_settings):
     return message_to_feagi
 
 
-def convert_sensor_to_ipu_data(min_output=0, max_output=0.1, current_data=0, device_id=0, sensor_name='', symmetric=False):
+def convert_sensor_to_ipu_data(min_output, max_output, current_data, device_id, sensor_name, symmetric=False):
     if pns.full_list_dimension:
         cortical_id = pns.name_to_feagi_id(sensor_name=sensor_name)
         if cortical_id in pns.full_list_dimension:
