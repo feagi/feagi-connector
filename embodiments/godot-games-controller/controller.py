@@ -74,16 +74,6 @@ def godot_to_feagi():
             message = zmq_queue[0]
             obtain_list = zlib.decompress(message)
             new_data = json.loads(obtain_list)
-            # if 'device' in new_data:
-            #     if new_data['device'] != connected_agents['device']:
-            #         try:
-            #             file_name = new_data['device'] + "_capabilities.json"
-            #             with open(file_name, 'r') as file:
-            #                 data = json.load(file)  # Load the JSON content into a dictionary
-            #                 connected_agents['capabilities'] = data['capabilities']
-            #                 connected_agents['device'] = new_data['device']
-            #         except Exception as e:
-            #             print("error at 85 lines: ", e)
             if 'capabilities' in new_data:
                 connected_agents['capabilities'] = new_data['capabilities']
             if 'gyro' in new_data:
@@ -263,17 +253,17 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, mes
 if __name__ == '__main__':
     # NEW JSON UPDATE
     fnet = open('networking.json')
-    fcap = open('capabilities.json')
+    # fcap = open('capabilities.json')
     configuration = json.load(fnet)
-    skills = json.load(fcap)
+    # skills = json.load(fcap)
     feagi_settings =  configuration["feagi_settings"]
     agent_settings = configuration['agent_settings']
-    capabilities = skills['capabilities']
+    # capabilities = skills['capabilities']
     feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
     feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
     agent_settings['godot_websocket_port'] = os.environ.get('WS_GODOT_GENERIC_PORT', "9055")
     fnet.close()
-    fcap.close()
+    # fcap.close()
     message_to_feagi = {"data": {}}
     # # END JSON UPDATE
 
@@ -297,8 +287,6 @@ if __name__ == '__main__':
         while not connected_agents['capabilities']:
             sleep(0.1) # Repeated but inside loop
         if connected_agents['capabilities']:
-            # feagi_settings = connected_agents['capabilities']["feagi_settings"]
-            # agent_settings = connected_agents['capabilities']['agent_settings']
             capabilities = connected_agents['capabilities']
             feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
             feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
