@@ -36,12 +36,12 @@ from feagi_connector import pns_gateway as pns
 #
 # def add_battery_to_feagi_data(battery_list, message_to_feagi):
 #     formatted_battery_data = {sensor: data for sensor, data in enumerate([battery_list])}
-#     return pns.append_sensory_data_for_feagi('battery', formatted_battery_data,
+#     return pns.append_sensory_data_for_feagi(sensor, formatted_battery_data,
 #                                              message_to_feagi)
 #
 #
 # def add_gyro_to_feagi_data(gyro_list, message_to_feagi):
-#     return pns.append_sensory_data_for_feagi('gyro', gyro_list, message_to_feagi)
+#     return pns.append_sensory_data_for_feagi(sensor, gyro_list, message_to_feagi)
 #
 #
 # def add_acc_to_feagi_data(accelerator_list, message_to_feagi):
@@ -121,34 +121,54 @@ def convert_ir_to_ipu_data(obtain_ir_list_from_robot, count, message_to_feagi):
     return message_to_feagi
 
 
-def create_data_for_feagi(sensor_name='', robot_data=[], maximum_value=0.1, minimum_value=0, enable_symmetric=False, index=1, count = 0, message_to_feagi={}):
+def create_data_for_feagi(sensor, capabilities, message_to_feagi, current_data, symmetric=True, measure_enable=False):
+    for device_id in capabilities['input'][sensor]:
+        if not capabilities['input'][sensor][device_id]['disabled']:
+            cortical_id = pns.name_to_feagi_id(sensor_name=sensor)
+            create_data_list = dict()
+            create_data_list[cortical_id] = dict()
+            try:
+                if isinstance(current_data, list) or isinstance(current_data, dict):
+                    for inner_device_id in range(len(capabilities['input'][sensor][device_id]['max_value'])):
+                        if measure_enable:
+                            capabilities['input'][sensor][device_id]['max_value'][inner_device_id], \
+                                capabilities['input'][sensor][device_id]['min_value'][
+                                    inner_device_id] = measuring_max_and_min_range(
+                                current_data[inner_device_id],
+                                capabilities['input'][sensor][device_id]['max_value'][inner_device_id],
+                                capabilities['input'][sensor][device_id]['min_value'][inner_device_id])
+                        position_in_feagi_location = convert_sensor_to_ipu_data(
+                            capabilities['input'][sensor][device_id]['min_value'][inner_device_id],
+                            capabilities['input'][sensor][device_id]['max_value'][inner_device_id],
+                            current_data[inner_device_id],
+                            capabilities['input'][sensor][device_id]['feagi_index'] + inner_device_id,
+                            sensor_name=sensor,
+                            symmetric=True)
+                        create_data_list[cortical_id][position_in_feagi_location] = 100
+                    if create_data_list[cortical_id]:
+                        message_to_feagi = add_generic_input_to_feagi_data(
+                            create_data_list, message_to_feagi)
+                else:
+                    if not capabilities['input'][sensor][device_id]['disabled']:
+                        create_data_list = dict()
+                        create_data_list[cortical_id] = dict()
+                        if measure_enable:
+                            capabilities['input'][sensor][device_id]['max_value'], capabilities['input'][sensor][device_id]['min_value'] = measuring_max_and_min_range(current_data, capabilities['input'][sensor][device_id]['max_value'],
+                                capabilities['input'][sensor][device_id]['min_value'])
 
-    cortical_id = pns.name_to_feagi_id(sensor_name=sensor_name)
-    create_data_list = dict()
-    create_data_list[cortical_id] = dict()
-    start_point = (index * count)
-    feagi_data_position = start_point
-    new_feagi_data_position = position + feagi_data_position
-    maximum_value, minimum_value = measuring_max_and_min_range(robot_data, maximum_value, minimum_value)
-    try:
-        position_in_feagi_location = convert_sensor_to_ipu_data(min_output=minimum_value,
-                                                                max_output=maximum_value,
-                                                                current_data=robot_data,
-                                                                feagi_index=index,
-                                                                sensor_name=sensor_name,
-                                                                symmetric=enable_symmetric)
-        create_data_list[cortical_id][position_in_feagi_location] = 100
-    except Exception as e:
-        pass
-        # print(f"Caught an unexpected exception: {e}")
-        # print(f"Exception type: {type(e).__name__}")
-        # traceback.print_exc()
-        # print("position: ", position, " and robot data: ", robot_data)
-    if create_data_list[cortical_id]:
-        message_to_feagi = add_generic_input_to_feagi_data(create_data_list, message_to_feagi)
-        return message_to_feagi, maximum_value, minimum_value
-    else:
-        return message_to_feagi, maximum_value, minimum_value
+                        position_in_feagi_location = convert_sensor_to_ipu_data(
+                            capabilities['input'][sensor][device_id]['min_value'],
+                            capabilities['input'][sensor][device_id]['max_value'], current_data,
+                            capabilities['input'][sensor][device_id]['feagi_index'], sensor_name=sensor)
+                        create_data_list[cortical_id][position_in_feagi_location] = 100
+                        if create_data_list[cortical_id]:
+                            message_to_feagi = add_generic_input_to_feagi_data(create_data_list,
+                                                                                       message_to_feagi)
+            except Exception as e:
+                print("here: ", e)
+                traceback.print_exc()
+    return message_to_feagi
+
 
 
 def convert_xyz_to_012(old_dictionary_data):
