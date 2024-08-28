@@ -36,6 +36,8 @@ runtime_data = {
     "old_cortical_data": {}
 }
 
+feagi.validate_requirements('requirements.txt')  # you should get it from the boilerplate generator
+
 
 def main(feagi_settings, runtime_data, capabilities):
     """
@@ -64,6 +66,7 @@ def main(feagi_settings, runtime_data, capabilities):
     # This does not use PNS's websocket starter due to fundamental design differences between the
     # bridge and controllers.
     current_genome_number = 0
+    current_register_number = 0
     while True:
         # if not feagi.is_FEAGI_reachable(feagi_settings['feagi_host'], int(feagi_settings['feagi_api_port'])):
         #     break
@@ -73,13 +76,15 @@ def main(feagi_settings, runtime_data, capabilities):
             if one_frame["genome_changed"] != previous_genome_timestamp:
                 previous_genome_timestamp = one_frame["genome_changed"]
                 if one_frame["genome_changed"] is not None:
-                    if one_frame["genome_num"] != current_genome_number:
+                    if one_frame["genome_num"] != current_genome_number or one_frame[
+                        'change_register'] != current_register_number:
                         print("updated time")
                         if send_to_BV_queue:
                             send_to_BV_queue[0] = "update"
                         else:
                             send_to_BV_queue.append("updated")
                         current_genome_number = one_frame["genome_num"]
+                        current_register_number = one_frame['change_register']
             runtime_data["stimulation_period"] = one_frame['burst_frequency']
 
             # processed_one_frame is the data from godot. It break down due to absolutely and
@@ -122,9 +127,9 @@ if __name__ == "__main__":
     # NEW JSON UPDATE
     f = open('configuration.json')
     configuration = json.load(f)
-    feagi_settings =  configuration["feagi_settings"]
+    feagi_settings = configuration["feagi_settings"]
     agent_settings = configuration['agent_settings']
-    capabilities = {} # Just to make feagi interface happy
+    capabilities = {}  # Just to make feagi interface happy
     feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
     feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
     agent_settings['godot_websocket_port'] = os.environ.get('WS_BRIDGE_PORT', "9050")
@@ -132,7 +137,6 @@ if __name__ == "__main__":
     f.close()
     message_to_feagi = {"data": {}}
     # END JSON UPDATE
-
 
     threading.Thread(target=websocket_operation, args=(agent_settings,), daemon=True).start()
     threading.Thread(target=bridge_operation, args=(runtime_data,), daemon=True).start()
