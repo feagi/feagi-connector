@@ -205,14 +205,14 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, mes
         if 'accelerator' in acc:
             if pns.full_template_information_corticals:
                 if acc['accelerator']:
-                    message_to_feagi = sensors.create_data_for_feagi('accelerometer', capabilities, message_to_feagi,
-                                                                     acc['accelerator'], symmetric=True)
+                    message_to_feagi = sensors.create_data_for_feagi(sensor='accelerometer', capabilities=capabilities, message_to_feagi=message_to_feagi,
+                                                                     current_data=acc['accelerator'], symmetric=True)
 
         if 'gyro' in gyro:
             if pns.full_template_information_corticals:
                 if gyro['gyro']:
-                    message_to_feagi = sensors.create_data_for_feagi('gyro', capabilities, message_to_feagi,
-                                                                     gyro['gyro'], symmetric=True, measure_enable=True)
+                    message_to_feagi = sensors.create_data_for_feagi(sensor='gyro', capabilities=capabilities, message_to_feagi=message_to_feagi,
+                                                                     current_data=gyro['gyro'], symmetric=True, measure_enable=True)
 
         if 'proximity' in prox: # this is exception due to unique case
             if prox['proximity']:
