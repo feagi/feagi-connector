@@ -341,12 +341,14 @@ def check_genome_status_no_vision(message_from_feagi):
     Verify if full_list_dimension is empty, size list for vision is empty, if genome has been
     changed, or genome modified in real time.
     """
-    global previous_genome_timestamp, genome_tracker, full_list_dimension, resize_list
+    global previous_genome_timestamp, genome_tracker, full_list_dimension, resize_list, full_template_information_corticals
     if message_from_feagi['genome_changed'] is not None:
         if full_list_dimension is None:
             full_list_dimension = []
         if len(full_list_dimension) == 0:
             full_list_dimension = fetch_full_dimensions()
+        if len(full_template_information_corticals) == 0:
+            full_template_information_corticals = fetch_full_template_information()
         genome_changed = detect_genome_change(message_from_feagi)
         if genome_changed != previous_genome_timestamp:
             full_list_dimension = fetch_full_dimensions()
