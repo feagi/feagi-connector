@@ -246,7 +246,7 @@ def microbit_action(obtained_data, motor_data):
     if recieve_motor_data:
         for motor_id in recieve_motor_data:
             if str(motor_id) in capabilities['output']['motor']:
-                if not capabilities['output']['motor'][str(motor_id)]['disable']:
+                if not capabilities['output']['motor'][str(motor_id)]['disabled']:
                     actuators.pass_the_power_to_motor(capabilities['output']['motor'][str(motor_id)]['max_power'],
                                                       recieve_motor_data[motor_id],
                                                       motor_id,
