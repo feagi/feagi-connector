@@ -16,6 +16,7 @@ RUN apt install -y libgl1-mesa-glx
 ENV Running_In_CONTAINER Yes
 WORKDIR /root/
 COPY networking.json /root/
+COPY capabilities.json /root/
 COPY controller.py /root/
 COPY requirements.txt /root/
 COPY version.py /root/
