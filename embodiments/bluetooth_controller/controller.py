@@ -246,7 +246,7 @@ def microbit_action(obtained_data, motor_data):
     if recieve_motor_data:
         for motor_id in recieve_motor_data:
             if str(motor_id) in capabilities['output']['motor']:
-                if not capabilities['output']['motor'][str(motor_id)]['disable']:
+                if not capabilities['output']['motor'][str(motor_id)]['disabled']:
                     actuators.pass_the_power_to_motor(capabilities['output']['motor'][str(motor_id)]['max_power'],
                                                       recieve_motor_data[motor_id],
                                                       motor_id,
@@ -291,7 +291,7 @@ if __name__ == "__main__":
     feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
     feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
     agent_settings['godot_websocket_port'] = os.environ.get('WS_MICROBIT_PORT', "9052")
-    message_to_feagi = {"data": {}}
+    message_to_feagi = {}
     # END JSON UPDATE
 
     microbit_data = {'ir': [], 'ultrasonic': {}, 'acceleration': {}, 'sound_level': {}}
@@ -349,8 +349,8 @@ if __name__ == "__main__":
 
             # OPU section ENDS
             if microbit_data['ultrasonic']:
-                message_to_feagi = sensors.create_data_for_feagi('proximity', capabilities, message_to_feagi,
-                                                                 microbit_data['ultrasonic'], measure_enable=True)
+                message_to_feagi = sensors.create_data_for_feagi(sensor='proximity', capabilities=capabilities, message_to_feagi=message_to_feagi,
+                                                                 current_data=microbit_data['ultrasonic'], measure_enable=True)
 
             if microbit_data['acceleration']:
                 if pns.full_template_information_corticals:
@@ -359,8 +359,8 @@ if __name__ == "__main__":
                     # cutebot is not on. So the solution is to put this under the acceleration. It is under acceleration
                     # because without acceleration, the micro:bit is not on. This leverages the advantage to detect if it
                     # is still on.
-                    message_to_feagi = sensors.create_data_for_feagi('accelerometer', capabilities, message_to_feagi,
-                                                                     microbit_data['acceleration'], symmetric=True,
+                    message_to_feagi = sensors.create_data_for_feagi(sensor='accelerometer', capabilities=capabilities, message_to_feagi=message_to_feagi,
+                                                                     current_data=microbit_data['acceleration'], symmetric=True,
                                                                      measure_enable=True)
 
             message_to_feagi['timestamp'] = datetime.now()
