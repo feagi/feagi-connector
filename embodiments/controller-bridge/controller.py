@@ -62,15 +62,18 @@ if __name__ == "__main__":
     message_to_feagi = dict()
 
     # NEW JSON UPDATE
-    f = open('configuration.json')
-    configuration = json.load(f)
+    fnet = open('networking.json')
+    fcap = open('capabilities.json')
+    configuration = json.load(fnet)
+    skills = json.load(fcap)
     feagi_settings =  configuration["feagi_settings"]
     agent_settings = configuration['agent_settings']
-    capabilities = configuration['capabilities']
+    capabilities = skills['capabilities']
     feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
     feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
     agent_settings['godot_websocket_port'] = os.environ.get('WS_CONTROLLER_PORT', "9053")
-    f.close()
+    fnet.close()
+    fcap.close()
     # END JSON UPDATE
 
     while True:
