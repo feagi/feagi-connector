@@ -270,7 +270,6 @@ def microbit_action(obtained_data):
         WS_STRING = ""  # so we don't spam microbit with no power
 
     if WS_STRING != "":
-        print(WS_STRING)
         WS_STRING = WS_STRING + "#"
         ws.append(WS_STRING)
 
