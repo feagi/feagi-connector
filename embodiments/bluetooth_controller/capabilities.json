@@ -46,14 +46,14 @@
 					"custom_name": "left_wheel",
 					"disabled": false,
 					"feagi_index": 0,
-					"max_power": 100,
+					"max_power": 99,
 					"rolling_window_len": 1
 				},
 				"1": {
 					"custom_name": "right_wheel",
 					"disabled": false,
 					"feagi_index": 1,
-					"max_power": 100,
+					"max_power": 99,
 					"rolling_window_len": 1
 				}
 			}
