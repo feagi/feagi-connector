@@ -241,44 +241,38 @@ def petoi_action(obtained_data):
         ws.append(WS_STRING)
 
 
-def microbit_action(obtained_data, motor_data):
-    recieve_motor_data = actuators.get_motor_data(obtained_data, motor_data)
-    if recieve_motor_data:
-        for motor_id in recieve_motor_data:
-            if str(motor_id) in capabilities['output']['motor']:
-                if not capabilities['output']['motor'][str(motor_id)]['disabled']:
-                    actuators.pass_the_power_to_motor(capabilities['output']['motor'][str(motor_id)]['max_power'],
-                                                      recieve_motor_data[motor_id],
-                                                      motor_id,
-                                                      motor_data)
-    else:
-        motor_data = actuators.rolling_window_update(motor_data)
-
+def microbit_action(obtained_data):
+    recieve_motor_data = actuators.get_motor_data(obtained_data)
     WS_STRING = ""
-    updated_motor = 0
-    for motor_id in motor_data:
-        data_power = motor_data[motor_id][0]
-        if data_power == 100:
-            data_power -= 1
-        elif data_power == -100:
-            data_power += 1
-            # Here, change to make 0 to 0,1 and 1 makes 2,3
-        if motor_id == 0:
-            if data_power < 0:
-                updated_motor = 1
-        elif motor_id == 1:
-            if data_power < 0:
-                updated_motor = 3
-            else:
-                updated_motor = 2
-        WS_STRING += str(updated_motor) + str(abs(data_power)).zfill(2)  # Append the motor data as a two-digit string
-        if WS_STRING == "000200":
-            WS_STRING = ""  # so we don't spam microbit with no power
+
+    if recieve_motor_data:
+        updated_motor=0
+        for motor_id in [0, 1]:
+            data_power = 0
+            if motor_id in recieve_motor_data:
+                data_power = recieve_motor_data[motor_id]
+                if data_power == 100:
+                    data_power -= 1
+                elif data_power == -100:
+                    data_power += 1
+
+            if motor_id == 0:
+                if data_power < 0:
+                    updated_motor = 1
+            elif motor_id == 1:
+                if data_power < 0:
+                    updated_motor = 3
+                else:
+                    updated_motor = 2
+            WS_STRING += str(updated_motor) + str(abs(data_power)).zfill(2)
+
+    if WS_STRING == "000200":
+        WS_STRING = ""  # so we don't spam microbit with no power
 
     if WS_STRING != "":
+        print(WS_STRING)
         WS_STRING = WS_STRING + "#"
         ws.append(WS_STRING)
-    return motor_data
 
 
 if __name__ == "__main__":
@@ -323,15 +317,8 @@ if __name__ == "__main__":
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     msg_counter = runtime_data["feagi_state"]['burst_counter']
     runtime_data['acceleration'] = {}
-    motor_data = dict()
-    for motor_id in capabilities['output']['motor']:
-        if 'rolling_window_len' in capabilities['output']['motor'][motor_id]:
-            length_rolling_window = capabilities['output']['motor'][motor_id]['rolling_window_len']
-        else:
-            length_rolling_window = 0  # Default to 0 which will be extremely sensitive and stiff
-        motor_data = actuators.create_motor_rolling_window_len(length_window=length_rolling_window,
-                                                               current_rolling_window_dict=motor_data,
-                                                               motor_id=motor_id)
+
+    actuators.start_motors(capabilities)  # initialize motors for you.
 
     while True:
         try:
@@ -343,7 +330,7 @@ if __name__ == "__main__":
                 obtained_signals = pns.obtain_opu_data(message_from_feagi)
                 if 'name' in current_device:
                     if "microbit" in current_device['name']:
-                        motor_data = microbit_action(obtained_signals, motor_data)
+                        microbit_action(obtained_signals)
                     elif "petoi" in current_device['name']:
                         petoi_action(obtained_signals)
 
