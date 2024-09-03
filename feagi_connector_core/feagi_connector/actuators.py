@@ -3,6 +3,12 @@ from collections import deque
 from feagi_connector import pns_gateway as pns
 from feagi_connector import feagi_interface as feagi
 
+motor_mapped = {}
+motor_data = dict()  # formerly rolling_window
+capabilities = dict()  # This will be updated by a controller. On this file, it will initialize as an empty capabilities
+previous_motor_data = {}
+
+
 
 def window_average(sequence):
     return sum(sequence) // len(sequence)
@@ -20,12 +26,27 @@ def obtain_opu_data(device_list, message_from_feagi):
     return opu_signal_dict
 
 
-def motor_generate_power(power_maximum, feagi_power, id):
+def motor_generate_power(power_maximum, feagi_power):
     z_depth = pns.full_list_dimension['o__mot']['cortical_dimensions'][2]
     if z_depth == 1:
         return power_maximum * (feagi_power / 100)
     else:
         return (feagi_power / (z_depth - 1)) * power_maximum
+
+
+def start_motors(controller_capabilities):
+    global motor_mapped, motor_data, capabilities
+    capabilities = controller_capabilities
+    motor_data = dict()
+    for motor_id in capabilities['output']['motor']:
+        if 'rolling_window_len' in capabilities['output']['motor'][motor_id]:
+            length_rolling_window = capabilities['output']['motor'][motor_id]['rolling_window_len']
+        else:
+            length_rolling_window = 0  # Default to 0 which will be extremely sensitive and stiff
+        motor_data = create_motor_rolling_window_len(length_window=length_rolling_window,
+                                                     current_rolling_window_dict=motor_data,
+                                                     motor_id=motor_id)
+    motor_mapped = actuator_to_feagi_map(capabilities)
 
 
 def servo_generate_power(power, feagi_power, id):
@@ -63,25 +84,56 @@ def power_convert(motor_id, power):
 
 
 # Motor section
-
-def get_motor_data(obtained_data, moving_average):
-    motor_data = dict()
-    processed_obtained_data = dict()
+def convert_feagi_to_motor_opu(obtained_data):
+    motor_from_feagi_data = dict()
     if 'motor' in obtained_data:
         if obtained_data['motor'] is not {}:
             sorted_keys = sorted(obtained_data['motor'].keys(), key=int)
             for data_point in sorted_keys:
                 device_power = power_convert(data_point, obtained_data['motor'][data_point])
                 device_id = feagi_id_converter(data_point)
-                if device_id in motor_data:
-                    motor_data[device_id] = motor_data[device_id] - obtained_data['motor'][data_point]
+                if device_id in motor_from_feagi_data:
+                    motor_from_feagi_data[device_id] = motor_from_feagi_data[device_id] - obtained_data['motor'][data_point]
                 else:
-                    motor_data[device_id] = device_power
-    return motor_data
+                    motor_from_feagi_data[device_id] = device_power
+    return motor_from_feagi_data
+
+
+def update_power_of_motor(motor_from_feagi_data):
+    global motor_data, capabilities
+    if motor_from_feagi_data:
+        for motor_id in motor_from_feagi_data:
+            if str(motor_id) in capabilities['output']['motor']:
+                if not capabilities['output']['motor'][str(motor_id)]['disabled']:
+                    pass_the_power_to_motor(capabilities['output']['motor'][str(motor_id)]['max_power'],
+                                            motor_from_feagi_data[motor_id],
+                                            motor_id,
+                                            motor_data)
+    else:
+        motor_data = rolling_window_update(motor_data)
+
+
+def preparing_motor_data_to_controller():
+    global motor_mapped, motor_data, previous_motor_data
+    send_motor_data_to_controller = dict()
+    for motor_id in motor_mapped['motor']:
+        device_id_list = feagi_mapped_to_dev_index(dev_id='motor', feagi_index=motor_id, mapped_dict=motor_mapped)
+        for motor in device_id_list:
+                data_power = motor_data[motor_id][0]
+                if motor not in previous_motor_data or previous_motor_data[motor] != data_power:
+                    send_motor_data_to_controller[motor] = data_power
+                previous_motor_data[motor] = data_power
+    return send_motor_data_to_controller
+
+def get_motor_data(feagi_data):
+    converted_data = convert_feagi_to_motor_opu(obtained_data=feagi_data)
+    update_power_of_motor(motor_from_feagi_data=converted_data)
+    return preparing_motor_data_to_controller()
+
 
 
 def pass_the_power_to_motor(power_maximum, device_power, device_id, moving_average_len):
-    device_power = int(motor_generate_power(power_maximum, device_power, device_id))
+    device_power = int(motor_generate_power(power_maximum, device_power))
     if device_id in moving_average_len:
         moving_average_len = update_moving_average(moving_average_len, device_id, device_power)
     moving_average_len[device_id].append(window_average(moving_average_len[device_id]))
@@ -115,7 +167,7 @@ def update_moving_average(moving_average, device_id, device_power):
 # Motor section ends
 
 
-def get_servo_data(obtained_data, converter_id=False):
+def get_servo_data(obtained_data):
     servo_data = dict()
     if 'servo' in obtained_data:
         for data_point in obtained_data['servo']:
@@ -252,7 +304,6 @@ def actuator_to_feagi_map(capabilities):
 
 
 def feagi_mapped_to_dev_index(dev_id, feagi_index, mapped_dict):
-    if feagi_index not in mapped_dict:
+    if feagi_index not in mapped_dict[dev_id]:
         return []
     return mapped_dict[dev_id][feagi_index]
-
