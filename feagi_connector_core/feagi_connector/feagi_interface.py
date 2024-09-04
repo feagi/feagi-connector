@@ -1,15 +1,58 @@
 import os
+import sys
 import json
 import socket
 import argparse
 import requests
 import threading
 import traceback
+import pkg_resources
 from time import sleep
 from feagi_connector import router
 from feagi_connector import pns_gateway as pns
 from feagi_connector.version import __version__
 
+
+def validate_requirements(requirements_file='requirements.txt'):
+    """
+    Validates that all packages listed in the given requirements file match their installed versions.
+
+    :param requirements_file: The path to the requirements file. Default is 'requirements.txt'.
+    :raises SystemExit: If any package does not match the required version or is not installed.
+    """
+    with open(requirements_file, 'r') as file:
+        requirements = file.readlines()
+
+    mismatched_packages = []
+
+    for requirement in requirements:
+        try:
+            # Parse the requirement line
+            req = pkg_resources.Requirement.parse(requirement.strip())
+
+            # Get the installed version of the package
+            installed_version = pkg_resources.get_distribution(req.name).version
+
+            # Compare installed version with the required version
+            if installed_version not in req:
+                mismatched_packages.append((req.name, req.specs, installed_version))
+
+        except pkg_resources.DistributionNotFound:
+            print(f"Package {req.name} is not installed.")
+            sys.exit(1)
+        except Exception as e:
+            print(f"Error processing {requirement}: {e}")
+            sys.exit(1)
+
+    if mismatched_packages:
+        print("The following packages do not match the versions specified in requirements.txt:")
+        for name, required, installed in mismatched_packages:
+            required_version = ", ".join([f"{op}{ver}" for op, ver in required])
+            print(f"- {name}: required {required_version}, installed {installed}")
+        sys.exit(1)
+    else:
+        print("All packages match the versions specified in requirements.txt.")
+        print("Validation complete. Proceeding with application...")
 
 
 def pub_initializer(ipu_address, bind=True):
@@ -391,17 +434,20 @@ def build_up_from_mctl(id):
 
 def configuration_load(path='./'):
     # NEW JSON UPDATE
-    f = open(path + 'configuration.json')
-    configuration = json.load(f)
+    fcap = open(path + 'capabilities.json')
+    fnet = open(path + 'networking.json')
+    configuration = json.load(fnet)
+    skills = json.load(fcap) # dont judge me
     feagi_settings = configuration["feagi_settings"]
     agent_settings = configuration['agent_settings']
-    capabilities = configuration['capabilities']
+    capabilities = skills['capabilities']
     feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
     feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
     message_to_feagi = {"data": {}}
     if 'description' in configuration:
         pns.ver = configuration['description']
-    f.close()
+    fcap.close()
+    fnet.close()
     return feagi_settings, agent_settings, capabilities, message_to_feagi, configuration
     # END JSON UPDATE
 
@@ -426,7 +472,7 @@ def reading_parameters_to_confirm_communication(feagi_settings, configuration, p
                     feagi_settings['magic_link'] = args[arg]
                     break
             configuration['feagi_settings']['feagi_url'] = feagi_settings['magic_link']
-            with open(path+'configuration.json', 'w') as f:
+            with open(path+'networking.json', 'w') as f:
                 json.dump(configuration, f, indent=4)
         else:
             feagi_settings['magic_link'] = feagi_settings['feagi_url']
@@ -446,7 +492,7 @@ def reading_parameters_to_confirm_communication(feagi_settings, configuration, p
             del feagi_settings['feagi_dns']
         if 'magic_link' in feagi_settings:
             del feagi_settings['magic_link']
-            with open(path+'configuration.json', 'w') as f:
+            with open(path+'networking.json', 'w') as f:
                 json.dump(configuration, f, indent=4)
         while not feagi_flag:
             feagi_flag = is_FEAGI_reachable(os.environ.get('FEAGI_HOST_INTERNAL', feagi_settings["feagi_host"]),
@@ -459,7 +505,7 @@ def reading_parameters_to_confirm_communication(feagi_settings, configuration, p
                     feagi_settings['magic_link'] = args[arg]
                     break
             configuration['feagi_settings']['feagi_url'] = feagi_settings['magic_link']
-            with open(path+'configuration.json', 'w') as f:
+            with open(path+'networking.json', 'w') as f:
                 json.dump(configuration, f)
         else:
             feagi_settings['magic_link'] = feagi_settings['feagi_url']
