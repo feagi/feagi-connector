@@ -214,32 +214,10 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, mes
                     message_to_feagi = sensors.create_data_for_feagi(sensor='gyro', capabilities=capabilities, message_to_feagi=message_to_feagi,
                                                                      current_data=gyro['gyro'], symmetric=True, measure_enable=True)
 
-        if 'proximity' in prox: # this is exception due to unique case
+        if 'proximity' in prox:
             if prox['proximity']:
-                if pns.full_template_information_corticals:
-                    cortical_id = pns.name_to_feagi_id(sensor_name='proximity')
-                    for device_id in capabilities['input']['proximity']:
-                        if not capabilities['input']['proximity'][device_id]['disabled']:
-                            create_data_list = dict()
-                            create_data_list[cortical_id] = dict()
-                            capabilities['input']['proximity'][device_id]['max_value'], \
-                            capabilities['input']['proximity'][device_id][
-                                'min_value'] = sensors.measuring_max_and_min_range(
-                                prox['proximity'][int(device_id)],
-                                capabilities['input']['proximity'][device_id]['max_value'],
-                                capabilities['input']['proximity'][device_id]['min_value'])
-
-                            position_in_feagi_location = sensors.convert_sensor_to_ipu_data(
-                                capabilities['input']['proximity'][device_id]['min_value'],
-                                capabilities['input']['proximity'][device_id]['max_value'],
-                                prox['proximity'][int(device_id)],
-                                capabilities['input']['proximity'][device_id]['feagi_index'],
-                                sensor_name='proximity',
-                                symmetric=True)
-                            create_data_list[cortical_id][position_in_feagi_location] = 100
-                            if create_data_list[cortical_id]:
-                                message_to_feagi = sensors.add_generic_input_to_feagi_data(create_data_list,
-                                                                                           message_to_feagi)
+                message_to_feagi = sensors.create_data_for_feagi('proximity', capabilities, message_to_feagi,
+                                                                 prox['proximity'], symmetric=True)
 
         message_to_feagi = sensors.add_agent_status(connected_agents['0'], message_to_feagi, agent_settings)
         pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings, feagi_settings)
