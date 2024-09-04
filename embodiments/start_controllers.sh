@@ -67,6 +67,16 @@ if [[ "$WEBSOCKET_BRIDGE" == "true" ]]; then
     cd /root/
 fi
 
+# Load another godot game controller if GODOT_GAMES_2_FLAG is true
+if [[ "$GODOT_GAMES_2_FLAG" == "true" ]]; then
+    cd godot-games-controller
+    export WS_GODOT_GENERIC_PORT="9056"
+    python3 controller.py &
+    PID5=$!
+    echo "PID of the godot games 2: $PID5"
+    cd /root/
+fi
+
 cd /opt/source-code/feagi/src/
 python3 main.py
 
@@ -85,6 +95,10 @@ fi
 
 if [[ ! -z "$PID4" ]]; then
     wait $PID4
+fi
+
+if [[ ! -z "$PID5" ]]; then
+    wait $PID5
 fi
 
 cleanup
