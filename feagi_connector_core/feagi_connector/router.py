@@ -16,19 +16,23 @@ limitations under the License.
 ==============================================================================
 """
 import zmq
+import json
 import time
-import socket
 import pickle
+import socket
 import asyncio
 import requests
-import lz4.frame
+import platform
 import traceback
+import lz4.frame
 import websockets
 import zmq.asyncio
 from time import sleep
-from feagi_connector import pns_gateway as pns
 from websockets.sync.client import connect
+from feagi_connector import pns_gateway as pns
 
+if platform.system() == "Windows":
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy()) # For windows
 global_feagi_opu_channel = ''  # Updated by feagi.connect_to_feagi()
 global_api_address = ''  # Updated by feagi.connect_to_feagi
 global_websocket_address = ''  # Just a full address stored
@@ -215,7 +219,7 @@ def register_with_feagi(feagi_auth_url, feagi_settings, agent_settings, agent_ca
 
             network_output = requests.get(feagi_url + network_endpoint).json()
             # print(f"network_output ---- {network_output}")
-            if 'magic_link' not in feagi_settings:
+            if 'magic_link' not in feagi_settings and 'feagi_opu_port' not in feagi_settings:
                 feagi_settings['feagi_opu_port'] = network_output['feagi_opu_port']
             if feagi_settings:
                 print("Data from FEAGI::", feagi_settings)
@@ -223,15 +227,15 @@ def register_with_feagi(feagi_auth_url, feagi_settings, agent_settings, agent_ca
                 print("No feagi settings!")
 
             agent_registration_data = dict()
+            agent_registration_data['capabilities'] = agent_capabilities
             agent_registration_data["agent_type"] = str(agent_settings['agent_type'])
             agent_registration_data["agent_id"] = str(agent_settings['agent_id'])
             agent_registration_data["agent_ip"] = str(agent_settings['agent_ip'])  # str("127.0.0.1")
             agent_registration_data["agent_data_port"] = int(agent_settings['agent_data_port'])
             agent_registration_data["controller_version"] = str(controller_version)
             agent_registration_data["agent_version"] = str(agent_version)
-
             response = requests.post(feagi_url + registration_endpoint,
-                                     params=agent_registration_data)
+                                     data=json.dumps(agent_registration_data))
             if response.status_code == 200:
                 feagi_settings['agent_state'] = response.json()
                 print("Agent successfully registered with FEAGI!")

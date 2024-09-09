@@ -15,29 +15,31 @@ limitations under the License.
 import os
 import json
 import zlib
-import array
 import asyncio
 import traceback
 import threading
 import websockets
 import numpy as np
 from time import sleep
-from datetime import datetime
 from collections import deque
 from version import __version__
 from feagi_connector import sensors
+from feagi_connector import actuators
 from feagi_connector import retina as retina
 from feagi_connector import pns_gateway as pns
 from feagi_connector import feagi_interface as feagi
 
 ws = deque()
 zmq_queue = deque()
-old_data = 0
 runtime_data = {"cortical_data": {}, "current_burst_id": None, "stimulation_period": 0.01,
                 "feagi_state": None, "feagi_network": None, 'accelerator': {}}
 camera_data = {"vision": None}
 connected_agents = dict() # Initalize
 connected_agents['0'] = False  # By default, it is not connected by client's websocket
+connected_agents['capabilities'] = {}
+connected_agents['device'] = ""
+feagi.validate_requirements('requirements.txt')  # you should get it from the boilerplate generator
+
 
 
 async def echo(websocket):
@@ -45,25 +47,23 @@ async def echo(websocket):
     The function echoes the data it receives from other connected websockets
     and sends the data from FEAGI to the connected websockets.
     """
-    async for message in websocket:
-        global old_data
-        connected_agents['0'] = True # Since this section gets data from client, its marked as true
-        if not ws_operation:
-            ws_operation.append(websocket)
-        else:
-            ws_operation[0] = websocket
-        try:
+    try:
+        async for message in websocket:
+            connected_agents['0'] = True # Since this section gets data from client, its marked as true
+            if not ws_operation:
+                ws_operation.append(websocket)
+            else:
+                ws_operation[0] = websocket
             if message != b'{}':
                 zmq_queue.append(message)
-        except Exception as error:
-            if "stimulation_period" in runtime_data:
-                sleep(runtime_data["stimulation_period"])
-            pass
-            # print("ERROR!: ", error)
-            # traceback.print_exc()
+    except Exception as error:
+        if "stimulation_period" in runtime_data:
+            sleep(runtime_data["stimulation_period"])
+        pass
+        # print("ERROR!: ", error)
+        # traceback.print_exc()
     connected_agents['0'] = False # Once client disconnects, mark it as false
-    gyro.clear()
-
+    camera_data['vision'] = None
 
 def godot_to_feagi():
     while True:
@@ -75,6 +75,8 @@ def godot_to_feagi():
             message = zmq_queue[0]
             obtain_list = zlib.decompress(message)
             new_data = json.loads(obtain_list)
+            if 'capabilities' in new_data:
+                connected_agents['capabilities'] = new_data['capabilities']
             if 'gyro' in new_data:
                 gyro['gyro'] = new_data['gyro']
             if 'vision' in new_data:
@@ -87,6 +89,8 @@ def godot_to_feagi():
                     image = new_cam.reshape(32, 32, 3)
                 if len(new_cam) == 1228800:
                     image = new_cam.reshape(640, 640, 3)
+                if 'vision_size' in new_data:
+                    image = new_cam.reshape(new_data['vision_size'][0], new_data['vision_size'][1], 3)
                 camera_data['vision'] = image
             if 'acceleration' in new_data:
                 acc['accelerator'] = new_data['acceleration']
@@ -142,20 +146,22 @@ def websocket_operation():
 
 def action(obtained_data):
     WS_STRING = {}
-    if 'motion_control' in obtained_data:
+    recieve_motion_data = actuators.get_motion_control_data(obtained_data)
+    recieved_misc_data = actuators.get_generic_opu_data_from_feagi(obtained_data, 'misc')
+    if recieve_motion_data:
         WS_STRING['motion_control'] = {}
-        for data_point in obtained_data['motion_control']:
-            if data_point in ["move_left", "move_right", "move_up", "move_down"]:
-                WS_STRING['motion_control'][str(data_point)] = obtained_data['motion_control'][data_point]
-                print(WS_STRING)
+        for device_id in recieve_motion_data:
+            for data_point in recieve_motion_data[device_id]:
+                if data_point in ["move_left", "move_right", "move_up", "move_down"]:
+                    WS_STRING['motion_control'][str(data_point)] = recieve_motion_data[device_id][data_point]
     if 'motor' in obtained_data:
         WS_STRING['motor'] = {}
         for data_point in obtained_data['motor']:
             WS_STRING['motor'][str(data_point)] = obtained_data['motor'][data_point]
-    if 'misc' in obtained_data:
+    if recieved_misc_data:
         WS_STRING['misc'] = {}
-        for data_point in obtained_data['misc']:
-            WS_STRING['misc'][str(data_point)] = obtained_data['misc'][data_point]
+        for data_point in recieved_misc_data:
+            WS_STRING['misc'][str(data_point)] = obtained_data[data_point]
     ws.append(WS_STRING)
 
 
@@ -169,7 +175,6 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, mes
             os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1"),
             int(os.environ.get('FEAGI_OPU_PORT', "3000")))
         sleep(2)
-
     # # # FEAGI registration # # # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     # - - - - - - - - - - - - - - - - - - #
     feagi_settings, runtime_data, api_address, feagi_ipu_channel, feagi_opu_channel = \
@@ -184,8 +189,9 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, mes
     default_capabilities = {}  # It will be generated in process_visual_stimuli. See the
     # overwrite manual
     default_capabilities = pns.create_runtime_default_list(default_capabilities, capabilities)
-    threading.Thread(target=retina.vision_progress, args=(default_capabilities,feagi_settings, camera_data['vision'],), daemon=True).start()
-    while True:
+    threading.Thread(target=retina.vision_progress, args=(default_capabilities,feagi_settings, camera_data,), daemon=True).start()
+    actuators.start_generic_opu(capabilities)
+    while connected_agents['0']:
         # Decompression section starts
         message_from_feagi = pns.message_from_feagi
         if message_from_feagi:
@@ -194,75 +200,55 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, mes
         # OPU section ENDS
         if camera_data['vision'] is not None and camera_data['vision'].any():
             raw_frame = camera_data['vision']
-            default_capabilities['camera']['blink'] = []
-            if 'camera' in default_capabilities:
-                if default_capabilities['camera']['blink'] != []:
-                    raw_frame = default_capabilities['camera']['blink']
             previous_frame_data, rgb, default_capabilities = retina.process_visual_stimuli(
                 raw_frame,
                 default_capabilities,
                 previous_frame_data,
                 rgb, capabilities)
             message_to_feagi = pns.generate_feagi_data(rgb, message_to_feagi)
-
         # Add accelerator section
+        if 'accelerator' in acc:
+            if pns.full_template_information_corticals:
+                if acc['accelerator']:
+                    message_to_feagi = sensors.create_data_for_feagi(sensor='accelerometer', capabilities=capabilities, message_to_feagi=message_to_feagi,
+                                                                     current_data=acc['accelerator'], symmetric=True)
 
-        if 'acceleration' in acc:
-            if acc['accelerator']:
-                message_to_feagi, capabilities['acceleration']['acceleration_max_value_list'], \
-                capabilities['acceleration']['acceleration_min_value_list'] = sensors.create_data_for_feagi(
-                    cortical_id='i__acc',
-                    robot_data=acc['accelerator'],
-                    maximum_range=capabilities['acceleration']['acceleration_max_value_list'],
-                    minimum_range=capabilities['acceleration']['acceleration_min_value_list'],
-                    enable_symmetric=True,
-                    index=capabilities['acceleration']['dev_index'],
-                    count=capabilities['acceleration']['sub_channel_count'],
-                    message_to_feagi=message_to_feagi)
         if 'gyro' in gyro:
-            if gyro['gyro']:
-                message_to_feagi, capabilities['gyro']['gyro_max_value_list'], \
-                    capabilities['gyro']['gyro_min_value_list'] = sensors.create_data_for_feagi(
-                    cortical_id='i__gyr',
-                    robot_data=gyro['gyro'],
-                    maximum_range=capabilities['gyro']['gyro_max_value_list'],
-                    minimum_range=capabilities['gyro']['gyro_min_value_list'],
-                    enable_symmetric=True,
-                    index=capabilities['gyro']['dev_index'],
-                    count=capabilities['gyro']['sub_channel_count'],
-                    message_to_feagi=message_to_feagi)
+            if pns.full_template_information_corticals:
+                if gyro['gyro']:
+                    message_to_feagi = sensors.create_data_for_feagi(sensor='gyro', capabilities=capabilities, message_to_feagi=message_to_feagi,
+                                                                     current_data=gyro['gyro'], symmetric=True, measure_enable=True)
+
         if 'proximity' in prox:
             if prox['proximity']:
-                message_to_feagi, capabilities['proximity']['proximity_max_value_list'], \
-                    capabilities['proximity']['proximity_min_value_list'] = sensors.create_data_for_feagi(
-                    cortical_id='i__pro',
-                    robot_data=prox['proximity'],
-                    maximum_range=capabilities['proximity']['proximity_max_value_list'],
-                    minimum_range=capabilities['proximity']['proximity_min_value_list'],
-                    enable_symmetric=True,
-                    index=capabilities['proximity']['dev_index'],
-                    count=capabilities['proximity']['sub_channel_count'],
-                    message_to_feagi=message_to_feagi,
-                    has_range=True)
+                message_to_feagi = sensors.create_data_for_feagi('proximity', capabilities, message_to_feagi,
+                                                                 prox['proximity'], symmetric=True)
+
         message_to_feagi = sensors.add_agent_status(connected_agents['0'], message_to_feagi, agent_settings)
         pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings, feagi_settings)
         sleep(feagi_settings['feagi_burst_speed'])
         message_to_feagi.clear()
+        if not connected_agents['0']:
+            gyro.clear()
+            prox.clear()
 
 
 if __name__ == '__main__':
     # NEW JSON UPDATE
-    f = open('configuration.json')
-    configuration = json.load(f)
+    fnet = open('networking.json')
+    # fcap = open('capabilities.json')
+    configuration = json.load(fnet)
+    # skills = json.load(fcap)
     feagi_settings =  configuration["feagi_settings"]
     agent_settings = configuration['agent_settings']
-    capabilities = configuration['capabilities']
+    # capabilities = skills['capabilities']
     feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
     feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
     agent_settings['godot_websocket_port'] = os.environ.get('WS_GODOT_GENERIC_PORT', "9055")
-    f.close()
+    fnet.close()
+    # fcap.close()
     message_to_feagi = {"data": {}}
-    # END JSON UPDATE
+    # # END JSON UPDATE
 
 
     ws_operation = deque()
@@ -271,11 +257,23 @@ if __name__ == '__main__':
     prox = {}
     acc['accelerator'] = {}
     prox['proximity'] = {}
+
+
     # gyro['gyro'] = []
     threading.Thread(target=websocket_operation, daemon=True).start()
     threading.Thread(target=bridge_operation, daemon=True).start()
     threading.Thread(target=godot_to_feagi, daemon=True).start()
+    print("Waiting on a device to connect....")
+    while not connected_agents['capabilities']:
+        sleep(2)
     while True:
+        while not connected_agents['capabilities']:
+            sleep(0.1) # Repeated but inside loop
+        if connected_agents['capabilities']:
+            capabilities = connected_agents['capabilities']
+            feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
+            feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
+            agent_settings['godot_websocket_port'] = os.environ.get('WS_GODOT_GENERIC_PORT', "9055")
         feagi_auth_url = feagi_settings.pop('feagi_auth_url', None)
         print("FEAGI AUTH URL ------- ", feagi_auth_url)
         try:
@@ -285,3 +283,6 @@ if __name__ == '__main__':
             print(f"Controller run failed", e)
             traceback.print_exc()
             sleep(2)
+        connected_agents['device'] = ""
+        connected_agents['capabilities'] = {}
+

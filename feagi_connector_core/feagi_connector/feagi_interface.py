@@ -1,15 +1,58 @@
 import os
+import sys
 import json
 import socket
 import argparse
 import requests
 import threading
 import traceback
+import pkg_resources
 from time import sleep
 from feagi_connector import router
 from feagi_connector import pns_gateway as pns
 from feagi_connector.version import __version__
 
+
+def validate_requirements(requirements_file='requirements.txt'):
+    """
+    Validates that all packages listed in the given requirements file match their installed versions.
+
+    :param requirements_file: The path to the requirements file. Default is 'requirements.txt'.
+    :raises SystemExit: If any package does not match the required version or is not installed.
+    """
+    with open(requirements_file, 'r') as file:
+        requirements = file.readlines()
+
+    mismatched_packages = []
+
+    for requirement in requirements:
+        try:
+            # Parse the requirement line
+            req = pkg_resources.Requirement.parse(requirement.strip())
+
+            # Get the installed version of the package
+            installed_version = pkg_resources.get_distribution(req.name).version
+
+            # Compare installed version with the required version
+            if installed_version not in req:
+                mismatched_packages.append((req.name, req.specs, installed_version))
+
+        except pkg_resources.DistributionNotFound:
+            print(f"Package {req.name} is not installed.")
+            sys.exit(1)
+        except Exception as e:
+            print(f"Error processing {requirement}: {e}")
+            sys.exit(1)
+
+    if mismatched_packages:
+        print("The following packages do not match the versions specified in requirements.txt:")
+        for name, required, installed in mismatched_packages:
+            required_version = ", ".join([f"{op}{ver}" for op, ver in required])
+            print(f"- {name}: required {required_version}, installed {installed}")
+        sys.exit(1)
+    else:
+        print("All packages match the versions specified in requirements.txt.")
+        print("Validation complete. Proceeding with application...")
 
 
 def pub_initializer(ipu_address, bind=True):
@@ -234,7 +277,8 @@ def opu_processor(data):
                             processed_data_point = block_to_array(data_point)
                             device_power = opu_data['o_mctl'][data_point] / 100.0
                             device_id = build_up_from_mctl(processed_data_point)
-                            processed_opu_data['motion_control'][device_id] = device_power
+                            index = processed_data_point[0] // 4
+                            processed_opu_data['motion_control'][index] = {device_id: device_power}
                 else:
                     if 'o_mctl' in opu_data:
                         if opu_data['o_mctl']:
@@ -242,8 +286,10 @@ def opu_processor(data):
                                 processed_data_point = block_to_array(data_point)
                                 device_power = processed_data_point[2] / \
                                                float(pns.full_list_dimension['o_mctl']['cortical_dimensions'][2])
+
                                 device_id = build_up_from_mctl(processed_data_point)
-                                processed_opu_data['motion_control'][device_id] = device_power
+                                index = processed_data_point[0] // 4
+                                processed_opu_data['motion_control'][index] = {device_id: device_power}
             if 'o__led' in opu_data:
                 if opu_data['o__led']:
                     for data_point in opu_data['o__led']:
@@ -386,22 +432,25 @@ def build_up_from_mctl(id):
     }
 
     # Get the action from the dictionary, return None if not found
-    return action_map.get((id[0], id[1]))
+    return action_map.get((id[0]%4, id[1]))
 
 
 def configuration_load(path='./'):
     # NEW JSON UPDATE
-    f = open(path + 'configuration.json')
-    configuration = json.load(f)
+    fcap = open(path + 'capabilities.json')
+    fnet = open(path + 'networking.json')
+    configuration = json.load(fnet)
+    skills = json.load(fcap) # dont judge me
     feagi_settings = configuration["feagi_settings"]
     agent_settings = configuration['agent_settings']
-    capabilities = configuration['capabilities']
+    capabilities = skills['capabilities']
     feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
     feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
     message_to_feagi = {"data": {}}
     if 'description' in configuration:
         pns.ver = configuration['description']
-    f.close()
+    fcap.close()
+    fnet.close()
     return feagi_settings, agent_settings, capabilities, message_to_feagi, configuration
     # END JSON UPDATE
 
@@ -414,14 +463,52 @@ def reading_parameters_to_confirm_communication(feagi_settings, configuration, p
     parser.add_argument('-ip', '--ip', help='to use feagi_ip', required=False)
     parser.add_argument('-port', '--port', help='to use feagi_port', required=False)
     args = vars(parser.parse_args())
-    if feagi_settings['feagi_url'] or args['magic'] or args['magic_link']:
+    if args['port']:
+        feagi_settings['feagi_opu_port'] = args['port']
+    else:
+        feagi_settings['feagi_opu_port'] = os.environ.get('FEAGI_OPU_PORT', "3000")
+
+    if args['magic'] or args['magic_link']:
         if args['magic'] or args['magic_link']:
             for arg in args:
                 if args[arg] is not None:
                     feagi_settings['magic_link'] = args[arg]
                     break
             configuration['feagi_settings']['feagi_url'] = feagi_settings['magic_link']
-            with open(path+'configuration.json', 'w') as f:
+            with open(path+'networking.json', 'w') as f:
+                json.dump(configuration, f, indent=4)
+        else:
+            feagi_settings['magic_link'] = feagi_settings['feagi_url']
+        url_response = json.loads(requests.get(feagi_settings['magic_link']).text)
+        feagi_settings['feagi_dns'] = url_response['feagi_url']
+        feagi_settings['feagi_api_port'] = url_response['feagi_api_port']
+    elif args['ip']:
+        # # FEAGI REACHABLE CHECKER # #
+        feagi_flag = False
+        print("retrying...")
+        print("Waiting on FEAGI...")
+        if args['ip']:
+            feagi_settings['feagi_host'] = args['ip']
+        if 'feagi_url' in configuration['feagi_settings']:
+            del configuration['feagi_settings']['feagi_url']
+        if 'feagi_dns' in feagi_settings:
+            del feagi_settings['feagi_dns']
+        if 'magic_link' in feagi_settings:
+            del feagi_settings['magic_link']
+            with open(path+'networking.json', 'w') as f:
+                json.dump(configuration, f, indent=4)
+        while not feagi_flag:
+            feagi_flag = is_FEAGI_reachable(os.environ.get('FEAGI_HOST_INTERNAL', feagi_settings["feagi_host"]),
+                                            int(os.environ.get('FEAGI_OPU_PORT', feagi_settings['feagi_opu_port'])))
+            sleep(2)
+    elif feagi_settings['feagi_url']:
+        if args['magic'] or args['magic_link']:
+            for arg in args:
+                if args[arg] is not None:
+                    feagi_settings['magic_link'] = args[arg]
+                    break
+            configuration['feagi_settings']['feagi_url'] = feagi_settings['magic_link']
+            with open(path+'networking.json', 'w') as f:
                 json.dump(configuration, f)
         else:
             feagi_settings['magic_link'] = feagi_settings['feagi_url']
@@ -436,7 +523,7 @@ def reading_parameters_to_confirm_communication(feagi_settings, configuration, p
         if args['ip']:
             feagi_settings['feagi_host'] = args['ip']
         while not feagi_flag:
-            feagi_flag = is_FEAGI_reachable(os.environ.get('FEAGI_HOST_INTERNAL', feagi_settings["feagi_host"]),int(os.environ.get('FEAGI_OPU_PORT', "3000")))
+            feagi_flag = is_FEAGI_reachable(os.environ.get('FEAGI_HOST_INTERNAL', feagi_settings["feagi_host"]),int(os.environ.get('FEAGI_OPU_PORT', feagi_settings['feagi_opu_port'])))
             sleep(2)
     return feagi_settings, configuration
 

@@ -14,7 +14,5 @@
         "godot_websocket_port": 9053,
         "agent_type": "embodiment",
         "compression": true
-    },
-    "capabilities": {
     }
 }

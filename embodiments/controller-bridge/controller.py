@@ -34,8 +34,6 @@ from feagi_connector import feagi_interface as feagi
 
 ws = deque()
 ws_operation = deque()
-connected_agents = dict() # Initalize
-connected_agents['0'] = False  # By default, it is not connected by client's websocket
 
 
 async def echo(websocket):
@@ -43,29 +41,39 @@ async def echo(websocket):
     The function echoes the data it receives from other connected websockets
     and sends the data from FEAGI to the connected websockets.
     """
-    global message_to_feagi
-    async for message in websocket:
-        connected_agents['0'] = True # Since this section gets data from client, its marked as true
-        if not ws_operation:
-            ws_operation.append(websocket)
-        else:
-            ws_operation[0] = websocket
-        message_to_feagi = pickle.loads(message)
+    global message_to_feagi, connected_agents
+    try:
+        async for message in websocket:
+            connected_agents['0'] = True # Since this section gets data from client, its marked as true
+            if not ws_operation:
+                ws_operation.append(websocket)
+            else:
+                ws_operation[0] = websocket
+            message_to_feagi = pickle.loads(message)
+    except Exception:
+        pass
     connected_agents['0'] = False  # Once client disconnects, mark it as false
+    message_to_feagi.clear()
 
 
 if __name__ == "__main__":
+    connected_agents = dict()  # Initalize
+    connected_agents['0'] = False  # By default, it is not connected by client's websocket
+    message_to_feagi = dict()
+
     # NEW JSON UPDATE
-    f = open('configuration.json')
-    configuration = json.load(f)
+    fnet = open('networking.json')
+    fcap = open('capabilities.json')
+    configuration = json.load(fnet)
+    skills = json.load(fcap)
     feagi_settings =  configuration["feagi_settings"]
     agent_settings = configuration['agent_settings']
-    capabilities = configuration['capabilities']
+    capabilities = skills['capabilities']
     feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
     feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
     agent_settings['godot_websocket_port'] = os.environ.get('WS_CONTROLLER_PORT', "9053")
-    f.close()
-    message_to_feagi = {"data": {}}
+    fnet.close()
+    fcap.close()
     # END JSON UPDATE
 
     while True:

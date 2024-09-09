@@ -19,6 +19,7 @@ ENV Running_In_CONTAINER Yes
 WORKDIR /root/
 
 COPY controller.py /root/
-COPY configuration.json /root/
+COPY networking.json /root/
+COPY requirements.txt /root/
 COPY version.py /root/
 CMD ["python3", "controller.py"]

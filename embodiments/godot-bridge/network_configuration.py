@@ -31,14 +31,17 @@ async def echo(websocket):
     """
     Main thread for websocket only.
     """
-    if not current_websocket_address:
-        current_websocket_address.append(websocket)
-    else:
-        current_websocket_address[0] = websocket
-    while True:
-        new_data = await websocket.recv()
-        decompressed_data = zlib.decompress(new_data)
-        queue_of_recieve_godot_data.append(decompressed_data)
+    try:
+        if not current_websocket_address:
+            current_websocket_address.append(websocket)
+        else:
+            current_websocket_address[0] = websocket
+        while True:
+            new_data = await websocket.recv()
+            decompressed_data = zlib.decompress(new_data)
+            queue_of_recieve_godot_data.append(decompressed_data)
+    except:
+        pass
 
 
 

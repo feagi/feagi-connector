@@ -38,7 +38,13 @@ ws_operation = deque()
 webcam_size = {'size': []}
 connected_agents = dict()  # Initalize
 connected_agents['0'] = False  # By default, it is not connected by client's websocket
+connected_agents['capabilities'] = {}
 camera_data = {"vision": {}}
+runtime_data = {"cortical_data": {}, "current_burst_id": None,
+                "stimulation_period": 0.01, "feagi_state": None,
+                "feagi_network": None}
+
+feagi.validate_requirements('requirements.txt')  # you should get it from the boilerplate generator
 
 
 async def bridge_to_godot(runtime_data):
@@ -55,8 +61,8 @@ async def bridge_to_godot(runtime_data):
                     ws.pop()
                 sleep(runtime_data["stimulation_period"])
             except Exception as error:
-                print("error in websocket sender: ", error)
-                traceback.print_exc()
+                # print("error in websocket sender: ", error)
+                # traceback.print_exc()
                 sleep(0.001)
         else:
             sleep(0.001)
@@ -77,17 +83,36 @@ async def echo(websocket):
     and sends the data from FEAGI to the connected websockets.
     """
     global connected_agents
-    ws.append({"newRefreshRate": 60})
-    async for message in websocket:
-        connected_agents['0'] = True  # Since this section gets data from client, its marked as true
-        if not ws_operation:
-            ws_operation.append(websocket)
-        else:
-            ws_operation[0] = websocket
-        test = message
-        rgb_array['current'] = list(lz4.frame.decompress(test))
-        webcam_size['size'] = []
+    try:
+        ws.append({"newRefreshRate": 60})
+        async for message in websocket:
+            connected_agents['0'] = True  # Since this section gets data from client, its marked as true
+            if not ws_operation:
+                ws_operation.append(websocket)
+            else:
+                ws_operation[0] = websocket
+            decompressed_data = lz4.frame.decompress(message)
+            if connected_agents['capabilities']:
+                rgb_array['current'] = list(decompressed_data)
+                webcam_size['size'].append(rgb_array['current'].pop(0))
+                webcam_size['size'].append(rgb_array['current'].pop(0))
+            else:
+                if not 'current' in rgb_array:
+                    rgb_array['current'] = None
+                if rgb_array['current'] is None:
+                    new_data = json.loads(decompressed_data)
+                    if 'capabilities' in new_data:
+                        connected_agents['capabilities'] = new_data['capabilities']
+    except Exception as error:
+        if "stimulation_period" in runtime_data:
+            sleep(runtime_data["stimulation_period"])
+        pass
+        # print("ERROR!: ", error)
+        # traceback.print_exc()
     connected_agents['0'] = False  # Once client disconnects, mark it as false
+    camera_data['vision'] = None
+    rgb_array['current'] = None
+    webcam_size['size'] = []
 
 
 async def main():
@@ -108,87 +133,106 @@ def websocket_operation():
     asyncio.run(main())
 
 
-if __name__ == "__main__":
+def feagi_main(feagi_auth_url, feagi_settings, agent_settings, message_to_feagi, capabilities):
+    global runtime_data
+    rgb = {}
+    rgb['camera'] = {}
+    rgb_array['current'] = {}
+    feagi_flag = False
+    print("Waiting on FEAGI...")
+    while not feagi_flag:
+        feagi_flag = feagi.is_FEAGI_reachable(os.environ.get('FEAGI_HOST_INTERNAL',
+                                                             "127.0.0.1"),
+                                              int(os.environ.get('FEAGI_OPU_PORT', "3000")))
+        sleep(2)
+    print("DONE")
+
+    # # # FEAGI registration # # # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    feagi_settings, runtime_data, api_address, feagi_ipu_channel, feagi_opu_channel = \
+        feagi.connect_to_feagi(feagi_settings, runtime_data, agent_settings, capabilities,
+                               __version__)
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    previous_frame_data = {}
+    raw_frame = []
+    default_capabilities = {}  # It will be generated in process_visual_stimuli. See the
+    # overwrite manual
+    default_capabilities = pns.create_runtime_default_list(default_capabilities, capabilities)
+    threading.Thread(target=pns.feagi_listener, args=(feagi_opu_channel,), daemon=True).start()
+    threading.Thread(target=retina.vision_progress,
+                     args=(default_capabilities, feagi_settings, camera_data,), daemon=True).start()
+    while connected_agents['0']:
+        try:
+            if np.any(rgb_array['current']):
+                raw_frame = retina.RGB_list_to_ndarray(rgb_array['current'],
+                                                       webcam_size['size'])
+                raw_frame = retina.update_astype(raw_frame)
+                camera_data["vision"] = raw_frame
+                previous_frame_data, rgb, default_capabilities = \
+                    retina.process_visual_stimuli(
+                        raw_frame,
+                        default_capabilities,
+                        previous_frame_data,
+                        rgb, capabilities)
+                message_to_feagi = pns.generate_feagi_data(rgb, message_to_feagi)
+            message_to_feagi = sensors.add_agent_status(connected_agents['0'],
+                                                        message_to_feagi,
+                                                        agent_settings)
+            pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings, feagi_settings)
+            sleep(feagi_settings['feagi_burst_speed'])  # bottleneck
+            if 'camera' in rgb:
+                for i in rgb['camera']:
+                    rgb['camera'][i].clear()
+        except Exception as e:
+            # pass
+            print("ERROR! : ", e, " and resize: ", pns.resize_list)
+            traceback.print_exc()
+            break
+    connected_agents['capabilities'] = {}
+
+
+if __name__ == '__main__':
     # NEW JSON UPDATE
-    f = open('configuration.json')
+    f = open('networking.json')
     configuration = json.load(f)
     feagi_settings = configuration["feagi_settings"]
     agent_settings = configuration['agent_settings']
-    capabilities = configuration['capabilities']
+    # capabilities = configuration['capabilities']
     feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
     feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
     agent_settings['godot_websocket_port'] = os.environ.get('WS_WEBCAM_PORT', "9051")
-    # agent_settings['godot_websocket_ip'] = os.environ.get('WS_MICROBIT_PORT', "9052")
     f.close()
     message_to_feagi = {"data": {}}
     # END JSON UPDATE
-    runtime_data = {"cortical_data": {}, "current_burst_id": None,
-                    "stimulation_period": 0.01, "feagi_state": None,
-                    "feagi_network": None}
-    rgb = {}
-    CHECKPOINT_TOTAL = 5
-    rgb['camera'] = {}
-    rgb_array['current'] = {}
+
+    ws_operation = deque()
+    acc = {}
+    gyro = {}
+    prox = {}
+    acc['accelerator'] = {}
+    prox['proximity'] = {}
+
+    # gyro['gyro'] = []
     threading.Thread(target=websocket_operation, daemon=True).start()
     threading.Thread(target=bridge_operation, args=(runtime_data,), daemon=True).start()
+    # while not connected_agents['capabilities']:
+    #     sleep(2)
     while True:
-        feagi_flag = False
-        print("Waiting on FEAGI...")
-        while not feagi_flag:
-            feagi_flag = feagi.is_FEAGI_reachable(os.environ.get('FEAGI_HOST_INTERNAL',
-                                                                 "127.0.0.1"),
-                                                  int(os.environ.get('FEAGI_OPU_PORT', "3000")))
-            sleep(2)
-        print("DONE")
-        previous_data_frame = {}
+        print("Waiting on a device to connect....")
+        flag = True
+        while flag:
+            if connected_agents['capabilities']:
+                feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
+                feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
+                agent_settings['godot_websocket_port'] = os.environ.get('WS_GODOT_GENERIC_PORT', "9055")
+                flag = False
+            sleep(0.1)  # Repeated but inside loop
 
-        # # # FEAGI registration # # # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        feagi_settings, runtime_data, api_address, feagi_ipu_channel, feagi_opu_channel = \
-            feagi.connect_to_feagi(feagi_settings, runtime_data, agent_settings, capabilities,
-                                   __version__)
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        msg_counter = runtime_data["feagi_state"]['burst_counter']
-        previous_frame_data = {}
-        raw_frame = []
-        default_capabilities = {}  # It will be generated in process_visual_stimuli. See the
-        # overwrite manual
-        previous_burst = 0
-        default_capabilities = pns.create_runtime_default_list(default_capabilities, capabilities)
-        threading.Thread(target=pns.feagi_listener, args=(feagi_opu_channel,), daemon=True).start()
-        threading.Thread(target=retina.vision_progress,
-                         args=(default_capabilities,
-                               feagi_settings, camera_data,), daemon=True).start()
-        while True:
-            try:
-                if np.any(rgb_array['current']):
-                    if not webcam_size['size']:
-                        webcam_size['size'].append(rgb_array['current'].pop(0))
-                        webcam_size['size'].append(rgb_array['current'].pop(0))
-                    raw_frame = retina.RGB_list_to_ndarray(rgb_array['current'],
-                                                           webcam_size['size'])
-                    raw_frame = retina.update_astype(raw_frame)
-                    camera_data["vision"] = raw_frame
-                    if 'camera' in default_capabilities:
-                        if len(default_capabilities['camera']['blink']) != 0:
-                            raw_frame = default_capabilities['camera']['blink']
-                    previous_frame_data, rgb, default_capabilities = \
-                        retina.process_visual_stimuli(
-                            raw_frame,
-                            default_capabilities,
-                            previous_frame_data,
-                            rgb, capabilities)
-                    default_capabilities['camera']['blink'] = []
-                    message_to_feagi = pns.generate_feagi_data(rgb, message_to_feagi)
-                message_to_feagi = sensors.add_agent_status(connected_agents['0'],
-                                                            message_to_feagi,
-                                                            agent_settings)
-                pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings, feagi_settings)
-                sleep(feagi_settings['feagi_burst_speed'])  # bottleneck
-                if 'camera' in rgb:
-                    for i in rgb['camera']:
-                        rgb['camera'][i].clear()
-            except Exception as e:
-                # pass
-                print("ERROR! : ", e, " and resize: ", pns.resize_list)
-                traceback.print_exc()
-                break
+        feagi_auth_url = feagi_settings.pop('feagi_auth_url', None)
+        print("FEAGI AUTH URL ------- ", feagi_auth_url)
+        try:
+            feagi_main(feagi_auth_url, feagi_settings, agent_settings,
+                       message_to_feagi, connected_agents['capabilities'])
+        except Exception as e:
+            print(f"Controller run failed", e)
+            traceback.print_exc()
+            sleep(2)
