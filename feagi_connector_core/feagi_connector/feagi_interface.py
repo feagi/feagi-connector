@@ -277,7 +277,8 @@ def opu_processor(data):
                             processed_data_point = block_to_array(data_point)
                             device_power = opu_data['o_mctl'][data_point] / 100.0
                             device_id = build_up_from_mctl(processed_data_point)
-                            processed_opu_data['motion_control'][device_id] = device_power
+                            index = processed_data_point[0] // 4
+                            processed_opu_data['motion_control'][index] = {device_id: device_power}
                 else:
                     if 'o_mctl' in opu_data:
                         if opu_data['o_mctl']:
@@ -285,8 +286,10 @@ def opu_processor(data):
                                 processed_data_point = block_to_array(data_point)
                                 device_power = processed_data_point[2] / \
                                                float(pns.full_list_dimension['o_mctl']['cortical_dimensions'][2])
+
                                 device_id = build_up_from_mctl(processed_data_point)
-                                processed_opu_data['motion_control'][device_id] = device_power
+                                index = processed_data_point[0] // 4
+                                processed_opu_data['motion_control'][index] = {device_id: device_power}
             if 'o__led' in opu_data:
                 if opu_data['o__led']:
                     for data_point in opu_data['o__led']:
@@ -429,7 +432,7 @@ def build_up_from_mctl(id):
     }
 
     # Get the action from the dictionary, return None if not found
-    return action_map.get((id[0], id[1]))
+    return action_map.get((id[0]%4, id[1]))
 
 
 def configuration_load(path='./'):
