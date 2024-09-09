@@ -24,6 +24,7 @@ from time import sleep
 from collections import deque
 from version import __version__
 from feagi_connector import sensors
+from feagi_connector import actuators
 from feagi_connector import retina as retina
 from feagi_connector import pns_gateway as pns
 from feagi_connector import feagi_interface as feagi
@@ -145,19 +146,22 @@ def websocket_operation():
 
 def action(obtained_data):
     WS_STRING = {}
-    if 'motion_control' in obtained_data:
+    recieve_motion_data = actuators.get_motion_control_data(obtained_data)
+    recieved_misc_data = actuators.get_generic_opu_data_from_feagi(obtained_data, 'misc')
+    if recieve_motion_data:
         WS_STRING['motion_control'] = {}
-        for data_point in obtained_data['motion_control']:
-            if data_point in ["move_left", "move_right", "move_up", "move_down"]:
-                WS_STRING['motion_control'][str(data_point)] = obtained_data['motion_control'][data_point]
+        for device_id in recieve_motion_data:
+            for data_point in recieve_motion_data[device_id]:
+                if data_point in ["move_left", "move_right", "move_up", "move_down"]:
+                    WS_STRING['motion_control'][str(data_point)] = recieve_motion_data[device_id][data_point]
     if 'motor' in obtained_data:
         WS_STRING['motor'] = {}
         for data_point in obtained_data['motor']:
             WS_STRING['motor'][str(data_point)] = obtained_data['motor'][data_point]
-    if 'misc' in obtained_data:
+    if recieved_misc_data:
         WS_STRING['misc'] = {}
-        for data_point in obtained_data['misc']:
-            WS_STRING['misc'][str(data_point)] = obtained_data['misc'][data_point]
+        for data_point in recieved_misc_data:
+            WS_STRING['misc'][str(data_point)] = obtained_data[data_point]
     ws.append(WS_STRING)
 
 
@@ -186,6 +190,7 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, mes
     # overwrite manual
     default_capabilities = pns.create_runtime_default_list(default_capabilities, capabilities)
     threading.Thread(target=retina.vision_progress, args=(default_capabilities,feagi_settings, camera_data,), daemon=True).start()
+    actuators.start_generic_opu(capabilities)
     while connected_agents['0']:
         # Decompression section starts
         message_from_feagi = pns.message_from_feagi
