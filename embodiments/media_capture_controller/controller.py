@@ -92,13 +92,17 @@ async def echo(websocket):
             else:
                 ws_operation[0] = websocket
             decompressed_data = lz4.frame.decompress(message)
-            new_data = json.loads(decompressed_data)
-            if 'vision' in new_data:
-                rgb_array['current'] = new_data['vision']
-            if 'vision_size' in new_data:
-                webcam_size['size'] = new_data['vision_size']
-            if 'capabilities' in new_data:
-                connected_agents['capabilities'] = new_data['capabilities']
+            if connected_agents['capabilities']:
+                rgb_array['current'] = list(decompressed_data)
+                webcam_size['size'].append(rgb_array['current'].pop(0))
+                webcam_size['size'].append(rgb_array['current'].pop(0))
+            else:
+                if not 'current' in rgb_array:
+                    rgb_array['current'] = None
+                if rgb_array['current'] is None:
+                    new_data = json.loads(decompressed_data)
+                    if 'capabilities' in new_data:
+                        connected_agents['capabilities'] = new_data['capabilities']
     except Exception as error:
         if "stimulation_period" in runtime_data:
             sleep(runtime_data["stimulation_period"])
