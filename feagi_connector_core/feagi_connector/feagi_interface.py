@@ -139,6 +139,9 @@ def feagi_outbound(feagi_ip_host, feagi_opu_port):
            feagi_opu_port
 
 
+def convert_new_networking_into_old_networking():
+
+
 def msg_processor(self, msg, msg_type, capabilities):
     # TODO: give each subclass a specific msg processor method?
     # TODO: add an attribute that explicitly defines message type (instead of parsing topic name)?
@@ -463,6 +466,7 @@ def reading_parameters_to_confirm_communication(feagi_settings, configuration, p
     parser.add_argument('-ip', '--ip', help='to use feagi_ip', required=False)
     parser.add_argument('-port', '--port', help='to use feagi_port', required=False)
     args = vars(parser.parse_args())
+    print("BWUK: ", feagi_settings)
     if args['port']:
         feagi_settings['feagi_opu_port'] = args['port']
     else:
