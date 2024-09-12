@@ -139,7 +139,21 @@ def feagi_outbound(feagi_ip_host, feagi_opu_port):
            feagi_opu_port
 
 
-def convert_new_networking_into_old_networking():
+def convert_new_networking_into_old_networking(feagi_settings):
+    back_to_old_json =  {
+            "feagi_url": None,
+            "feagi_dns": None,
+            "feagi_host": None,
+            "feagi_api_port": None}
+    ip = feagi_settings['feagi_url'].split('//')
+    back_to_old_json['feagi_host'] = ip[1] # grab ip only
+    back_to_old_json['feagi_api_port'] = feagi_settings['feagi_api_port']
+    if feagi_settings['magic_link']:
+        print("use the flag, '--magic_link 'url'")
+        # Not yet.
+        # back_to_old_json['magic_link'] = feagi_settings['magic_link']
+    return back_to_old_json
+
 
 
 def msg_processor(self, msg, msg_type, capabilities):
@@ -457,7 +471,7 @@ def configuration_load(path='./'):
     return feagi_settings, agent_settings, capabilities, message_to_feagi, configuration
     # END JSON UPDATE
 
-def reading_parameters_to_confirm_communication(feagi_settings, configuration, path="."):
+def reading_parameters_to_confirm_communication(new_settings, configuration, path="."):
     # Check if feagi_connector has arg
     parser = argparse.ArgumentParser(description='enable to use magic link')
     parser.add_argument('-magic_link', '--magic_link', help='to use magic link', required=False)
@@ -466,7 +480,7 @@ def reading_parameters_to_confirm_communication(feagi_settings, configuration, p
     parser.add_argument('-ip', '--ip', help='to use feagi_ip', required=False)
     parser.add_argument('-port', '--port', help='to use feagi_port', required=False)
     args = vars(parser.parse_args())
-    print("BWUK: ", feagi_settings)
+    feagi_settings = convert_new_networking_into_old_networking(new_settings)
     if args['port']:
         feagi_settings['feagi_opu_port'] = args['port']
     else:
