@@ -161,6 +161,11 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, message_to_feagi,
     threading.Thread(target=retina.vision_progress,
                      args=(default_capabilities, feagi_settings, camera_data,), daemon=True).start()
     while connected_agents['0']:
+        message_from_feagi = pns.message_from_feagi
+        if message_from_feagi:
+            obtained_signals = pns.obtain_opu_data(message_from_feagi)
+            if obtained_signals:
+                ws.append(obtained_signals['activation_regions'])
         try:
             if np.any(rgb_array['current']):
                 raw_frame = retina.RGB_list_to_ndarray(rgb_array['current'],
