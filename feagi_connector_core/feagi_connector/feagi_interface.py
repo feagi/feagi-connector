@@ -144,7 +144,8 @@ def convert_new_networking_into_old_networking(feagi_settings):
             "feagi_url": None,
             "feagi_dns": None,
             "feagi_host": None,
-            "feagi_api_port": None}
+            "feagi_api_port": None
+    }
     ip = feagi_settings['feagi_url'].split('//')
     back_to_old_json['feagi_host'] = ip[1] # grab ip only
     back_to_old_json['feagi_api_port'] = feagi_settings['feagi_api_port']
@@ -220,7 +221,7 @@ def opu_processor(data):
                               'discharged_battery': {}, 'reset': {}, 'camera': {}, 'misc': {},
                               "motion_control": {}, 'navigation': {}, 'speed': {}, "led": {},
                               "vision_resolution": {}, "vision_acuity": {}, 'servo_position': {},
-                              "emergency": {}, "gpio": {}, "gpio_input": {}}
+                              "emergency": {}, "gpio": {}, "gpio_input": {}, "activation_regions":{}}
         opu_data = data["opu_data"]
         if opu_data is not None:
             if "o__mot" in pns.full_list_dimension:
@@ -364,6 +365,13 @@ def opu_processor(data):
                         device_id = processed_data_point[0]
                         device_power = opu_data['oigpio'][data_point]
                         processed_opu_data['gpio_input'][device_id] = device_power
+            if 'ov_reg' in opu_data:
+                if opu_data['ov_reg']:
+                    for data_point in opu_data['ov_reg']:
+                        processed_data_point = block_to_array(data_point)
+                        device_id = processed_data_point[0]
+                        device_power = opu_data['ov_reg'][data_point]
+                        processed_opu_data['activation_regions'][device_id] = device_power
             return processed_opu_data
     except Exception as error:
         print("error: ", error)
@@ -480,9 +488,12 @@ def reading_parameters_to_confirm_communication(new_settings, configuration, pat
     parser.add_argument('-ip', '--ip', help='to use feagi_ip', required=False)
     parser.add_argument('-port', '--port', help='to use feagi_port', required=False)
     args = vars(parser.parse_args())
-    if 'feagi_host' in new_settings:
+    print("here: ", new_settings)
+    if 'feagi_dns' in new_settings:
         print("OLD networking.json DETECTED! Please update your networking.json to latest. Next update will be removed that could crash the feagi controller if the old networking.json is not updated!!!")
+        feagi_settings = new_settings
     else:
+        print("using new json")
         feagi_settings = convert_new_networking_into_old_networking(new_settings)
     if args['port']:
         feagi_settings['feagi_opu_port'] = args['port']
