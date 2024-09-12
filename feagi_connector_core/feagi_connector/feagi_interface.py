@@ -480,7 +480,10 @@ def reading_parameters_to_confirm_communication(new_settings, configuration, pat
     parser.add_argument('-ip', '--ip', help='to use feagi_ip', required=False)
     parser.add_argument('-port', '--port', help='to use feagi_port', required=False)
     args = vars(parser.parse_args())
-    feagi_settings = convert_new_networking_into_old_networking(new_settings)
+    if 'feagi_host' in new_settings:
+        print("OLD networking.json DETECTED! Please update your networking.json to latest. Next update will be removed that could crash the feagi controller if the old networking.json is not updated!!!")
+    else:
+        feagi_settings = convert_new_networking_into_old_networking(new_settings)
     if args['port']:
         feagi_settings['feagi_opu_port'] = args['port']
     else:
