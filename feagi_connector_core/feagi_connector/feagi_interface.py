@@ -221,7 +221,7 @@ def opu_processor(data):
                               'discharged_battery': {}, 'reset': {}, 'camera': {}, 'misc': {},
                               "motion_control": {}, 'navigation': {}, 'speed': {}, "led": {},
                               "vision_resolution": {}, "vision_acuity": {}, 'servo_position': {},
-                              "emergency": {}, "gpio": {}, "gpio_input": {}, "activation_regions":{}}
+                              "emergency": {}, "gpio": {}, "gpio_input": {}}
         opu_data = data["opu_data"]
         if opu_data is not None:
             if "o__mot" in pns.full_list_dimension:
@@ -365,13 +365,13 @@ def opu_processor(data):
                         device_id = processed_data_point[0]
                         device_power = opu_data['oigpio'][data_point]
                         processed_opu_data['gpio_input'][device_id] = device_power
-            if 'ov_reg' in opu_data:
-                if opu_data['ov_reg']:
-                    for data_point in opu_data['ov_reg']:
+            if 'oigpio' in opu_data:
+                if opu_data['oigpio']:
+                    for data_point in opu_data['oigpio']:
                         processed_data_point = block_to_array(data_point)
                         device_id = processed_data_point[0]
-                        device_power = opu_data['ov_reg'][data_point]
-                        processed_opu_data['activation_regions'][device_id] = device_power
+                        device_power = opu_data['oigpio'][data_point]
+                        processed_opu_data['gpio_input'][device_id] = device_power
             return processed_opu_data
     except Exception as error:
         print("error: ", error)
