@@ -57,12 +57,14 @@ async def bridge_to_godot(runtime_data):
                             stored_value = ws.pop()
                             ws.clear()
                             ws.append(stored_value)
-                    await ws_operation[0].send(str(ws[0]))
+                    json_data = json.dumps(ws[0])
+                    await ws_operation[0].send(json_data)
+                    print("sent ws")
                     ws.pop()
                 sleep(runtime_data["stimulation_period"])
             except Exception as error:
-                # print("error in websocket sender: ", error)
-                # traceback.print_exc()
+                print("error in websocket sender: ", error)
+                traceback.print_exc()
                 sleep(0.001)
         else:
             sleep(0.001)
