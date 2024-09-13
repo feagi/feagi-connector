@@ -168,7 +168,7 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, message_to_feagi,
             for data_point in message_from_feagi['opu_data']['ov_reg']:
                 obtained_signals['activation_regions'].append(feagi.block_to_array(data_point))
             if obtained_signals['activation_regions']:
-                ws.append(obtained_signals['activation_regions'])
+                ws.append(obtained_signals)
         try:
             if np.any(rgb_array['current']):
                 raw_frame = retina.RGB_list_to_ndarray(rgb_array['current'],
