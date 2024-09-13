@@ -31,6 +31,7 @@ from feagi_connector import feagi_interface as feagi
 
 ws = deque()
 zmq_queue = deque()
+webcam_size = {'size': []}
 runtime_data = {"cortical_data": {}, "current_burst_id": None, "stimulation_period": 0.01,
                 "feagi_state": None, "feagi_network": None, 'accelerator': {}}
 camera_data = {"vision": None}
@@ -74,24 +75,35 @@ def godot_to_feagi():
                 zmq_queue.append(stored_value)
             message = zmq_queue[0]
             obtain_list = zlib.decompress(message)
-            new_data = json.loads(obtain_list)
-            if 'capabilities' in new_data:
-                connected_agents['capabilities'] = new_data['capabilities']
-            if 'gyro' in new_data:
-                gyro['gyro'] = new_data['gyro']
-            if 'vision' in new_data:
-                string_array = new_data['vision']
-                new_cam = np.array(string_array)
-                new_cam = new_cam.astype(np.uint8)
-                if len(new_cam) == 49152:
-                    image = new_cam.reshape(128, 128, 3)
-                if len(new_cam) == 3072:
-                    image = new_cam.reshape(32, 32, 3)
-                if len(new_cam) == 1228800:
-                    image = new_cam.reshape(640, 640, 3)
-                if 'vision_size' in new_data:
-                    image = new_cam.reshape(new_data['vision_size'][0], new_data['vision_size'][1], 3)
-                camera_data['vision'] = image
+            try:
+                print("ENTER JSON")
+                new_data = json.loads(obtain_list)
+                print("new: ", obtain_list)
+                if 'capabilities' in new_data:
+                    connected_agents['capabilities'] = new_data['capabilities']
+                if 'gyro' in new_data:
+                    gyro['gyro'] = new_data['gyro']
+                if 'vision' in new_data:
+                    string_array = new_data['vision']
+                    new_cam = np.array(string_array)
+                    new_cam = new_cam.astype(np.uint8)
+                    if len(new_cam) == 49152:
+                        image = new_cam.reshape(128, 128, 3)
+                    if len(new_cam) == 3072:
+                        image = new_cam.reshape(32, 32, 3)
+                    if len(new_cam) == 1228800:
+                        image = new_cam.reshape(640, 640, 3)
+                    if 'vision_size' in new_data:
+                        image = new_cam.reshape(new_data['vision_size'][0], new_data['vision_size'][1], 3)
+                    camera_data['vision'] = image
+            except Exception as error:
+                image = list(obtain_list)
+                webcam_size['size'].append(image.pop(0))
+                webcam_size['size'].append(image.pop(0))
+                raw_frame = retina.RGB_list_to_ndarray(image, webcam_size['size'])
+                raw_frame = retina.update_astype(raw_frame)
+                print("shape: ", raw_frame.shape)
+                camera_data['vision'] = raw_frame
             if 'acceleration' in new_data:
                 acc['accelerator'] = new_data['acceleration']
             if 'proximity' in new_data:
@@ -149,11 +161,7 @@ def action(obtained_data):
     recieve_motion_data = actuators.get_motion_control_data(obtained_data)
     recieved_misc_data = actuators.get_generic_opu_data_from_feagi(obtained_data, 'misc')
     if recieve_motion_data:
-        WS_STRING['motion_control'] = {}
-        for device_id in recieve_motion_data:
-            for data_point in recieve_motion_data[device_id]:
-                if data_point in ["move_left", "move_right", "move_up", "move_down"]:
-                    WS_STRING['motion_control'][str(data_point)] = recieve_motion_data[device_id][data_point]
+        WS_STRING = recieve_motion_data
     if 'motor' in obtained_data:
         WS_STRING['motor'] = {}
         for data_point in obtained_data['motor']:
@@ -162,6 +170,8 @@ def action(obtained_data):
         WS_STRING['misc'] = {}
         for data_point in recieved_misc_data:
             WS_STRING['misc'][str(data_point)] = obtained_data[data_point]
+    # if WS_STRING:
+    #     print(WS_STRING)
     ws.append(WS_STRING)
 
 
@@ -199,6 +209,7 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, mes
             action(obtained_signals)
         # OPU section ENDS
         if camera_data['vision'] is not None and camera_data['vision'].any():
+            print("worked: ", camera_data['vision'])
             raw_frame = camera_data['vision']
             previous_frame_data, rgb, default_capabilities = retina.process_visual_stimuli(
                 raw_frame,
