@@ -470,7 +470,7 @@ def configuration_load(path='./'):
       fcap.close()
     except Exception as error:
       capabilities = {}
-      print("ERROR: ", error)
+      # print("ERROR: ", error)
 
     try:
       fnet = open(path + 'networking.json')
@@ -483,7 +483,7 @@ def configuration_load(path='./'):
           pns.ver = configuration['description']
       fnet.close()
     except Exception as error:
-      print("ERROR: ", error)
+      # print("ERROR: ", error)
       feagi_settings = {}
       agent_settings = {}
 
