@@ -501,11 +501,12 @@ def camera_config_update(list, capabilities):
     """
     Update the capabilities to overwrite the default generated capabilities.
     """
-    if 'camera' in capabilities['input']:
-        for index in capabilities['input']['camera']:
-            for key in list['input']['camera']['0']:
-                if key not in capabilities['input']['camera'][index]:
-                    capabilities['input']['camera'][index][key] = list['input']['camera']['0'][key]
+    if capabilities:
+      if 'camera' in capabilities['input']:
+          for index in capabilities['input']['camera']:
+              for key in list['input']['camera']['0']:
+                  if key not in capabilities['input']['camera'][index]:
+                      capabilities['input']['camera'][index][key] = list['input']['camera']['0'][key]
     return capabilities
 
 def name_to_feagi_id(sensor_name):
