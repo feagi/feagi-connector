@@ -202,15 +202,13 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, message_to_feagi,
 
 if __name__ == '__main__':
     # NEW JSON UPDATE
-    f = open('networking.json')
-    configuration = json.load(f)
+    configuration = feagi.build_up_from_configuration()
     feagi_settings = configuration["feagi_settings"]
     agent_settings = configuration['agent_settings']
     # capabilities = configuration['capabilities']
     feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
     feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
     agent_settings['godot_websocket_port'] = os.environ.get('WS_WEBCAM_PORT', "9051")
-    f.close()
     message_to_feagi = {"data": {}}
     # END JSON UPDATE
 
