@@ -226,7 +226,11 @@ def eccentricity_control_update(message_from_feagi, capabilities):
                     for index in capabilities['input']['camera']:
                         max_range = capabilities['input']['camera'][index]['vision_range'][1]
                         min_range = capabilities['input']['camera'][index]['vision_range'][0]
-                        capabilities['input']['camera'][index]["eccentricity_control"][str(device_id)] = int(((intensity_select / max_depth_of_cortical) * (max_range - min_range)) + min_range)
+                        if device_id == '0':
+                          capabilities['input']['camera'][index]["eccentricity_control"]["X offset percentage"] = int(((intensity_select / max_depth_of_cortical) * (max_range - min_range)) + min_range)
+                        if device_id == '1':
+                          capabilities['input']['camera'][index]["eccentricity_control"]["Y offset percentage"] = int(((intensity_select / max_depth_of_cortical) * (max_range - min_range)) + min_range)
+
     return capabilities
 
 
@@ -244,7 +248,10 @@ def modulation_control_update(message_from_feagi, capabilities):
                     for index in capabilities['input']['camera']:
                         max_range = capabilities['input']['camera'][index]['vision_range'][1]
                         min_range = capabilities['input']['camera'][index]['vision_range'][0]
-                        capabilities['input']['camera'][index]["modulation_control"][str(device_id)] = int(((intensity_select / max_depth_of_cortical) * (max_range - min_range)) + min_range)
+                        if device_id == '0':
+                          capabilities['input']['camera'][index]["modulation_control"]["X offset percentage"] = int(((intensity_select / max_depth_of_cortical) * (max_range - min_range)) + min_range)
+                        if device_id == '1':
+                          capabilities['input']['camera'][index]["modulation_control"]["Y offset percentage"] = int(((intensity_select / max_depth_of_cortical) * (max_range - min_range)) + min_range)
     return capabilities
 
 
