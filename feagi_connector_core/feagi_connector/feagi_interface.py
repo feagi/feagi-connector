@@ -144,7 +144,8 @@ def convert_new_networking_into_old_networking(feagi_settings):
             "feagi_url": None,
             "feagi_dns": None,
             "feagi_host": None,
-            "feagi_api_port": None
+            "feagi_api_port": None,
+
     }
     ip = feagi_settings['feagi_url'].split('//')
     back_to_old_json['feagi_host'] = ip[1] # grab ip only
@@ -462,20 +463,32 @@ def build_up_from_mctl(id):
 
 def configuration_load(path='./'):
     # NEW JSON UPDATE
-    fcap = open(path + 'capabilities.json')
-    fnet = open(path + 'networking.json')
-    configuration = json.load(fnet)
-    skills = json.load(fcap) # dont judge me
-    feagi_settings = configuration["feagi_settings"]
-    agent_settings = configuration['agent_settings']
-    capabilities = skills['capabilities']
-    feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
-    feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
+    try:
+      fcap = open(path + 'capabilities.json')
+      json_capabilities = json.load(fcap)
+      capabilities = json_capabilities['capabilities']
+      fcap.close()
+    except Exception as error:
+      capabilities = {}
+      print("ERROR: ", error)
+
+    try:
+      fnet = open(path + 'networking.json')
+      configuration = json.load(fnet)
+      feagi_settings = configuration["feagi_settings"]
+      agent_settings = configuration['agent_settings']
+      feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
+      feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
+      if 'description' in configuration:
+          pns.ver = configuration['description']
+      fnet.close()
+    except Exception as error:
+      print("ERROR: ", error)
+      feagi_settings = {}
+      agent_settings = {}
+
+
     message_to_feagi = {"data": {}}
-    if 'description' in configuration:
-        pns.ver = configuration['description']
-    fcap.close()
-    fnet.close()
     return feagi_settings, agent_settings, capabilities, message_to_feagi, configuration
     # END JSON UPDATE
 
@@ -532,20 +545,6 @@ def reading_parameters_to_confirm_communication(new_settings, configuration, pat
             feagi_flag = is_FEAGI_reachable(os.environ.get('FEAGI_HOST_INTERNAL', feagi_settings["feagi_host"]),
                                             int(os.environ.get('FEAGI_OPU_PORT', feagi_settings['feagi_opu_port'])))
             sleep(2)
-    elif feagi_settings['feagi_url']:
-        if args['magic'] or args['magic_link']:
-            for arg in args:
-                if args[arg] is not None:
-                    feagi_settings['magic_link'] = args[arg]
-                    break
-            configuration['feagi_settings']['feagi_url'] = feagi_settings['magic_link']
-            with open(path+'networking.json', 'w') as f:
-                json.dump(configuration, f)
-        else:
-            feagi_settings['magic_link'] = feagi_settings['feagi_url']
-        url_response = json.loads(requests.get(feagi_settings['magic_link']).text)
-        feagi_settings['feagi_dns'] = url_response['feagi_url']
-        feagi_settings['feagi_api_port'] = url_response['feagi_api_port']
     else:
         # # FEAGI REACHABLE CHECKER # #
         feagi_flag = False
