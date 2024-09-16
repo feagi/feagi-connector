@@ -86,7 +86,7 @@ def vision_region_coordinates(frame_width=None, frame_height=None, x1=None, x2=N
 
     Output:
     - region_coordinates: Dictionary containing coordinates for nine different regions:
-                          'TL', 'TM', 'TR', 'ML', '_C', 'MR', 'LL', 'LM', 'LR'.
+                          'TL', 'TM', 'TR', 'ML', '_C', 'MR', 'BL', 'BM', 'BR'.
                           Each region has its respective coordinates within the frame.
 
     Note: Make sure that x1, x2, y1, and y2 are valid percentage values within the range of 0 to
@@ -113,12 +113,12 @@ def vision_region_coordinates(frame_width=None, frame_height=None, x1=None, x2=N
         region_coordinates[camera_index + '_C'] = [x1_prime, y1_prime, x2_prime, y2_prime]
     if (camera_index + 'MR') in size_list:
         region_coordinates[camera_index + 'MR'] = [x2_prime, y1_prime, frame_width, y2_prime]
-    if (camera_index + 'LL') in size_list:
-        region_coordinates[camera_index + 'LL'] = [0, y2_prime, x1_prime, frame_height]
-    if (camera_index + 'LM') in size_list:
-        region_coordinates[camera_index + 'LM'] = [x1_prime, y2_prime, x2_prime, frame_height]
-    if (camera_index + 'LR') in size_list:
-        region_coordinates[camera_index + 'LR'] = [x2_prime, y2_prime, frame_width, frame_height]
+    if (camera_index + 'BL') in size_list:
+        region_coordinates[camera_index + 'BL'] = [0, y2_prime, x1_prime, frame_height]
+    if (camera_index + 'BM') in size_list:
+        region_coordinates[camera_index + 'BM'] = [x1_prime, y2_prime, x2_prime, frame_height]
+    if (camera_index + 'BR') in size_list:
+        region_coordinates[camera_index + 'BR'] = [x2_prime, y2_prime, frame_width, frame_height]
     # print("vision_region_coordinates time total: ", (datetime.now() - start_time).total_seconds())
     return region_coordinates
 
@@ -418,7 +418,7 @@ def process_visual_stimuli(raw_frame=[], capabilities={}, previous_frame_data={}
 def obtain_cortical_vision_size(camera_index="00", response=""):
     size_list = {}
     data = response
-    items = [camera_index + "_C", camera_index + "LL", camera_index + "LM", camera_index + "LR",
+    items = [camera_index + "_C", camera_index + "BL", camera_index + "BM", camera_index + "BR",
              camera_index + "MR", camera_index + "ML", camera_index + "TR", camera_index + "TL",
              camera_index + "TM"]
     if data is not None:
