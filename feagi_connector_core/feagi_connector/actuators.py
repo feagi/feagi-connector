@@ -288,12 +288,10 @@ def get_motion_control_data(obtained_data):
     motion_control_data = dict()
     if 'motion_control' in obtained_data:
         for data_point in obtained_data['motion_control']:
-            device_id_list = feagi_mapped_to_dev_index(dev_id='motion_control', feagi_index=data_point,
-                                                       mapped_dict=actuators_mapped)
+            device_id_list = feagi_mapped_to_dev_index(dev_id='motion_control', feagi_index=data_point, mapped_dict=actuators_mapped)
             for device_id in device_id_list:
                 device_power = obtained_data['motion_control'][data_point]
                 motion_control_data[device_id] = device_power
-        print(motion_control_data)
     return motion_control_data
 
 
