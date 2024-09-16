@@ -76,38 +76,45 @@ def godot_to_feagi():
             message = zmq_queue[0]
             obtain_list = zlib.decompress(message)
             try:
-                print("ENTER JSON")
+                # First, try loading the decompressed message as JSON
+                new_data = json.loads(obtain_list.decode('utf-8')) # only ot check if its list or not. list cant do this
                 new_data = json.loads(obtain_list)
-                print("new: ", obtain_list)
                 if 'capabilities' in new_data:
                     connected_agents['capabilities'] = new_data['capabilities']
                 if 'gyro' in new_data:
                     gyro['gyro'] = new_data['gyro']
                 if 'vision' in new_data:
                     string_array = new_data['vision']
-                    new_cam = np.array(string_array)
-                    new_cam = new_cam.astype(np.uint8)
+                    new_cam = np.array(string_array).astype(np.uint8)
+                    # Handle different vision sizes
                     if len(new_cam) == 49152:
                         image = new_cam.reshape(128, 128, 3)
-                    if len(new_cam) == 3072:
+                    elif len(new_cam) == 3072:
                         image = new_cam.reshape(32, 32, 3)
-                    if len(new_cam) == 1228800:
+                    elif len(new_cam) == 1228800:
                         image = new_cam.reshape(640, 640, 3)
-                    if 'vision_size' in new_data:
+                    elif 'vision_size' in new_data:
                         image = new_cam.reshape(new_data['vision_size'][0], new_data['vision_size'][1], 3)
                     camera_data['vision'] = image
-            except Exception as error:
-                image = list(obtain_list)
-                webcam_size['size'].append(image.pop(0))
-                webcam_size['size'].append(image.pop(0))
-                raw_frame = retina.RGB_list_to_ndarray(image, webcam_size['size'])
-                raw_frame = retina.update_astype(raw_frame)
-                print("shape: ", raw_frame.shape)
-                camera_data['vision'] = raw_frame
-            if 'acceleration' in new_data:
-                acc['accelerator'] = new_data['acceleration']
-            if 'proximity' in new_data:
-                prox['proximity'] = new_data['proximity']
+                if 'acceleration' in new_data:
+                    acc['accelerator'] = new_data['acceleration']
+                if 'proximity' in new_data:
+                    prox['proximity'] = new_data['proximity']
+            except UnicodeDecodeError as decode_error:
+                # If not JSON, assume it's a list
+                try:
+                    string_array = list(obtain_list)
+                    new_width = (string_array[0] << 8) | string_array[1]
+                    new_depth = (string_array[2] << 8) | string_array[3]
+                    image = string_array[4:]  # This removes the first two elements
+                    webcam_size['size'].append(new_width)
+                    webcam_size['size'].append(new_depth)
+                    raw_frame = retina.RGB_list_to_ndarray(image, webcam_size['size'])
+                    raw_frame = retina.update_astype(raw_frame)
+                    camera_data['vision'] = raw_frame
+                except Exception as list_error:
+                    print(f"Error processing list: {list_error}")
+                    # traceback.print_exc()
             zmq_queue.pop()
         if "stimulation_period" in runtime_data:
             sleep(runtime_data["stimulation_period"])
@@ -209,7 +216,6 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, mes
             action(obtained_signals)
         # OPU section ENDS
         if camera_data['vision'] is not None and camera_data['vision'].any():
-            print("worked: ", camera_data['vision'])
             raw_frame = camera_data['vision']
             previous_frame_data, rgb, default_capabilities = retina.process_visual_stimuli(
                 raw_frame,
