@@ -297,7 +297,11 @@ def opu_processor(data):
                             device_power = opu_data['o_mctl'][data_point] / 100.0
                             device_id = build_up_from_mctl(processed_data_point)
                             index = processed_data_point[0] // 4
-                            processed_opu_data['motion_control'][index] = {device_id: device_power}
+                            if device_id is not None:
+                                if index in processed_opu_data['motion_control']:
+                                    processed_opu_data['motion_control'][index].update({device_id: device_power})
+                                else:
+                                    processed_opu_data['motion_control'][index] = {device_id: device_power}
                 else:
                     if 'o_mctl' in opu_data:
                         if opu_data['o_mctl']:
@@ -308,7 +312,11 @@ def opu_processor(data):
 
                                 device_id = build_up_from_mctl(processed_data_point)
                                 index = processed_data_point[0] // 4
-                                processed_opu_data['motion_control'][index] = {device_id: device_power}
+                                if device_id is not None:
+                                    if index in processed_opu_data['motion_control']:
+                                        processed_opu_data['motion_control'][index].update({device_id: device_power})
+                                    else:
+                                        processed_opu_data['motion_control'][index] = {device_id: device_power}
             if 'o__led' in opu_data:
                 if opu_data['o__led']:
                     for data_point in opu_data['o__led']:
@@ -359,13 +367,6 @@ def opu_processor(data):
                         device_id = processed_data_point[0]
                         device_power = opu_data['odgpio'][data_point]
                         processed_opu_data['gpio'][device_id] = device_power
-            if 'oigpio' in opu_data:
-                if opu_data['oigpio']:
-                    for data_point in opu_data['oigpio']:
-                        processed_data_point = block_to_array(data_point)
-                        device_id = processed_data_point[0]
-                        device_power = opu_data['oigpio'][data_point]
-                        processed_opu_data['gpio_input'][device_id] = device_power
             if 'oigpio' in opu_data:
                 if opu_data['oigpio']:
                     for data_point in opu_data['oigpio']:
@@ -456,7 +457,6 @@ def build_up_from_mctl(id):
         (3, 1): "roll_right",
         (3, 2): "yaw_right"
     }
-
     # Get the action from the dictionary, return None if not found
     return action_map.get((id[0]%4, id[1]))
 
