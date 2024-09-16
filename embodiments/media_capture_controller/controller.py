@@ -57,12 +57,13 @@ async def bridge_to_godot(runtime_data):
                             stored_value = ws.pop()
                             ws.clear()
                             ws.append(stored_value)
-                    await ws_operation[0].send(str(ws[0]))
+                    json_data = json.dumps(ws[0])
+                    await ws_operation[0].send(json_data)
                     ws.pop()
                 sleep(runtime_data["stimulation_period"])
             except Exception as error:
-                # print("error in websocket sender: ", error)
-                # traceback.print_exc()
+                print("error in websocket sender: ", error)
+                traceback.print_exc()
                 sleep(0.001)
         else:
             sleep(0.001)
@@ -92,13 +93,17 @@ async def echo(websocket):
             else:
                 ws_operation[0] = websocket
             decompressed_data = lz4.frame.decompress(message)
-            new_data = json.loads(decompressed_data)
-            if 'vision' in new_data:
-                rgb_array['current'] = new_data['vision']
-            if 'vision_size' in new_data:
-                webcam_size['size'] = new_data['vision_size']
-            if 'capabilities' in new_data:
-                connected_agents['capabilities'] = new_data['capabilities']
+            if connected_agents['capabilities']:
+                rgb_array['current'] = list(decompressed_data)
+                webcam_size['size'].append(rgb_array['current'].pop(0))
+                webcam_size['size'].append(rgb_array['current'].pop(0))
+            else:
+                if not 'current' in rgb_array:
+                    rgb_array['current'] = None
+                if rgb_array['current'] is None:
+                    new_data = json.loads(decompressed_data)
+                    if 'capabilities' in new_data:
+                        connected_agents['capabilities'] = new_data['capabilities']
     except Exception as error:
         if "stimulation_period" in runtime_data:
             sleep(runtime_data["stimulation_period"])
@@ -157,6 +162,15 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, message_to_feagi,
     threading.Thread(target=retina.vision_progress,
                      args=(default_capabilities, feagi_settings, camera_data,), daemon=True).start()
     while connected_agents['0']:
+        message_from_feagi = pns.message_from_feagi
+        if message_from_feagi:
+            obtained_signals = {}
+            obtained_signals['activation_regions'] = []
+            if 'ov_reg' in message_from_feagi['opu_data']:
+                for data_point in message_from_feagi['opu_data']['ov_reg']:
+                    obtained_signals['activation_regions'].append(feagi.block_to_array(data_point))
+                if obtained_signals['activation_regions']:
+                    ws.append(obtained_signals)
         try:
             if np.any(rgb_array['current']):
                 raw_frame = retina.RGB_list_to_ndarray(rgb_array['current'],
@@ -188,15 +202,13 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, message_to_feagi,
 
 if __name__ == '__main__':
     # NEW JSON UPDATE
-    f = open('networking.json')
-    configuration = json.load(f)
+    configuration = feagi.build_up_from_configuration()
     feagi_settings = configuration["feagi_settings"]
     agent_settings = configuration['agent_settings']
     # capabilities = configuration['capabilities']
     feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
     feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
     agent_settings['godot_websocket_port'] = os.environ.get('WS_WEBCAM_PORT', "9051")
-    f.close()
     message_to_feagi = {"data": {}}
     # END JSON UPDATE
 

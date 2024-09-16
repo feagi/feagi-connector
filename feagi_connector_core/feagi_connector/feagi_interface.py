@@ -139,6 +139,25 @@ def feagi_outbound(feagi_ip_host, feagi_opu_port):
            feagi_opu_port
 
 
+def convert_new_networking_into_old_networking(feagi_settings):
+    back_to_old_json =  {
+            "feagi_url": None,
+            "feagi_dns": None,
+            "feagi_host": None,
+            "feagi_api_port": None,
+
+    }
+    ip = feagi_settings['feagi_url'].split('//')
+    back_to_old_json['feagi_host'] = ip[1] # grab ip only
+    back_to_old_json['feagi_api_port'] = feagi_settings['feagi_api_port']
+    if feagi_settings['magic_link']:
+        print("use the flag, '--magic_link 'url'")
+        # Not yet.
+        # back_to_old_json['magic_link'] = feagi_settings['magic_link']
+    return back_to_old_json
+
+
+
 def msg_processor(self, msg, msg_type, capabilities):
     # TODO: give each subclass a specific msg processor method?
     # TODO: add an attribute that explicitly defines message type (instead of parsing topic name)?
@@ -277,7 +296,12 @@ def opu_processor(data):
                             processed_data_point = block_to_array(data_point)
                             device_power = opu_data['o_mctl'][data_point] / 100.0
                             device_id = build_up_from_mctl(processed_data_point)
-                            processed_opu_data['motion_control'][device_id] = device_power
+                            index = processed_data_point[0] // 4
+                            if device_id is not None:
+                                if index in processed_opu_data['motion_control']:
+                                    processed_opu_data['motion_control'][index].update({device_id: device_power})
+                                else:
+                                    processed_opu_data['motion_control'][index] = {device_id: device_power}
                 else:
                     if 'o_mctl' in opu_data:
                         if opu_data['o_mctl']:
@@ -285,8 +309,14 @@ def opu_processor(data):
                                 processed_data_point = block_to_array(data_point)
                                 device_power = processed_data_point[2] / \
                                                float(pns.full_list_dimension['o_mctl']['cortical_dimensions'][2])
+
                                 device_id = build_up_from_mctl(processed_data_point)
-                                processed_opu_data['motion_control'][device_id] = device_power
+                                index = processed_data_point[0] // 4
+                                if device_id is not None:
+                                    if index in processed_opu_data['motion_control']:
+                                        processed_opu_data['motion_control'][index].update({device_id: device_power})
+                                    else:
+                                        processed_opu_data['motion_control'][index] = {device_id: device_power}
             if 'o__led' in opu_data:
                 if opu_data['o__led']:
                     for data_point in opu_data['o__led']:
@@ -427,31 +457,42 @@ def build_up_from_mctl(id):
         (3, 1): "roll_right",
         (3, 2): "yaw_right"
     }
-
     # Get the action from the dictionary, return None if not found
-    return action_map.get((id[0], id[1]))
+    return action_map.get((id[0]%4, id[1]))
 
 
 def configuration_load(path='./'):
     # NEW JSON UPDATE
-    fcap = open(path + 'capabilities.json')
-    fnet = open(path + 'networking.json')
-    configuration = json.load(fnet)
-    skills = json.load(fcap) # dont judge me
-    feagi_settings = configuration["feagi_settings"]
-    agent_settings = configuration['agent_settings']
-    capabilities = skills['capabilities']
-    feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
-    feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
+    try:
+      fcap = open(path + 'capabilities.json')
+      json_capabilities = json.load(fcap)
+      capabilities = json_capabilities['capabilities']
+      fcap.close()
+    except Exception as error:
+      capabilities = {}
+      # print("ERROR: ", error)
+
+    try:
+      fnet = open(path + 'networking.json')
+      configuration = json.load(fnet)
+      feagi_settings = configuration["feagi_settings"]
+      agent_settings = configuration['agent_settings']
+      feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
+      feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
+      if 'description' in configuration:
+          pns.ver = configuration['description']
+      fnet.close()
+    except Exception as error:
+      # print("ERROR: ", error)
+      feagi_settings = {}
+      agent_settings = {}
+
+
     message_to_feagi = {"data": {}}
-    if 'description' in configuration:
-        pns.ver = configuration['description']
-    fcap.close()
-    fnet.close()
     return feagi_settings, agent_settings, capabilities, message_to_feagi, configuration
     # END JSON UPDATE
 
-def reading_parameters_to_confirm_communication(feagi_settings, configuration, path="."):
+def reading_parameters_to_confirm_communication(new_settings, configuration, path="."):
     # Check if feagi_connector has arg
     parser = argparse.ArgumentParser(description='enable to use magic link')
     parser.add_argument('-magic_link', '--magic_link', help='to use magic link', required=False)
@@ -460,6 +501,12 @@ def reading_parameters_to_confirm_communication(feagi_settings, configuration, p
     parser.add_argument('-ip', '--ip', help='to use feagi_ip', required=False)
     parser.add_argument('-port', '--port', help='to use feagi_port', required=False)
     args = vars(parser.parse_args())
+    if 'feagi_dns' in new_settings:
+        print("OLD networking.json DETECTED! Please update your networking.json to latest. Next update will be removed that could crash the feagi controller if the old networking.json is not updated!!!")
+        feagi_settings = new_settings
+    else:
+        print("using new json")
+        feagi_settings = convert_new_networking_into_old_networking(new_settings)
     if args['port']:
         feagi_settings['feagi_opu_port'] = args['port']
     else:
@@ -498,20 +545,6 @@ def reading_parameters_to_confirm_communication(feagi_settings, configuration, p
             feagi_flag = is_FEAGI_reachable(os.environ.get('FEAGI_HOST_INTERNAL', feagi_settings["feagi_host"]),
                                             int(os.environ.get('FEAGI_OPU_PORT', feagi_settings['feagi_opu_port'])))
             sleep(2)
-    elif feagi_settings['feagi_url']:
-        if args['magic'] or args['magic_link']:
-            for arg in args:
-                if args[arg] is not None:
-                    feagi_settings['magic_link'] = args[arg]
-                    break
-            configuration['feagi_settings']['feagi_url'] = feagi_settings['magic_link']
-            with open(path+'networking.json', 'w') as f:
-                json.dump(configuration, f)
-        else:
-            feagi_settings['magic_link'] = feagi_settings['feagi_url']
-        url_response = json.loads(requests.get(feagi_settings['magic_link']).text)
-        feagi_settings['feagi_dns'] = url_response['feagi_url']
-        feagi_settings['feagi_api_port'] = url_response['feagi_api_port']
     else:
         # # FEAGI REACHABLE CHECKER # #
         feagi_flag = False

@@ -59,6 +59,12 @@ def start_servos(controller_capabilities):
                 servo_status[int(servo_id)] = capabilities['output']['servo'][servo_id]['default_value']
     actuators_mapped = actuator_to_feagi_map(capabilities)
 
+def start_generic_opu(controller_capabilities):
+    global actuators_mapped, capabilities
+    capabilities = controller_capabilities
+    actuators_mapped = actuator_to_feagi_map(capabilities)
+
+
 
 def feagi_id_converter(id):
     """
@@ -158,8 +164,6 @@ def update_moving_average(moving_average, device_id, device_power):
     moving_average[device_id].append(device_power)
     moving_average[device_id].popleft()
     return moving_average
-
-
 # Motor section ends
 
 
@@ -270,7 +274,6 @@ def check_emergency_stop(obtained_data):
             emergency_data[device_id] = device_power
     return emergency_data
 
-
 def check_new_speed(obtained_data):
     speed_data = dict()  # I don't think there's any required input on emergency stop at all
     if 'speed' in obtained_data:
@@ -280,15 +283,30 @@ def check_new_speed(obtained_data):
             speed_data[device_id] = device_power
     return speed_data
 
-
 def get_motion_control_data(obtained_data):
-    motion_data = dict()
+    global actuators_mapped
+    motion_control_data = dict()
     if 'motion_control' in obtained_data:
         for data_point in obtained_data['motion_control']:
-            device_id = data_point
-            device_power = obtained_data['motion_control'][data_point]
-            motion_data[device_id] = device_power
-    return motion_data
+            device_id_list = feagi_mapped_to_dev_index(dev_id='motion_control', feagi_index=data_point, mapped_dict=actuators_mapped)
+            for device_id in device_id_list:
+                device_power = obtained_data['motion_control'][data_point]
+                motion_control_data[device_id] = device_power
+    return motion_control_data
+
+
+def get_generic_opu_data_from_feagi(obtained_data, actuator_name):
+    global actuators_mapped
+    generic_data = dict()
+    if actuator_name in obtained_data:
+        for data_point in obtained_data[actuator_name]:
+            device_id_list = feagi_mapped_to_dev_index(dev_id=actuator_name, feagi_index=data_point,
+                                                       mapped_dict=actuators_mapped)
+            for device_id in device_id_list:
+                device_id = device_id
+                device_power = obtained_data[actuator_name][data_point]
+                generic_data[device_id] = device_power
+    return generic_data
 
 
 def get_led_data(obtained_data):
