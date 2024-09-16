@@ -178,7 +178,7 @@ def action(obtained_data):
     if recieved_misc_data:
         WS_STRING['misc'] = {}
         for data_point in recieved_misc_data:
-            WS_STRING['misc'][str(data_point)] = obtained_data[data_point]
+            WS_STRING['misc'][str(data_point)] = recieved_misc_data[data_point]
     # if WS_STRING:
     #     print(WS_STRING)
     ws.append(WS_STRING)
