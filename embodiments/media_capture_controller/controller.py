@@ -59,7 +59,6 @@ async def bridge_to_godot(runtime_data):
                             ws.append(stored_value)
                     json_data = json.dumps(ws[0])
                     await ws_operation[0].send(json_data)
-                    print("sent ws")
                     ws.pop()
                 sleep(runtime_data["stimulation_period"])
             except Exception as error:
