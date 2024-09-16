@@ -246,18 +246,12 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, mes
 
 if __name__ == '__main__':
     # NEW JSON UPDATE
-    fnet = open('networking.json')
-    # fcap = open('capabilities.json')
-    configuration = json.load(fnet)
-    # skills = json.load(fcap)
+    configuration = feagi.build_up_from_configuration()
     feagi_settings =  configuration["feagi_settings"]
     agent_settings = configuration['agent_settings']
-    # capabilities = skills['capabilities']
     feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
     feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
     agent_settings['godot_websocket_port'] = os.environ.get('WS_GODOT_GENERIC_PORT', "9055")
-    fnet.close()
-    # fcap.close()
     message_to_feagi = {"data": {}}
     # # END JSON UPDATE
 
