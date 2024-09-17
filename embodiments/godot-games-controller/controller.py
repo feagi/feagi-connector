@@ -1,17 +1,18 @@
-#!/usr/bin/env python
-"""
-Copyright 2016-2024 The FEAGI Authors. All Rights Reserved.
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-    http://www.apache.org/licenses/LICENSE-2.0
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-==============================================================================
-"""
+#
+# Copyright 2016-Present Neuraville Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ==============================================================================
 import os
 import json
 import zlib
@@ -31,6 +32,7 @@ from feagi_connector import feagi_interface as feagi
 
 ws = deque()
 zmq_queue = deque()
+webcam_size = {'size': []}
 runtime_data = {"cortical_data": {}, "current_burst_id": None, "stimulation_period": 0.01,
                 "feagi_state": None, "feagi_network": None, 'accelerator': {}}
 camera_data = {"vision": None}
@@ -74,28 +76,46 @@ def godot_to_feagi():
                 zmq_queue.append(stored_value)
             message = zmq_queue[0]
             obtain_list = zlib.decompress(message)
-            new_data = json.loads(obtain_list)
-            if 'capabilities' in new_data:
-                connected_agents['capabilities'] = new_data['capabilities']
-            if 'gyro' in new_data:
-                gyro['gyro'] = new_data['gyro']
-            if 'vision' in new_data:
-                string_array = new_data['vision']
-                new_cam = np.array(string_array)
-                new_cam = new_cam.astype(np.uint8)
-                if len(new_cam) == 49152:
-                    image = new_cam.reshape(128, 128, 3)
-                if len(new_cam) == 3072:
-                    image = new_cam.reshape(32, 32, 3)
-                if len(new_cam) == 1228800:
-                    image = new_cam.reshape(640, 640, 3)
-                if 'vision_size' in new_data:
-                    image = new_cam.reshape(new_data['vision_size'][0], new_data['vision_size'][1], 3)
-                camera_data['vision'] = image
-            if 'acceleration' in new_data:
-                acc['accelerator'] = new_data['acceleration']
-            if 'proximity' in new_data:
-                prox['proximity'] = new_data['proximity']
+            try:
+                # First, try loading the decompressed message as JSON
+                new_data = json.loads(obtain_list.decode('utf-8')) # only ot check if its list or not. list cant do this
+                new_data = json.loads(obtain_list)
+                if 'capabilities' in new_data:
+                    connected_agents['capabilities'] = new_data['capabilities']
+                if 'gyro' in new_data:
+                    gyro['gyro'] = new_data['gyro']
+                if 'vision' in new_data:
+                    string_array = new_data['vision']
+                    new_cam = np.array(string_array).astype(np.uint8)
+                    # Handle different vision sizes
+                    if len(new_cam) == 49152:
+                        image = new_cam.reshape(128, 128, 3)
+                    elif len(new_cam) == 3072:
+                        image = new_cam.reshape(32, 32, 3)
+                    elif len(new_cam) == 1228800:
+                        image = new_cam.reshape(640, 640, 3)
+                    elif 'vision_size' in new_data:
+                        image = new_cam.reshape(new_data['vision_size'][0], new_data['vision_size'][1], 3)
+                    camera_data['vision'] = image
+                if 'acceleration' in new_data:
+                    acc['accelerator'] = new_data['acceleration']
+                if 'proximity' in new_data:
+                    prox['proximity'] = new_data['proximity']
+            except UnicodeDecodeError as decode_error:
+                # If not JSON, assume it's a list
+                try:
+                    string_array = list(obtain_list)
+                    new_width = (string_array[0] << 8) | string_array[1]
+                    new_depth = (string_array[2] << 8) | string_array[3]
+                    image = string_array[4:]  # This removes the first two elements
+                    webcam_size['size'].append(new_width)
+                    webcam_size['size'].append(new_depth)
+                    raw_frame = retina.RGB_list_to_ndarray(image, webcam_size['size'])
+                    raw_frame = retina.update_astype(raw_frame)
+                    camera_data['vision'] = raw_frame
+                except Exception as list_error:
+                    print(f"Error processing list: {list_error}")
+                    # traceback.print_exc()
             zmq_queue.pop()
         if "stimulation_period" in runtime_data:
             sleep(runtime_data["stimulation_period"])
@@ -111,7 +131,8 @@ async def bridge_to_godot():
                             stored_value = ws.pop()
                             ws.clear()
                             ws.append(stored_value)
-                    await ws_operation[0].send(str(ws[0]))
+                    json_data = json.dumps(ws[0])
+                    await ws_operation[0].send(json_data)
                     ws.pop()
                 if "stimulation_period" in runtime_data:
                     sleep(runtime_data["stimulation_period"])
@@ -149,11 +170,8 @@ def action(obtained_data):
     recieve_motion_data = actuators.get_motion_control_data(obtained_data)
     recieved_misc_data = actuators.get_generic_opu_data_from_feagi(obtained_data, 'misc')
     if recieve_motion_data:
-        WS_STRING['motion_control'] = {}
-        for device_id in recieve_motion_data:
-            for data_point in recieve_motion_data[device_id]:
-                if data_point in ["move_left", "move_right", "move_up", "move_down"]:
-                    WS_STRING['motion_control'][str(data_point)] = recieve_motion_data[device_id][data_point]
+        if recieve_motion_data['motion_control']:
+            WS_STRING = recieve_motion_data
     if 'motor' in obtained_data:
         WS_STRING['motor'] = {}
         for data_point in obtained_data['motor']:
@@ -161,7 +179,7 @@ def action(obtained_data):
     if recieved_misc_data:
         WS_STRING['misc'] = {}
         for data_point in recieved_misc_data:
-            WS_STRING['misc'][str(data_point)] = obtained_data[data_point]
+            WS_STRING['misc'][str(data_point)] = recieved_misc_data[data_point]
     ws.append(WS_STRING)
 
 
@@ -235,18 +253,12 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, mes
 
 if __name__ == '__main__':
     # NEW JSON UPDATE
-    fnet = open('networking.json')
-    # fcap = open('capabilities.json')
-    configuration = json.load(fnet)
-    # skills = json.load(fcap)
+    configuration = feagi.build_up_from_configuration()
     feagi_settings =  configuration["feagi_settings"]
     agent_settings = configuration['agent_settings']
-    # capabilities = skills['capabilities']
     feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
     feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
     agent_settings['godot_websocket_port'] = os.environ.get('WS_GODOT_GENERIC_PORT', "9055")
-    fnet.close()
-    # fcap.close()
     message_to_feagi = {"data": {}}
     # # END JSON UPDATE
 
