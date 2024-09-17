@@ -170,7 +170,8 @@ def action(obtained_data):
     recieve_motion_data = actuators.get_motion_control_data(obtained_data)
     recieved_misc_data = actuators.get_generic_opu_data_from_feagi(obtained_data, 'misc')
     if recieve_motion_data:
-        WS_STRING = recieve_motion_data
+        if recieve_motion_data['motion_control']:
+            WS_STRING = recieve_motion_data
     if 'motor' in obtained_data:
         WS_STRING['motor'] = {}
         for data_point in obtained_data['motor']:
@@ -179,8 +180,6 @@ def action(obtained_data):
         WS_STRING['misc'] = {}
         for data_point in recieved_misc_data:
             WS_STRING['misc'][str(data_point)] = recieved_misc_data[data_point]
-    # if WS_STRING:
-    #     print(WS_STRING)
     ws.append(WS_STRING)
 
 

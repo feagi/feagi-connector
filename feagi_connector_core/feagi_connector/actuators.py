@@ -286,12 +286,13 @@ def check_new_speed(obtained_data):
 def get_motion_control_data(obtained_data):
     global actuators_mapped
     motion_control_data = dict()
+    motion_control_data['motion_control'] = dict()
     if 'motion_control' in obtained_data:
         for data_point in obtained_data['motion_control']:
             device_id_list = feagi_mapped_to_dev_index(dev_id='motion_control', feagi_index=data_point, mapped_dict=actuators_mapped)
             for device_id in device_id_list:
                 device_power = obtained_data['motion_control'][data_point]
-                motion_control_data[device_id] = device_power
+                motion_control_data['motion_control'][device_id] = device_power
     return motion_control_data
 
 
