@@ -212,7 +212,7 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, mes
             obtained_signals = pns.obtain_opu_data(message_from_feagi)
             action(obtained_signals)
         # OPU section ENDS
-        if camera_data['vision'] is not None and camera_data['vision']:
+        if camera_data['vision'] is not None:
             raw_frame = camera_data['vision']
             previous_frame_data, rgb, default_capabilities = retina.process_visual_stimuli(
                 raw_frame,
