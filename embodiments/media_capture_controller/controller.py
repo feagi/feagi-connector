@@ -173,7 +173,7 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, message_to_feagi,
                 obtained_signals['activation_regions'] = []
                 for data_point in message_from_feagi['opu_data']['ov_reg']:
                     obtained_signals['activation_regions'].append(feagi.block_to_array(data_point))
-            if obtained_signals['activation_regions']:
+            if obtained_signals:
                 obtained_signals['modulation_control'] = default_capabilities['input']['camera']['0']['modulation_control']
                 obtained_signals['eccentricity_control'] = default_capabilities['input']['camera']['0']['eccentricity_control']
             if obtained_signals:
