@@ -94,9 +94,13 @@ async def echo(websocket):
                 ws_operation[0] = websocket
             decompressed_data = lz4.frame.decompress(message)
             if connected_agents['capabilities']:
-                rgb_array['current'] = list(decompressed_data)
-                webcam_size['size'].append(rgb_array['current'].pop(0))
-                webcam_size['size'].append(rgb_array['current'].pop(0))
+                new_list = list(decompressed_data)
+                webcam_size['size'].append(new_list.pop(0))
+                webcam_size['size'].append(new_list.pop(0))
+                raw_frame = retina.RGB_list_to_ndarray(new_list,
+                                                       webcam_size['size'])
+                rgb_array['current'] = retina.update_astype(raw_frame)
+
             else:
                 if not 'current' in rgb_array:
                     rgb_array['current'] = None
@@ -165,17 +169,18 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, message_to_feagi,
         message_from_feagi = pns.message_from_feagi
         if message_from_feagi:
             obtained_signals = {}
-            obtained_signals['activation_regions'] = []
             if 'ov_reg' in message_from_feagi['opu_data']:
+                obtained_signals['activation_regions'] = []
                 for data_point in message_from_feagi['opu_data']['ov_reg']:
                     obtained_signals['activation_regions'].append(feagi.block_to_array(data_point))
-                if obtained_signals['activation_regions']:
-                    ws.append(obtained_signals)
+            if obtained_signals['activation_regions']:
+                obtained_signals['modulation_control'] = default_capabilities['input']['camera']['0']['modulation_control']
+                obtained_signals['eccentricity_control'] = default_capabilities['input']['camera']['0']['eccentricity_control']
+            if obtained_signals:
+                ws.append(obtained_signals)
         try:
             if np.any(rgb_array['current']):
-                raw_frame = retina.RGB_list_to_ndarray(rgb_array['current'],
-                                                       webcam_size['size'])
-                raw_frame = retina.update_astype(raw_frame)
+                raw_frame = rgb_array['current']
                 camera_data["vision"] = raw_frame
                 previous_frame_data, rgb, default_capabilities = \
                     retina.process_visual_stimuli(
