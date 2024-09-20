@@ -84,19 +84,15 @@ def godot_to_feagi():
                     connected_agents['capabilities'] = new_data['capabilities']
                 if 'gyro' in new_data:
                     gyro['gyro'] = new_data['gyro']
-                if 'vision' in new_data:
-                    string_array = new_data['vision']
-                    new_cam = np.array(string_array).astype(np.uint8)
-                    # Handle different vision sizes
-                    if len(new_cam) == 49152:
-                        image = new_cam.reshape(128, 128, 3)
-                    elif len(new_cam) == 3072:
-                        image = new_cam.reshape(32, 32, 3)
-                    elif len(new_cam) == 1228800:
-                        image = new_cam.reshape(640, 640, 3)
-                    elif 'vision_size' in new_data:
-                        image = new_cam.reshape(new_data['vision_size'][0], new_data['vision_size'][1], 3)
-                    camera_data['vision'] = image
+                if 'camera' in new_data:
+                    if connected_agents['capabilities']:
+                        for device_id in new_data['camera']:
+                            string_array = new_data['camera'][device_id]
+                            new_cam = np.array(string_array).astype(np.uint8)
+                            image = new_cam.reshape(connected_agents['capabilities']['input']['camera'][device_id]['camera_resolution'][0], connected_agents['capabilities']['input']['camera'][device_id]['camera_resolution'][1], 3)
+                            if camera_data['vision'] is None:
+                                camera_data['vision'] = dict()
+                            camera_data['vision'][device_id] = image
                 if 'acceleration' in new_data:
                     acc['accelerator'] = new_data['acceleration']
                 if 'proximity' in new_data:
@@ -209,14 +205,16 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, mes
     default_capabilities = pns.create_runtime_default_list(default_capabilities, capabilities)
     threading.Thread(target=retina.vision_progress, args=(default_capabilities,feagi_settings, camera_data,), daemon=True).start()
     actuators.start_generic_opu(capabilities)
+    current_list_of_vision = pns.resize_list
     while connected_agents['0']:
+        retina.grab_visual_cortex_dimension(default_capabilities)
         # Decompression section starts
         message_from_feagi = pns.message_from_feagi
         if message_from_feagi:
             obtained_signals = pns.obtain_opu_data(message_from_feagi)
             action(obtained_signals)
         # OPU section ENDS
-        if camera_data['vision'] is not None and camera_data['vision'].any():
+        if camera_data['vision'] is not None:
             raw_frame = camera_data['vision']
             previous_frame_data, rgb, default_capabilities = retina.process_visual_stimuli(
                 raw_frame,
@@ -241,6 +239,11 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, mes
             if prox['proximity']:
                 message_to_feagi = sensors.create_data_for_feagi('proximity', capabilities, message_to_feagi,
                                                                  prox['proximity'], symmetric=True)
+        if current_list_of_vision != pns.resize_list:
+            temp_data = retina.grab_visual_cortex_dimension(default_capabilities)
+            for x in range(5):
+                ws.append({'cortical_dimensions_per_device': temp_data})
+            current_list_of_vision = pns.resize_list
 
         message_to_feagi = sensors.add_agent_status(connected_agents['0'], message_to_feagi, agent_settings)
         pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings, feagi_settings)
@@ -249,6 +252,8 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, mes
         if not connected_agents['0']:
             gyro.clear()
             prox.clear()
+
+
 
 
 if __name__ == '__main__':
