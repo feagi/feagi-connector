@@ -665,3 +665,27 @@ def convert_new_json_to_old_json(capabilities, index='0'):
     print("This function, `convert_new_json_to_old_json`, is deprecated. Please remove this "
           "function, as it currently does nothing. It will be removed in the next version.")
     return capabilities
+
+def grab_visual_cortex_dimension(capabilities):
+    cortical_area_exist_list = []
+    index = []
+    a_cortical_dict = {}
+    if pns.full_list_dimension:
+        if 'camera' in capabilities['input']:
+            for camera_index in capabilities['input']['camera']:
+                index.append(capabilities['input']['camera'][camera_index]['index'])
+            for name in ['_C', 'BL', 'BR', 'TL']:
+                for nested_index in index:
+                    cortical_area_exist_list.append('iv' + nested_index + name)
+
+            for name in cortical_area_exist_list:
+                if name in pns.full_list_dimension:
+                    a_cortical_dict[name] = pns.full_list_dimension[name]['cortical_dimensions_per_device']
+                else:
+                    a_cortical_dict[name] = (0,0,0)
+        # Todo: Needs to address this in near future
+        x = a_cortical_dict['iv00_C'][0] + a_cortical_dict['iv00BL'][0] + a_cortical_dict['iv00BR'][0]
+        y = a_cortical_dict['iv00_C'][1] + a_cortical_dict['iv00BL'][1] + a_cortical_dict['iv00TL'][1]
+        z = a_cortical_dict['iv00_C'][2]
+        return [x,y,z]
+    return [0,0,0] # Send empty
