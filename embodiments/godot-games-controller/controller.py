@@ -205,7 +205,9 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, mes
     default_capabilities = pns.create_runtime_default_list(default_capabilities, capabilities)
     threading.Thread(target=retina.vision_progress, args=(default_capabilities,feagi_settings, camera_data,), daemon=True).start()
     actuators.start_generic_opu(capabilities)
+    current_list_of_vision = pns.resize_list
     while connected_agents['0']:
+        retina.grab_visual_cortex_dimension(default_capabilities)
         # Decompression section starts
         message_from_feagi = pns.message_from_feagi
         if message_from_feagi:
@@ -237,6 +239,11 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, mes
             if prox['proximity']:
                 message_to_feagi = sensors.create_data_for_feagi('proximity', capabilities, message_to_feagi,
                                                                  prox['proximity'], symmetric=True)
+        if current_list_of_vision != pns.resize_list:
+            temp_data = retina.grab_visual_cortex_dimension(default_capabilities)
+            for x in range(5):
+                ws.append({'cortical_dimensions_per_device': temp_data})
+            current_list_of_vision = pns.resize_list
 
         message_to_feagi = sensors.add_agent_status(connected_agents['0'], message_to_feagi, agent_settings)
         pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings, feagi_settings)
@@ -245,6 +252,8 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, mes
         if not connected_agents['0']:
             gyro.clear()
             prox.clear()
+
+
 
 
 if __name__ == '__main__':
