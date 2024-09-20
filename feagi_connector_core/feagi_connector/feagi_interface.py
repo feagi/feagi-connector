@@ -434,10 +434,9 @@ def connect_to_feagi(feagi_settings, runtime_data, agent_settings, capabilities,
     else:
         feagi_ipu_channel = None
         feagi_opu_channel = None
-        print("websocket testing")
         websocket_url = feagi_settings['feagi_dns'].replace("https", "wss") + str("/p9053")
         print(websocket_url)
-        router.websocket_client_initalize('192.168.50.192', '9053', dns=websocket_url)
+        router.websocket_client_initalize('', '', dns=websocket_url)
         threading.Thread(target=router.websocket_recieve, daemon=True).start()
 
 
