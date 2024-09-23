@@ -104,9 +104,7 @@ def godot_to_feagi():
                     new_width = (string_array[0] << 8) | string_array[1]
                     new_depth = (string_array[2] << 8) | string_array[3]
                     image = string_array[4:]  # This removes the first two elements
-                    webcam_size['size'].append(new_width)
-                    webcam_size['size'].append(new_depth)
-                    raw_frame = retina.RGB_list_to_ndarray(image, webcam_size['size'])
+                    raw_frame = retina.RGB_list_to_ndarray(image, [new_width, new_depth])
                     raw_frame = retina.update_astype(raw_frame)
                     camera_data['vision'] = raw_frame
                 except Exception as list_error:
