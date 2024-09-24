@@ -101,8 +101,8 @@ def godot_to_feagi():
                 # If not JSON, assume it's a list
                 try:
                     string_array = list(obtain_list)
-                    new_width = (string_array[0] << 8) | string_array[1]
-                    new_depth = (string_array[2] << 8) | string_array[3]
+                    new_depth = (string_array[0] << 8) | string_array[1]
+                    new_width = (string_array[2] << 8) | string_array[3]
                     image = string_array[4:]  # This removes the first two elements
                     raw_frame = retina.RGB_list_to_ndarray(image, [new_width, new_depth])
                     raw_frame = retina.update_astype(raw_frame)
