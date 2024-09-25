@@ -73,7 +73,7 @@ def add_agent_status(status, message_to_feagi, agent_settings):
 
 def convert_sensor_to_ipu_data(min_output, max_output, current_data, device_id, sensor_name, symmetric=False):
     if pns.full_list_dimension:
-        cortical_id = pns.name_to_feagi_id(sensor_name=sensor_name)
+        cortical_id = pns.name_to_feagi_id_ipu(sensor_name=sensor_name)
         if cortical_id in pns.full_list_dimension:
             max_input = pns.full_list_dimension[cortical_id]['cortical_dimensions'][2] - 1
             total_range = max_output - min_output
@@ -135,7 +135,7 @@ def create_data_for_feagi(sensor, capabilities, message_to_feagi, current_data, 
     if pns.full_template_information_corticals:
         for device_id in capabilities['input'][sensor]:
             if not capabilities['input'][sensor][device_id]['disabled']:
-                cortical_id = pns.name_to_feagi_id(sensor_name=sensor)
+                cortical_id = pns.name_to_feagi_id_ipu(sensor_name=sensor)
                 create_data_list = dict()
                 create_data_list[cortical_id] = dict()
                 try:

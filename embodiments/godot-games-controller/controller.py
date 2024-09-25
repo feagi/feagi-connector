@@ -101,12 +101,10 @@ def godot_to_feagi():
                 # If not JSON, assume it's a list
                 try:
                     string_array = list(obtain_list)
-                    new_width = (string_array[0] << 8) | string_array[1]
-                    new_depth = (string_array[2] << 8) | string_array[3]
+                    new_depth = (string_array[0] << 8) | string_array[1]
+                    new_width = (string_array[2] << 8) | string_array[3]
                     image = string_array[4:]  # This removes the first two elements
-                    webcam_size['size'].append(new_width)
-                    webcam_size['size'].append(new_depth)
-                    raw_frame = retina.RGB_list_to_ndarray(image, webcam_size['size'])
+                    raw_frame = retina.RGB_list_to_ndarray(image, [new_width, new_depth])
                     raw_frame = retina.update_astype(raw_frame)
                     camera_data['vision'] = raw_frame
                 except Exception as list_error:
@@ -178,6 +176,17 @@ def action(obtained_data):
             WS_STRING['misc'][str(data_point)] = recieved_misc_data[data_point]
     ws.append(WS_STRING)
 
+def data_OPU(action):
+    old_message = {}
+    while True:
+        message_from_feagi = pns.message_from_feagi
+        if old_message != message_from_feagi:
+            if message_from_feagi:
+                if pns.full_template_information_corticals:
+                    obtained_signals = pns.obtain_opu_data(message_from_feagi)
+                    action(obtained_signals)
+        sleep(0.001)
+
 
 def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, message_to_feagi):
     global runtime_data
@@ -206,13 +215,10 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, mes
     threading.Thread(target=retina.vision_progress, args=(default_capabilities,feagi_settings, camera_data,), daemon=True).start()
     actuators.start_generic_opu(capabilities)
     current_list_of_vision = pns.resize_list
+
+    threading.Thread(target=data_OPU, args=(action, ), daemon=True).start()
     while connected_agents['0']:
         retina.grab_visual_cortex_dimension(default_capabilities)
-        # Decompression section starts
-        message_from_feagi = pns.message_from_feagi
-        if message_from_feagi:
-            obtained_signals = pns.obtain_opu_data(message_from_feagi)
-            action(obtained_signals)
         # OPU section ENDS
         if camera_data['vision'] is not None:
             raw_frame = camera_data['vision']

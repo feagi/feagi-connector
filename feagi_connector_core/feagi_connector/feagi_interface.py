@@ -215,165 +215,69 @@ def compose_message_to_feagi(original_message, data=None, battery=0):
             1: runtime_data["battery_charge_level"] / 100}
     return message_to_feagi, runtime_data["battery_charge_level"]
 
-
-def opu_processor(data):
-    try:
-        processed_opu_data = {'motor': {}, 'servo': {}, 'battery': {},
-                              'discharged_battery': {}, 'reset': {}, 'camera': {}, 'misc': {},
-                              "motion_control": {}, 'navigation': {}, 'speed': {}, "led": {},
-                              "vision_resolution": {}, "vision_acuity": {}, 'servo_position': {},
-                              "emergency": {}, "gpio": {}, "gpio_input": {}}
-        opu_data = data["opu_data"]
-        if opu_data is not None:
-            if "o__mot" in pns.full_list_dimension:
-                if pns.full_list_dimension['o__mot']['cortical_dimensions'][2] == 1:
-                    if 'o__mot' in opu_data:  # motor percentage
-                        for data_point in opu_data['o__mot']:
-                            processed_data_point = block_to_array(data_point)
-                            device_id = processed_data_point[0]
-                            device_power = opu_data['o__mot'][data_point]
-                            processed_opu_data['motor'][device_id] = device_power
-                else:
-                    if 'o__mot' in opu_data:  # motor position
-                        if opu_data['o__mot']:
-                            for data_point in opu_data['o__mot']:
-                                processed_data_point = block_to_array(data_point)
-                                device_id = processed_data_point[0]
-                                device_power = processed_data_point[2]
-                                processed_opu_data['motor'][device_id] = device_power
-            if "o__ser" in pns.full_list_dimension:
-                if pns.full_list_dimension['o__ser']['cortical_dimensions'][2] == 1:
-                    if 'o__ser' in opu_data:
-                        if opu_data['o__ser']:
-                            for data_point in opu_data['o__ser']:
-                                processed_data_point = block_to_array(data_point)
-                                device_id = processed_data_point[0]
-                                device_power = opu_data['o__ser'][data_point]
-                                processed_opu_data['servo'][device_id] = device_power
-                else:
-                    if 'o__ser' in opu_data:
-                        if opu_data['o__ser']:
-                            for data_point in opu_data['o__ser']:
-                                processed_data_point = block_to_array(data_point)
-                                device_id = processed_data_point[0]
-                                device_power = processed_data_point[2]
-                                processed_opu_data['servo'][device_id] = device_power
-            if 'o_cbat' in opu_data:
-                if opu_data['o__bat']:
-                    for data_point in opu_data['o_cbat']:
-                        intensity = data_point[2]
-                        processed_opu_data['battery'] = intensity
-            if 'o_stop' in opu_data:
-                if opu_data['o_stop']:
-                    for data_point in opu_data['o_stop']:
-                        processed_data_point = block_to_array(data_point)
-                        device_id = processed_data_point[0]
-                        device_power = opu_data['o_stop'][data_point]
-                        processed_opu_data['emergency'][device_id] = device_power
-            if 'o_dbat' in opu_data:
-                if opu_data['o__bat']:
-                    for data_point in opu_data['o_dbat']:
-                        intensity = data_point
-                        processed_opu_data['battery'] = intensity
-            if 'o_init' in opu_data:
-                if opu_data['o_init']:
-                    for data_point in opu_data['o_init']:
-                        processed_data_point = block_to_array(data_point)
-                        device_id = processed_data_point[0]
-                        device_power = opu_data['o_init'][data_point]
-                        processed_opu_data['reset'][device_id] = device_power
-            if 'o_misc' in opu_data:
-                if opu_data['o_misc']:
-                    for data_point in opu_data['o_misc']:
-                        processed_data_point = block_to_array(data_point)
-                        device_id = processed_data_point[0]
-                        device_power = opu_data['o_misc'][data_point]
-                        processed_opu_data['misc'][device_id] = device_power
+def unique_function_for_special_opu(opu_data, processed_opu_data, cortical_name):
+    if "motion_control" == cortical_name:
+        if opu_data['o_mctl']:
+            processed_opu_data['motion_control'] = {}
             if "o_mctl" in pns.full_list_dimension:
-                if pns.full_list_dimension['o_mctl']['cortical_dimensions'][2] == 1:
-                    if 'o_mctl' in opu_data:
-                        for data_point in opu_data['o_mctl']:
-                            processed_data_point = block_to_array(data_point)
-                            device_power = opu_data['o_mctl'][data_point] / 100.0
-                            device_id = build_up_from_mctl(processed_data_point)
-                            index = processed_data_point[0] // 4
-                            if device_id is not None:
-                                if index in processed_opu_data['motion_control']:
-                                    processed_opu_data['motion_control'][index].update({device_id: device_power})
-                                else:
-                                    processed_opu_data['motion_control'][index] = {device_id: device_power}
-                else:
-                    if 'o_mctl' in opu_data:
-                        if opu_data['o_mctl']:
-                            for data_point in opu_data['o_mctl']:
-                                processed_data_point = block_to_array(data_point)
-                                device_power = processed_data_point[2] / \
-                                               float(pns.full_list_dimension['o_mctl']['cortical_dimensions'][2])
-
-                                device_id = build_up_from_mctl(processed_data_point)
-                                index = processed_data_point[0] // 4
-                                if device_id is not None:
-                                    if index in processed_opu_data['motion_control']:
-                                        processed_opu_data['motion_control'][index].update({device_id: device_power})
-                                    else:
-                                        processed_opu_data['motion_control'][index] = {device_id: device_power}
-            if 'o__led' in opu_data:
-                if opu_data['o__led']:
-                    for data_point in opu_data['o__led']:
+                if 'o_mctl' in opu_data:
+                    for data_point in opu_data['o_mctl']:
                         processed_data_point = block_to_array(data_point)
-                        device_id = processed_data_point[0]
-                        device_power = opu_data['o__led'][data_point]
-                        processed_opu_data['led'][device_id] = device_power
-            if 'o__nav' in opu_data:
-                if opu_data['o__nav']:
-                    for data_point in opu_data['o__nav']:
-                        data_point = block_to_array(data_point)
-                        device_id = data_point[0]
-                        device_power = data_point[2]
-                        device_power = device_power - 10
-                        processed_opu_data['navigation'][device_id] = device_power
-            if 'o__spd' in opu_data:
-                if opu_data['o__spd']:
-                    for data_point in opu_data['o__spd']:
-                        data_point = block_to_array(data_point)
-                        device_id = data_point[0]
-                        device_power = data_point[2]
-                        processed_opu_data['speed'][device_id] = device_power
-            if 'o_vres' in opu_data:
-                if opu_data['o_vres']:
-                    for data_point in opu_data['o_vres']:
-                        data_point = block_to_array(data_point)
-                        device_id = data_point[0]
-                        device_power = data_point[2]
-                        processed_opu_data['vision_resolution'][device_id] = device_power
-            if 'o_spos' in opu_data:  # Currently used in mycobot only. Different kind of position
-                if opu_data['o_spos']:
-                    for data_point in opu_data['o_spos']:
+                        device_power = opu_data['o_mctl'][data_point]
+                        device_id = build_up_from_mctl(processed_data_point)
+                        index = processed_data_point[0] // 4
+                        if device_id is not None:
+                            if index in processed_opu_data['motion_control']:
+                                processed_opu_data['motion_control'][index].update({device_id: device_power})
+                            else:
+                                processed_opu_data['motion_control'][index] = {device_id: device_power}
+    if "servo_position" == cortical_name:
+        if opu_data['o_spos']:
+            processed_opu_data['servo_position'] = {}
+            for data_point in opu_data['o_spos']:
                         processed_data_point = block_to_array(data_point)
                         device_id = processed_data_point[0]
                         device_power = processed_data_point[2]
                         processed_opu_data['servo_position'][device_id] = device_power
-            if 'o_vact' in opu_data:
-                if opu_data['o_vact']:
-                    for data_point in opu_data['o_vact']:
-                        data_point = block_to_array(data_point)
-                        device_id = data_point[0]
-                        device_power = data_point[2]
-                        processed_opu_data['vision_acuity'][device_id] = device_power
-            if 'odgpio' in opu_data:
-                if opu_data['odgpio']:
-                    for data_point in opu_data['odgpio']:
-                        processed_data_point = block_to_array(data_point)
-                        device_id = processed_data_point[0]
-                        device_power = opu_data['odgpio'][data_point]
-                        processed_opu_data['gpio'][device_id] = device_power
-            if 'oigpio' in opu_data:
-                if opu_data['oigpio']:
-                    for data_point in opu_data['oigpio']:
-                        processed_data_point = block_to_array(data_point)
-                        device_id = processed_data_point[0]
-                        device_power = opu_data['oigpio'][data_point]
-                        processed_opu_data['gpio_input'][device_id] = device_power
+    return processed_opu_data
+
+
+def translate_feagi_into_robot(cortical_id, cortical_name, opu_data, processed_opu_data):
+    if cortical_id in pns.full_list_dimension:
+        average_length = dict()
+        name_actuator = cortical_name
+        if name_actuator == 'motion_control' or name_actuator == 'servo_position':
+            return unique_function_for_special_opu(opu_data, processed_opu_data, name_actuator)
+        for data_point in opu_data[cortical_id]:
+            processed_data_point = block_to_array(data_point)
+            device_id = processed_data_point[0]
+            device_power = opu_data[cortical_id][data_point]
+            if device_id in average_length:
+                average_length[device_id].append([device_power, processed_data_point[2]])
+            else:
+                average_length[device_id] = [[device_power, processed_data_point[2]]]
+        if average_length:
+            processed_opu_data = {name_actuator: {}}
+            for device_id in average_length:
+                add_value = 0.0
+                for x in average_length[device_id]:
+                    add_value += ((x[1] + 1) / pns.full_list_dimension[cortical_id]['cortical_dimensions'][2]) * x[0]
+                processed_opu_data[name_actuator][device_id] = add_value / len(average_length[device_id])
+    return processed_opu_data
+
+
+def opu_processor(data):
+    try:
+        processed_opu_data = {}
+        opu_data = data["opu_data"]
+        if opu_data is not None:
+            for cortical_id in opu_data:
+                if cortical_id in pns.full_list_dimension:
+                    cortical_name = pns.name_to_feagi_id_opu(cortical_id)
+                    processed_opu_data = translate_feagi_into_robot(cortical_id=cortical_id,
+                                                                    cortical_name=cortical_name,
+                                                                    opu_data=opu_data,
+                                                                    processed_opu_data=processed_opu_data)
             return processed_opu_data
     except Exception as error:
         print("error: ", error)
