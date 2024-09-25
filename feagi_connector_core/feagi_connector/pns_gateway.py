@@ -144,13 +144,14 @@ def obtain_opu_data(message_from_feagi):
     for you.
     """
     opu_signal_dict = {}
-    opu_data = feagi.opu_processor(message_from_feagi)
-    for i in opu_data:
-        if opu_data[i]:
-            for x in opu_data[i]:
-                if i not in opu_signal_dict:
-                    opu_signal_dict[i] = {}
-                opu_signal_dict[i][x] = opu_data[i][x]
+    if message_from_feagi:
+        opu_data = feagi.opu_processor(message_from_feagi)
+        for i in opu_data:
+            if opu_data[i]:
+                for x in opu_data[i]:
+                    if i not in opu_signal_dict:
+                        opu_signal_dict[i] = {}
+                    opu_signal_dict[i][x] = opu_data[i][x]
     return opu_signal_dict
 
 
@@ -516,9 +517,17 @@ def camera_config_update(list, capabilities):
                       capabilities['input']['camera'][index][key] = list['input']['camera']['0'][key]
     return capabilities
 
-def name_to_feagi_id(sensor_name):
+def name_to_feagi_id_ipu(sensor_name):
     try:
         return pns.full_template_information_corticals['IPU']['name_to_id_mapping'][sensor_name][0]
+    except:
+        print(f"This sensor, {sensor_name}, is not available at the moment.")
+        traceback.print_exc()
+        return None
+
+def name_to_feagi_id_opu(sensor_name):
+    try:
+        return pns.full_template_information_corticals['OPU']['supported_devices'][sensor_name]['controller_id']
     except:
         print(f"This sensor, {sensor_name}, is not available at the moment.")
         traceback.print_exc()
