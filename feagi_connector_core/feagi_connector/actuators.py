@@ -28,11 +28,7 @@ def obtain_opu_data(device_list, message_from_feagi):
 
 
 def motor_generate_power(power_maximum, feagi_power):
-    z_depth = pns.full_list_dimension['o__mot']['cortical_dimensions'][2]
-    if z_depth == 1:
-        return power_maximum * (feagi_power / 100)
-    else:
-        return (feagi_power / (z_depth - 1)) * power_maximum
+    return power_maximum * feagi_power
 
 
 def start_motors(controller_capabilities):
@@ -169,11 +165,7 @@ def update_moving_average(moving_average, device_id, device_power):
 
 # Servo OPU starts
 def servo_generate_power(power, feagi_power):
-    z_depth = pns.full_list_dimension['o__ser']['cortical_dimensions'][2]
-    if z_depth == 1:
-        return power * (feagi_power / 100)
-    else:
-        return (feagi_power / (z_depth - 1)) * power
+    return power * feagi_power
 
 
 def update_servo_status_by_default(device_id, initialized_position):

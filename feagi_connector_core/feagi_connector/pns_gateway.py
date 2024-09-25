@@ -517,9 +517,17 @@ def camera_config_update(list, capabilities):
                       capabilities['input']['camera'][index][key] = list['input']['camera']['0'][key]
     return capabilities
 
-def name_to_feagi_id(sensor_name):
+def name_to_feagi_id_ipu(sensor_name):
     try:
         return pns.full_template_information_corticals['IPU']['name_to_id_mapping'][sensor_name][0]
+    except:
+        print(f"This sensor, {sensor_name}, is not available at the moment.")
+        traceback.print_exc()
+        return None
+
+def name_to_feagi_id_opu(sensor_name):
+    try:
+        return pns.full_template_information_corticals['OPU']['supported_devices'][sensor_name]['controller_id']
     except:
         print(f"This sensor, {sensor_name}, is not available at the moment.")
         traceback.print_exc()
