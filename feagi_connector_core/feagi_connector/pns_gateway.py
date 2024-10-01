@@ -21,6 +21,7 @@ import asyncio
 import threading
 import traceback
 
+import numpy
 from feagi_connector import router
 from feagi_connector import retina
 from feagi_connector import feagi_interface as feagi
@@ -182,11 +183,13 @@ def obtain_blink_data(raw_frame, message_from_feagi, capabilities):
     """
     It will update based on the blink opu.
     """
-    if "o_blnk" in message_from_feagi["opu_data"]:
-        if message_from_feagi["opu_data"]["o_blnk"]:
-            if 'camera' in capabilities['input']:
-                for index in capabilities['input']['camera']:
-                    capabilities['input']['camera'][index]['blink'] = raw_frame
+    if isinstance(raw_frame, numpy.ndarray):
+        if "o_blnk" in message_from_feagi["opu_data"]:
+            if message_from_feagi["opu_data"]["o_blnk"]:
+                if 'camera' in capabilities['input']:
+                    for index in capabilities['input']['camera']:
+                        if raw_frame.any():
+                            capabilities['input']['camera'][index]['blink'] = raw_frame
     return capabilities
 
 
