@@ -6,7 +6,6 @@ from feagi_connector import feagi_interface as feagi
 actuators_mapped = {}
 motor_data = dict()  # formerly rolling_window
 capabilities = dict()  # This will be updated by a controller. On this file, it will initialize as an empty capabilities
-previous_motor_data = {}
 servo_status = {}  # Formerly runtime['servo_status']
 previous_servo_data = {}
 
@@ -112,15 +111,13 @@ def update_power_of_motor(motor_from_feagi_data):
 
 
 def preparing_motor_data_to_controller():
-    global actuators_mapped, motor_data, previous_motor_data
+    global actuators_mapped, motor_data
     send_motor_data_to_controller = dict()
     for motor_id in actuators_mapped['motor']:
         device_id_list = feagi_mapped_to_dev_index(dev_id='motor', feagi_index=motor_id, mapped_dict=actuators_mapped)
         for motor in device_id_list:
             data_power = motor_data[motor_id][0]
-            if motor not in previous_motor_data or previous_motor_data[motor] != data_power:
-                send_motor_data_to_controller[motor] = data_power
-            previous_motor_data[motor] = data_power
+            send_motor_data_to_controller[motor] = data_power
     return send_motor_data_to_controller
 
 
