@@ -6,7 +6,6 @@ from feagi_connector import feagi_interface as feagi
 actuators_mapped = {}
 motor_data = dict()  # formerly rolling_window
 capabilities = dict()  # This will be updated by a controller. On this file, it will initialize as an empty capabilities
-previous_motor_data = {}
 servo_status = {}  # Formerly runtime['servo_status']
 previous_servo_data = {}
 
@@ -33,17 +32,19 @@ def motor_generate_power(power_maximum, feagi_power):
 
 def start_motors(controller_capabilities):
     global actuators_mapped, motor_data, capabilities
-    capabilities = controller_capabilities
-    motor_data = dict()
-    for motor_id in capabilities['output']['motor']:
-        if 'rolling_window_len' in capabilities['output']['motor'][motor_id]:
-            length_rolling_window = capabilities['output']['motor'][motor_id]['rolling_window_len']
-        else:
-            length_rolling_window = 0  # Default to 0 which will be extremely sensitive and stiff
-        motor_data = create_motor_rolling_window_len(length_window=length_rolling_window,
-                                                     current_rolling_window_dict=motor_data,
-                                                     motor_id=motor_id)
-    actuators_mapped = actuator_to_feagi_map(capabilities)
+    # if check_actuator_in_capabilities('motor'): # This needs to be after
+    if 'motor' in controller_capabilities['output']:
+        capabilities = controller_capabilities
+        motor_data = dict()
+        for motor_id in capabilities['output']['motor']:
+            if 'rolling_window_len' in capabilities['output']['motor'][motor_id]:
+                length_rolling_window = capabilities['output']['motor'][motor_id]['rolling_window_len']
+            else:
+                length_rolling_window = 0  # Default to 0 which will be extremely sensitive and stiff
+            motor_data = create_motor_rolling_window_len(length_window=length_rolling_window,
+                                                         current_rolling_window_dict=motor_data,
+                                                         motor_id=motor_id)
+        actuators_mapped = actuator_to_feagi_map(capabilities)
 
 
 def start_servos(controller_capabilities):
@@ -112,22 +113,23 @@ def update_power_of_motor(motor_from_feagi_data):
 
 
 def preparing_motor_data_to_controller():
-    global actuators_mapped, motor_data, previous_motor_data
+    global actuators_mapped, motor_data
     send_motor_data_to_controller = dict()
     for motor_id in actuators_mapped['motor']:
         device_id_list = feagi_mapped_to_dev_index(dev_id='motor', feagi_index=motor_id, mapped_dict=actuators_mapped)
         for motor in device_id_list:
             data_power = motor_data[motor_id][0]
-            if motor not in previous_motor_data or previous_motor_data[motor] != data_power:
-                send_motor_data_to_controller[motor] = data_power
-            previous_motor_data[motor] = data_power
+            send_motor_data_to_controller[motor] = data_power
     return send_motor_data_to_controller
 
 
 def get_motor_data(feagi_data):
-    converted_data = convert_feagi_to_motor_opu(obtained_data=feagi_data)
-    update_power_of_motor(motor_from_feagi_data=converted_data)
-    return preparing_motor_data_to_controller()
+    if check_actuator_in_capabilities('motor'):
+        converted_data = convert_feagi_to_motor_opu(obtained_data=feagi_data)
+        update_power_of_motor(motor_from_feagi_data=converted_data)
+        return preparing_motor_data_to_controller()
+    else:
+        return {}
 
 
 def pass_the_power_to_motor(power_maximum, device_power, device_id, moving_average_len):
@@ -275,16 +277,25 @@ def check_new_speed(obtained_data):
             speed_data[device_id] = device_power
     return speed_data
 
+def check_actuator_in_capabilities(actuator):
+    global capabilities
+    if actuator in capabilities['output']:
+        return True
+    else:
+        return False
+
+
 def get_motion_control_data(obtained_data):
-    global actuators_mapped
+    global actuators_mapped, capabilities
     motion_control_data = dict()
-    motion_control_data['motion_control'] = dict()
-    if 'motion_control' in obtained_data:
-        for data_point in obtained_data['motion_control']:
-            device_id_list = feagi_mapped_to_dev_index(dev_id='motion_control', feagi_index=data_point, mapped_dict=actuators_mapped)
-            for device_id in device_id_list:
-                device_power = obtained_data['motion_control'][data_point]
-                motion_control_data['motion_control'][device_id] = device_power
+    if check_actuator_in_capabilities('motion_control'):
+        motion_control_data['motion_control'] = dict()
+        if 'motion_control' in obtained_data:
+            for data_point in obtained_data['motion_control']:
+                device_id_list = feagi_mapped_to_dev_index(dev_id='motion_control', feagi_index=data_point, mapped_dict=actuators_mapped)
+                for device_id in device_id_list:
+                    device_power = obtained_data['motion_control'][data_point]
+                    motion_control_data['motion_control'][device_id] = device_power
     return motion_control_data
 
 
@@ -292,13 +303,14 @@ def get_generic_opu_data_from_feagi(obtained_data, actuator_name):
     global actuators_mapped
     generic_data = dict()
     if actuator_name in obtained_data:
-        for data_point in obtained_data[actuator_name]:
-            device_id_list = feagi_mapped_to_dev_index(dev_id=actuator_name, feagi_index=data_point,
-                                                       mapped_dict=actuators_mapped)
-            for device_id in device_id_list:
-                device_id = device_id
-                device_power = obtained_data[actuator_name][data_point]
-                generic_data[device_id] = device_power
+        if check_actuator_in_capabilities(actuator_name):
+            for data_point in obtained_data[actuator_name]:
+                device_id_list = feagi_mapped_to_dev_index(dev_id=actuator_name, feagi_index=data_point,
+                                                           mapped_dict=actuators_mapped)
+                for device_id in device_id_list:
+                    device_id = device_id
+                    device_power = obtained_data[actuator_name][data_point]
+                    generic_data[device_id] = device_power
     return generic_data
 
 
