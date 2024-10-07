@@ -163,13 +163,15 @@ def action(obtained_data):
     WS_STRING = {}
     recieve_motion_data = actuators.get_motion_control_data(obtained_data)
     recieved_misc_data = actuators.get_generic_opu_data_from_feagi(obtained_data, 'misc')
+    recieve_motor_data = actuators.get_motor_data(obtained_data)
+
     if recieve_motion_data:
         if recieve_motion_data['motion_control']:
             WS_STRING = recieve_motion_data
-    if 'motor' in obtained_data:
+    if recieve_motor_data:
         WS_STRING['motor'] = {}
-        for data_point in obtained_data['motor']:
-            WS_STRING['motor'][str(data_point)] = obtained_data['motor'][data_point]
+        for data_point in recieve_motor_data:
+            WS_STRING['motor'][str(data_point)] = recieve_motor_data[data_point]
     if recieved_misc_data:
         WS_STRING['misc'] = {}
         for data_point in recieved_misc_data:
@@ -217,6 +219,8 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, mes
     current_list_of_vision = pns.resize_list
 
     threading.Thread(target=data_OPU, args=(action, ), daemon=True).start()
+    actuators.start_motors(capabilities)  # initialize motors for you.
+
     while connected_agents['0']:
         retina.grab_visual_cortex_dimension(default_capabilities)
         # OPU section ENDS
