@@ -32,17 +32,19 @@ def motor_generate_power(power_maximum, feagi_power):
 
 def start_motors(controller_capabilities):
     global actuators_mapped, motor_data, capabilities
-    capabilities = controller_capabilities
-    motor_data = dict()
-    for motor_id in capabilities['output']['motor']:
-        if 'rolling_window_len' in capabilities['output']['motor'][motor_id]:
-            length_rolling_window = capabilities['output']['motor'][motor_id]['rolling_window_len']
-        else:
-            length_rolling_window = 0  # Default to 0 which will be extremely sensitive and stiff
-        motor_data = create_motor_rolling_window_len(length_window=length_rolling_window,
-                                                     current_rolling_window_dict=motor_data,
-                                                     motor_id=motor_id)
-    actuators_mapped = actuator_to_feagi_map(capabilities)
+    # if check_actuator_in_capabilities('motor'): # This needs to be after
+    if 'motor' in controller_capabilities['output']:
+        capabilities = controller_capabilities
+        motor_data = dict()
+        for motor_id in capabilities['output']['motor']:
+            if 'rolling_window_len' in capabilities['output']['motor'][motor_id]:
+                length_rolling_window = capabilities['output']['motor'][motor_id]['rolling_window_len']
+            else:
+                length_rolling_window = 0  # Default to 0 which will be extremely sensitive and stiff
+            motor_data = create_motor_rolling_window_len(length_window=length_rolling_window,
+                                                         current_rolling_window_dict=motor_data,
+                                                         motor_id=motor_id)
+        actuators_mapped = actuator_to_feagi_map(capabilities)
 
 
 def start_servos(controller_capabilities):
