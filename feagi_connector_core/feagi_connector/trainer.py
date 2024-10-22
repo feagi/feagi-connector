@@ -3,7 +3,6 @@ import re
 import cv2
 from feagi_connector import pns_gateway as pns
 
-
 def scan_the_folder(path_direction):
     """
     Generator to yield image files with specific pattern in filename.
@@ -14,12 +13,35 @@ def scan_the_folder(path_direction):
     files = os.listdir(folder_path)
     pattern = re.compile(r'\d+-\d+-\d+\..+')
     image_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp']
+    video_extensions = ['.mov', '.mpg', '.mp4']
     for filename in files:
-        if pattern.match(filename) and os.path.splitext(filename)[1].lower() in image_extensions:
+        if pattern.match(filename) and os.path.splitext(filename)[1].lower() in video_extensions:
+            print("ENTERED")
+            id_message = dict()
+            name_only = os.path.splitext(filename)[0]
+            extension = os.path.splitext(filename)[1]
+            # cap = cv2.VideoCapture(filename)
+            frame = []
+            yield frame, id_message, extension
+            #
+            # while (cap.isOpened()):
+            #     # Capture frame-by-frame
+            #     ret, frame = cap.read()
+            #     if ret == True:
+            #         id_message[name_only] = 100
+            #         yield frame, id_message, extension
+            #     # Break the loop
+            #     else:
+            #         break
+            #
+            # print("exited")
+
+        elif pattern.match(filename) and os.path.splitext(filename)[1].lower() in image_extensions:
             id_message = dict()
             name_only = os.path.splitext(filename)[0]
             id_message[name_only] = 100
-            yield cv2.imread(path_direction + filename), id_message
+            extension = os.path.splitext(filename)[1]
+            yield cv2.imread(path_direction + filename), id_message, extension
 
 
 def id_training_with_image(message_to_feagi, name_id):
