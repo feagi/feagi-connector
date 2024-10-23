@@ -3,6 +3,8 @@ import re
 import cv2
 from feagi_connector import pns_gateway as pns
 
+image_extensions = ['.jpg', '.jpeg', '.png', '.bmp']
+video_extensions = ['.mov', '.mpg', '.mp4', '.gif']
 
 def scan_the_folder(path_direction):
   """
@@ -13,8 +15,6 @@ def scan_the_folder(path_direction):
   folder_path = path_direction
   files = os.listdir(folder_path)
   pattern = re.compile(r'\d+-\d+-\d+\..+')
-  image_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp']
-  video_extensions = ['.mov', '.mpg', '.mp4']
   for filename in files:
     if pattern.match(filename) and os.path.splitext(filename)[1].lower() in video_extensions:
       id_message = dict()
@@ -22,26 +22,13 @@ def scan_the_folder(path_direction):
       extension = os.path.splitext(filename)[1]
       cap = cv2.VideoCapture(filename)
       frame = []
-      id_message[name_only] = 100
+      id_message[name_only] = 1.0
       ret, frame = cap.read()
       yield cap, id_message, extension
-      #
-      # while (cap.isOpened()):
-      #     # Capture frame-by-frame
-      #     ret, frame = cap.read()
-      #     if ret == True:
-      #         id_message[name_only] = 100
-      #         yield frame, id_message, extension
-      #     # Break the loop
-      #     else:
-      #         break
-      #
-      # print("exited")
-
     elif pattern.match(filename) and os.path.splitext(filename)[1].lower() in image_extensions:
       id_message = dict()
       name_only = os.path.splitext(filename)[0]
-      id_message[name_only] = 100
+      id_message[name_only] = 1.0
       extension = os.path.splitext(filename)[1]
       yield cv2.imread(path_direction + filename), id_message, extension
 
