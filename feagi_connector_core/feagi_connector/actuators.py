@@ -185,7 +185,7 @@ def servo_negative_or_positive(id, power):
     return power
 
 
-def update_power_of_servo(servo_from_servo_data):
+def update_power_of_servo(servo_from_servo_data, use_previous_servo_data=False):
     global servo_status, capabilities, actuators_mapped
     send_servo_data_to_controller = dict()
     for feagi_id in servo_from_servo_data:
@@ -198,10 +198,14 @@ def update_power_of_servo(servo_from_servo_data):
                 new_power = servo_keep_boundaries(pre_power,
                                                   capabilities['output']['servo'][str(device_id)]['max_value'],
                                                   capabilities['output']['servo'][str(device_id)]['min_value'])
-                if device_id not in previous_servo_data or previous_servo_data[device_id] != new_power:
+                if use_previous_servo_data:
+                    if device_id not in previous_servo_data or previous_servo_data[device_id] != new_power:
+                        send_servo_data_to_controller[device_id] = new_power
+                    servo_status[device_id] = new_power
+                    previous_servo_data[device_id] = new_power
+                else:
                     send_servo_data_to_controller[device_id] = new_power
-                servo_status[device_id] = new_power
-                previous_servo_data[device_id] = new_power
+                    servo_status[device_id] = new_power
     return send_servo_data_to_controller
 
 
@@ -218,19 +222,19 @@ def convert_feagi_to_servo_opu(obtained_data):
     return servo_from_feagi_data
 
 
-def get_servo_data(obtained_data):
+def get_servo_data(obtained_data, use_previous_servo_data=False):
     global capabilities, servo_status
     converted_data = convert_feagi_to_servo_opu(obtained_data)
-    return update_power_of_servo(converted_data)
+    return update_power_of_servo(converted_data, use_previous_servo_data)
 # Servo OPU ends
 
 # Servo Position starts
-def get_servo_position_data(feagi_data):
+def get_servo_position_data(feagi_data, use_previous_servo_data=False):
     converted_data = convert_feagi_to_servo_position_opu(obtained_data=feagi_data)
-    return update_power_of_servo_position(converted_data)
+    return update_power_of_servo_position(converted_data, use_previous_servo_data)
 
 
-def update_power_of_servo_position(servo_from_servo_data):
+def update_power_of_servo_position(servo_from_servo_data, use_previous_servo_data=False):
     global servo_status, capabilities, actuators_mapped
     send_servo_data_to_controller = dict()
     for feagi_id in servo_from_servo_data:
@@ -240,10 +244,14 @@ def update_power_of_servo_position(servo_from_servo_data):
                 new_power = get_position_data(servo_from_servo_data[feagi_id],
                                                         capabilities['output']['servo'][str(device_id)]['min_value'],
                                                         capabilities['output']['servo'][str(device_id)]['max_value'])
-                if device_id not in previous_servo_data or previous_servo_data[device_id] != new_power:
+                if use_previous_servo_data:
+                    if device_id not in previous_servo_data or previous_servo_data[device_id] != new_power:
+                        send_servo_data_to_controller[device_id] = new_power
+                    servo_status[device_id] = new_power
+                    previous_servo_data[device_id] = new_power
+                else:
                     send_servo_data_to_controller[device_id] = new_power
-                servo_status[device_id] = new_power
-                # previous_servo_data[device_id] = new_power
+                    servo_status[device_id] = new_power
     return send_servo_data_to_controller
 
 def convert_feagi_to_servo_position_opu(obtained_data):
