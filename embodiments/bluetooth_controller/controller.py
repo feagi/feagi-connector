@@ -78,6 +78,7 @@ def feagi_to_petoi_id(device_id):
 
 def petoi_listen(message, full_data):
     global gyro
+    print("full data: ", full_data)
     try:
         if '#' in message:
             cleaned_data = message.replace('\r', '')
@@ -150,9 +151,13 @@ async def echo(websocket, path):
     async for message in websocket:
         data_from_bluetooth = json.loads(message)
         for device_name in data_from_bluetooth:
-            connected_agents['0'] = True  # Since this section gets data from client, its marked as true
             if device_name not in current_device['name']:
                 current_device['name'].append(device_name)
+            if not connected_agents['0'] and 'petoi' in current_device['name']:
+                ws.append('V')
+                print(ws)
+            connected_agents['0'] = True  # Since this section gets data from client, its marked as true
+
             if not ws_operation:
                 ws_operation.append(websocket)
             else:
@@ -212,29 +217,24 @@ def muse_listen(obtained_data):
 
 
 def petoi_action(obtained_data):
-    servo_data = actuators.get_servo_data(obtained_data, True)
     WS_STRING = ""
-    if 'servo_position' in obtained_data:
+    servo_data = actuators.get_servo_data(obtained_data)
+    recieve_servo_position_data = actuators.get_servo_position_data(obtained_data)
+
+    if recieve_servo_position_data:
         servo_for_feagi = 'i '
-        if obtained_data['servo_position'] is not {}:
-            for data_point in obtained_data['servo_position']:
-                device_id = feagi_to_petoi_id(data_point)
-                encoder_position = (((180) / 20) * obtained_data['servo_position'][data_point]) - 90
-                servo_for_feagi += str(device_id) + " " + str(encoder_position) + " "
-            WS_STRING += servo_for_feagi
+        for device_id in recieve_servo_position_data:
+            new_power = recieve_servo_position_data[device_id]
+            servo_for_feagi += str(feagi_to_petoi_id(device_id)) + " " + str(new_power) + " "
+        WS_STRING = servo_for_feagi
+
     if servo_data:
-        WS_STRING = "i"
+        servo_for_feagi = 'i '
         for device_id in servo_data:
-            servo_power = actuators.servo_generate_power(180, servo_data[device_id], device_id)
-            if device_id not in servo_status:
-                servo_status[device_id] = actuators.servo_keep_boundaries(90)
-            else:
-                servo_status[device_id] += servo_power / 10
-                servo_status[device_id] = actuators.servo_keep_boundaries(servo_status[device_id])
-            actual_id = feagi_to_petoi_id(device_id)
-            # print("device id: ", actual_id, ' and power: ', servo_data[device_id], " servo power: ", servo_power)
-            WS_STRING += " " + str(actual_id) + " " + str(
-                int(actuators.servo_keep_boundaries(servo_status[device_id])) - 90)
+            power = servo_data[device_id]
+            servo_for_feagi += str(feagi_to_petoi_id(device_id)) + " " + str(power) + " "
+        print(servo_for_feagi)
+        WS_STRING = servo_for_feagi
     if WS_STRING != "":
         # WS_STRING = WS_STRING + "#"
         print("sending to main: ", WS_STRING)
