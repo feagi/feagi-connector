@@ -350,15 +350,17 @@ def connect_to_feagi(feagi_settings, runtime_data, agent_settings, capabilities,
 def build_up_from_mctl(id):
     action_map = {
         (0, 0): "move_left",
-        (0, 1): "roll_left",
-        (0, 2): "yaw_left",
+        (0, 1): "yaw_left",
+        (0, 2): "roll_left",
         (1, 0): "move_up",
-        (1, 1): "pitch_forward",
+        (1, 1): "move_forward",
+        (1, 2): "pitch_forward",
         (2, 0): "move_down",
-        (2, 1): "pitch_back",
+        (2, 1): "move_backward",
+        (2, 2): "pitch_back",
         (3, 0): "move_right",
-        (3, 1): "roll_right",
-        (3, 2): "yaw_right"
+        (3, 1): "yaw_right",
+        (3, 2): "roll_right"
     }
     # Get the action from the dictionary, return None if not found
     return action_map.get((id[0]%4, id[1]))
