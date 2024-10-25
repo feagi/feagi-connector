@@ -30,6 +30,7 @@ from feagi_connector import pns_gateway as pns
 genome_tracker = 0
 previous_genome_timestamp = 0
 current_dimension_list = {}
+current_mirror_status = False
 
 
 def get_device_of_vision(device):
@@ -301,23 +302,28 @@ def get_full_dimension_of_cortical_area(cortical_name=""):
            current_dimension_list[cortical_name][2]
 
 
-def process_visual_stimuli(raw_frame=[], capabilities={}, previous_frame_data={}, rgb={}, actual_capabilities={}, compare_image=True):
-    global current_dimension_list
+def process_visual_stimuli(real_frame=[], capabilities={}, previous_frame_data={}, rgb={}, actual_capabilities={}, compare_image=True):
+    global current_dimension_list, current_mirror_status
 
-    if isinstance(raw_frame, numpy.ndarray):
-        temp_dict = {0: raw_frame}
+    print(real_frame)
+    if isinstance(real_frame, numpy.ndarray):
+        temp_dict = {0: real_frame}
         raw_frame = temp_dict.copy()
 
     capabilities = pns.create_runtime_default_list(capabilities, actual_capabilities)
+    raw_frame = {}
     if pns.resize_list:
         current_dimension_list = pns.resize_list
         one_data_vision = {}
-        for obtain_raw_data in raw_frame:
+        for obtain_raw_data in real_frame:
+            raw_frame[obtain_raw_data] = []
             if not capabilities['input']['camera'][str(obtain_raw_data)]['disabled']:
-                if obtain_raw_data in capabilities['input']['camera'][str(obtain_raw_data)]['blink']:
-                    raw_frame[obtain_raw_data] = vision_blink(raw_frame, capabilities['input']['camera'][str(obtain_raw_data)]['blink'])
+                # if obtain_raw_data in capabilities['input']['camera'][str(obtain_raw_data)]['blink']:
+                #     raw_frame[obtain_raw_data] = vision_blink(real_frame, capabilities['input']['camera'][str(obtain_raw_data)]['blink'])
                 if capabilities['input']['camera'][str(obtain_raw_data)]["mirror"]:
-                    raw_frame[obtain_raw_data] = cv2.flip(raw_frame[obtain_raw_data], 1)
+                    raw_frame[obtain_raw_data] = cv2.flip(real_frame[obtain_raw_data], 1)
+                else:
+                    raw_frame[obtain_raw_data] = real_frame[obtain_raw_data]
                 region_coordinates = vision_region_coordinates(
                     frame_width=raw_frame[obtain_raw_data].shape[1],
                     frame_height=raw_frame[obtain_raw_data].shape[0],
@@ -358,11 +364,11 @@ def process_visual_stimuli(raw_frame=[], capabilities={}, previous_frame_data={}
                                                                    interpolation=cv2.INTER_AREA)
 
         vision_dict = dict()
-        # for segment in compressed_data:
-        #     if "_C" in segment:
-        #         cv2.imshow(segment, compressed_data[segment])
-        # if cv2.waitKey(30) & 0xFF == ord('q'):
-        #     pass
+        for segment in compressed_data:
+            if "_C" in segment:
+                cv2.imshow(segment, compressed_data[segment])
+        if cv2.waitKey(30) & 0xFF == ord('q'):
+            pass
         for get_region in one_data_vision:
             if current_dimension_list[get_region][2] == 3:
                 if previous_frame_data != {}:
@@ -453,8 +459,9 @@ def process_visual_stimuli_trainer(raw_frame={}, capabilities={}, previous_frame
             if not capabilities['input']['camera'][str(obtain_raw_data)]['disabled']:
                 if 0 in capabilities['input']['camera'][str(obtain_raw_data)]['blink']:
                     raw_frame[obtain_raw_data] = vision_blink(raw_frame, capabilities['input']['camera'][str(obtain_raw_data)]['blink'][0])
-                if capabilities['input']['camera'][str(obtain_raw_data)]["mirror"]:
+                if capabilities['input']['camera'][str(obtain_raw_data)]["mirror"] != current_mirror_status:
                     raw_frame[obtain_raw_data] = cv2.flip(raw_frame[obtain_raw_data], 1)
+                    current_mirror_status = capabilities['input']['camera'][str(obtain_raw_data)]["mirror"]
                 region_coordinates = vision_region_coordinates(
                     frame_width=raw_frame[obtain_raw_data].shape[1],
                     frame_height=raw_frame[obtain_raw_data].shape[0],
@@ -568,9 +575,11 @@ def process_visual_stimuli_trainer(raw_frame={}, capabilities={}, previous_frame
 
 def vision_progress(capabilities={}, feagi_settings={}, raw_frame={}):
     global genome_tracker, previous_genome_timestamp
+    burst_counter = {}
     while True:
         message_from_feagi = pns.message_from_feagi
-        if message_from_feagi is not None and message_from_feagi:
+        if message_from_feagi is not None and message_from_feagi and message_from_feagi['burst_counter'] != burst_counter:
+            burst_counter = message_from_feagi['burst_counter']
             capabilities = pns.fetch_vision_turner(message_from_feagi, capabilities)
             capabilities = pns.fetch_enhancement_data(message_from_feagi, capabilities)
             capabilities = pns.fetch_threshold_type(message_from_feagi, capabilities)
@@ -580,10 +589,6 @@ def vision_progress(capabilities={}, feagi_settings={}, raw_frame={}):
             if isinstance(raw_frame, dict):
                 if 'vision' in raw_frame:
                     capabilities = pns.obtain_blink_data(raw_frame['vision'], message_from_feagi, capabilities)  # for javascript webcam
-                else:
-                    capabilities = pns.obtain_blink_data(raw_frame, message_from_feagi, capabilities)  # for multiple support cameras
-            else:
-                capabilities = pns.obtain_blink_data(raw_frame, message_from_feagi, capabilities)  # regular cameras
             capabilities = pns.monitor_switch(message_from_feagi, capabilities)
             capabilities = pns.eccentricity_control_update(message_from_feagi, capabilities)
             capabilities = pns.modulation_control_update(message_from_feagi, capabilities)
