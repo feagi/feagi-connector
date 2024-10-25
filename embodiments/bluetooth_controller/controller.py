@@ -38,6 +38,7 @@ current_device = {}
 connected_agents = dict()  # Initalize
 connected_agents['0'] = False  # By default, it is not connected by client's websocket
 muse_data = {}
+petoi_data = {'servo_status': {}}
 
 
 async def bridge_to_godot():
@@ -80,6 +81,12 @@ def petoi_listen(message, full_data):
     global gyro
     print("full data: ", full_data)
     try:
+        split_data = message.split()
+        received_data = {}
+        if len(split_data) == 9:
+            for servo_id in range(len(split_data)):
+                received_data[str(servo_id)] = int(float(split_data[servo_id]))
+        petoi_data['servo_status'] = received_data
         if '#' in message:
             cleaned_data = message.replace('\r', '')
             cleaned_data = cleaned_data.replace('\n', '')
@@ -150,12 +157,10 @@ async def echo(websocket, path):
     full_data = ''
     async for message in websocket:
         data_from_bluetooth = json.loads(message)
+        print("HERE: ", data_from_bluetooth)
         for device_name in data_from_bluetooth:
             if device_name not in current_device['name']:
                 current_device['name'].append(device_name)
-            if not connected_agents['0'] and 'petoi' in current_device['name']:
-                ws.append('G')
-                print(ws)
             connected_agents['0'] = True  # Since this section gets data from client, its marked as true
 
             if not ws_operation:
@@ -356,6 +361,12 @@ if __name__ == "__main__":
                     message_to_feagi = sensors.create_data_for_feagi(sensor='accelerometer', capabilities=capabilities, message_to_feagi=message_to_feagi,
                                                                      current_data=microbit_data['acceleration'], symmetric=True,
                                                                      measure_enable=True)
+            if petoi_data['servo_status']:
+                message_to_feagi = sensors.create_data_for_feagi('servo_position',
+                                                                 capabilities,
+                                                                 message_to_feagi,
+                                                                 current_data=petoi_data['servo_status'],
+                                                                 symmetric=True)
 
             message_to_feagi['timestamp'] = datetime.now()
             message_to_feagi['counter'] = msg_counter
