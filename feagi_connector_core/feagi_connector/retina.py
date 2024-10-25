@@ -305,7 +305,6 @@ def get_full_dimension_of_cortical_area(cortical_name=""):
 def process_visual_stimuli(real_frame=[], capabilities={}, previous_frame_data={}, rgb={}, actual_capabilities={}, compare_image=True):
     global current_dimension_list, current_mirror_status
 
-    print(real_frame)
     if isinstance(real_frame, numpy.ndarray):
         temp_dict = {0: real_frame}
         raw_frame = temp_dict.copy()
@@ -318,12 +317,13 @@ def process_visual_stimuli(real_frame=[], capabilities={}, previous_frame_data={
         for obtain_raw_data in real_frame:
             raw_frame[obtain_raw_data] = []
             if not capabilities['input']['camera'][str(obtain_raw_data)]['disabled']:
-                # if obtain_raw_data in capabilities['input']['camera'][str(obtain_raw_data)]['blink']:
-                #     raw_frame[obtain_raw_data] = vision_blink(real_frame, capabilities['input']['camera'][str(obtain_raw_data)]['blink'])
                 if capabilities['input']['camera'][str(obtain_raw_data)]["mirror"]:
                     raw_frame[obtain_raw_data] = cv2.flip(real_frame[obtain_raw_data], 1)
                 else:
                     raw_frame[obtain_raw_data] = real_frame[obtain_raw_data]
+                if len(capabilities['input']['camera'][str(obtain_raw_data)]['blink']) > 0:
+                    raw_frame[obtain_raw_data] = vision_blink(real_frame[obtain_raw_data], capabilities['input']['camera'][str(obtain_raw_data)]['blink'])
+                    capabilities['input']['camera'][str(obtain_raw_data)]['blink'] = []
                 region_coordinates = vision_region_coordinates(
                     frame_width=raw_frame[obtain_raw_data].shape[1],
                     frame_height=raw_frame[obtain_raw_data].shape[0],
@@ -333,7 +333,6 @@ def process_visual_stimuli(real_frame=[], capabilities={}, previous_frame_data={
                     y2=abs(capabilities['input']['camera'][str(obtain_raw_data)]['modulation_control']['Y offset percentage']),
                     camera_index=capabilities['input']['camera'][str(obtain_raw_data)]['index'],
                     size_list=current_dimension_list)
-
                 if not region_coordinates:
                     if not (capabilities['input']['camera'][str(obtain_raw_data)]['index'] + '_C') in current_dimension_list:
                         pns.resize_list.update(obtain_cortical_vision_size(capabilities['input']['camera'][str(obtain_raw_data)]['index'], pns.full_list_dimension))
@@ -364,11 +363,11 @@ def process_visual_stimuli(real_frame=[], capabilities={}, previous_frame_data={
                                                                    interpolation=cv2.INTER_AREA)
 
         vision_dict = dict()
-        for segment in compressed_data:
-            if "_C" in segment:
-                cv2.imshow(segment, compressed_data[segment])
-        if cv2.waitKey(30) & 0xFF == ord('q'):
-            pass
+        # for segment in compressed_data:
+        #     if "_C" in segment:
+        #         cv2.imshow(segment, compressed_data[segment])
+        # if cv2.waitKey(30) & 0xFF == ord('q'):
+        #     pass
         for get_region in one_data_vision:
             if current_dimension_list[get_region][2] == 3:
                 if previous_frame_data != {}:
@@ -413,10 +412,6 @@ def process_visual_stimuli(real_frame=[], capabilities={}, previous_frame_data={
             rgb['camera'].update(vision_dict)
         else:
             rgb['camera'] = vision_dict
-
-        for index in capabilities['input']['camera']:
-            if len(capabilities['input']['camera'][index]['blink']) > 0:
-                capabilities['input']['camera'][index]['blink'] = []
         return previous_frame_data, rgb, capabilities
     return pns.resize_list, pns.resize_list, capabilities  # sending empty dict
 
@@ -443,25 +438,24 @@ def drop_high_frequency_events(data=[]):
     return np.count_nonzero(data)
 
 
-def process_visual_stimuli_trainer(raw_frame={}, capabilities={}, previous_frame_data={}, rgb={},
-                                   actual_capabilities={}, compare_image=False):
-    global current_dimension_list
-
-    if isinstance(raw_frame, numpy.ndarray):
-        temp_dict = {0: raw_frame}
+def process_visual_stimuli_trainer(real_frame={}, capabilities={}, previous_frame_data={}, rgb={},actual_capabilities={}, compare_image=False):
+    global current_dimension_list, current_mirror_status
+    raw_frame = {}
+    if isinstance(real_frame, numpy.ndarray):
+        temp_dict = {0: real_frame}
         raw_frame = temp_dict.copy()
 
     capabilities = pns.create_runtime_default_list(capabilities, actual_capabilities)
     if pns.resize_list:
         current_dimension_list = pns.resize_list
         one_data_vision = {}
-        for obtain_raw_data in raw_frame:
+        for obtain_raw_data in real_frame:
+            raw_frame[obtain_raw_data] = []
             if not capabilities['input']['camera'][str(obtain_raw_data)]['disabled']:
-                if 0 in capabilities['input']['camera'][str(obtain_raw_data)]['blink']:
-                    raw_frame[obtain_raw_data] = vision_blink(raw_frame, capabilities['input']['camera'][str(obtain_raw_data)]['blink'][0])
-                if capabilities['input']['camera'][str(obtain_raw_data)]["mirror"] != current_mirror_status:
-                    raw_frame[obtain_raw_data] = cv2.flip(raw_frame[obtain_raw_data], 1)
-                    current_mirror_status = capabilities['input']['camera'][str(obtain_raw_data)]["mirror"]
+                if capabilities['input']['camera'][str(obtain_raw_data)]["mirror"]:
+                    raw_frame[obtain_raw_data] = cv2.flip(real_frame[obtain_raw_data], 1)
+                else:
+                    raw_frame[obtain_raw_data] = real_frame[obtain_raw_data]
                 region_coordinates = vision_region_coordinates(
                     frame_width=raw_frame[obtain_raw_data].shape[1],
                     frame_height=raw_frame[obtain_raw_data].shape[0],
