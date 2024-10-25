@@ -154,7 +154,7 @@ async def echo(websocket, path):
             if device_name not in current_device['name']:
                 current_device['name'].append(device_name)
             if not connected_agents['0'] and 'petoi' in current_device['name']:
-                ws.append('V')
+                ws.append('G')
                 print(ws)
             connected_agents['0'] = True  # Since this section gets data from client, its marked as true
 
@@ -220,18 +220,26 @@ def petoi_action(obtained_data):
     WS_STRING = ""
     servo_data = actuators.get_servo_data(obtained_data)
     recieve_servo_position_data = actuators.get_servo_position_data(obtained_data)
+    recieved_misc_data = actuators.get_generic_opu_data_from_feagi(obtained_data, 'misc')
 
     if recieve_servo_position_data:
         servo_for_feagi = 'i '
         for device_id in recieve_servo_position_data:
-            new_power = recieve_servo_position_data[device_id]
+            new_power = int(recieve_servo_position_data[device_id])
             servo_for_feagi += str(feagi_to_petoi_id(device_id)) + " " + str(new_power) + " "
         WS_STRING = servo_for_feagi
 
+    if recieved_misc_data:
+        for data_point in recieved_misc_data:
+            print("here: ", recieved_misc_data)
+            if data_point == 0:
+                WS_STRING = 'G'
+            if data_point == 1:
+                WS_STRING = 'f'
     if servo_data:
         servo_for_feagi = 'i '
         for device_id in servo_data:
-            power = servo_data[device_id]
+            power = int(servo_data[device_id])
             servo_for_feagi += str(feagi_to_petoi_id(device_id)) + " " + str(power) + " "
         print(servo_for_feagi)
         WS_STRING = servo_for_feagi
