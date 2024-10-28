@@ -99,7 +99,7 @@ async def echo(websocket):
                 webcam_size['size'].append(new_list.pop(0))
                 raw_frame = retina.RGB_list_to_ndarray(new_list,
                                                        webcam_size['size'])
-                rgb_array['current'] = retina.update_astype(raw_frame)
+                rgb_array['current'] = {"0": retina.update_astype(raw_frame)}
 
             else:
                 if not 'current' in rgb_array:
