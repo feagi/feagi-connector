@@ -307,7 +307,7 @@ def process_visual_stimuli(real_frame=[], capabilities={}, previous_frame_data={
 
     if isinstance(real_frame, numpy.ndarray):
         temp_dict = {0: real_frame}
-        raw_frame = temp_dict.copy()
+        real_frame = temp_dict.copy()
 
     capabilities = pns.create_runtime_default_list(capabilities, actual_capabilities)
     raw_frame = {}
@@ -443,7 +443,7 @@ def process_visual_stimuli_trainer(real_frame={}, capabilities={}, previous_fram
     raw_frame = {}
     if isinstance(real_frame, numpy.ndarray):
         temp_dict = {0: real_frame}
-        raw_frame = temp_dict.copy()
+        real_frame = temp_dict.copy()
 
     capabilities = pns.create_runtime_default_list(capabilities, actual_capabilities)
     if pns.resize_list:
