@@ -79,7 +79,6 @@ def feagi_to_petoi_id(device_id):
 
 def petoi_listen(message, full_data):
     global gyro
-    print("full data: ", full_data)
     try:
         split_data = message.split()
         received_data = {}
@@ -157,7 +156,6 @@ async def echo(websocket, path):
     full_data = ''
     async for message in websocket:
         data_from_bluetooth = json.loads(message)
-        print("HERE: ", data_from_bluetooth)
         for device_name in data_from_bluetooth:
             if device_name not in current_device['name']:
                 current_device['name'].append(device_name)
@@ -236,7 +234,6 @@ def petoi_action(obtained_data):
 
     if recieved_misc_data:
         for data_point in recieved_misc_data:
-            print("here: ", recieved_misc_data)
             if data_point == 0:
                 WS_STRING = 'G'
             if data_point == 1:
@@ -246,11 +243,9 @@ def petoi_action(obtained_data):
         for device_id in servo_data:
             power = int(servo_data[device_id])
             servo_for_feagi += str(feagi_to_petoi_id(device_id)) + " " + str(power) + " "
-        print(servo_for_feagi)
         WS_STRING = servo_for_feagi
     if WS_STRING != "":
         # WS_STRING = WS_STRING + "#"
-        print("sending to main: ", WS_STRING)
         ws.append(WS_STRING)
 
 
