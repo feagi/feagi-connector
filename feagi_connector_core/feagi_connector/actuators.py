@@ -32,7 +32,6 @@ def motor_generate_power(power_maximum, feagi_power):
 
 def start_motors(controller_capabilities):
     global actuators_mapped, motor_data, capabilities
-    print(controller_capabilities)
     # if check_actuator_in_capabilities('motor'): # This needs to be after
     if 'motor' in controller_capabilities['output']:
         capabilities = controller_capabilities
