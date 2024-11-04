@@ -1,7 +1,7 @@
 import os
 import re
 import cv2
-from feagi_connector import pns_gateway as pns
+from feagi_connector import sensors
 
 image_extensions = ['.jpg', '.jpeg', '.png', '.bmp']
 video_extensions = ['.mov', '.mpg', '.mp4', '.gif']
@@ -22,19 +22,20 @@ def scan_the_folder(path_direction):
       extension = os.path.splitext(filename)[1]
       cap = cv2.VideoCapture(filename)
       frame = []
-      id_message[name_only] = 1.0
+      id_message[name_only] = 100
       ret, frame = cap.read()
       yield cap, id_message, extension
     elif pattern.match(filename) and os.path.splitext(filename)[1].lower() in image_extensions:
       id_message = dict()
       name_only = os.path.splitext(filename)[0]
-      id_message[name_only] = 1.0
+      id_message[name_only] = 100
       extension = os.path.splitext(filename)[1]
       yield cv2.imread(path_direction + filename), id_message, extension
 
 
 def id_training_with_image(message_to_feagi, name_id):
     # Process for ID training
-    message_to_feagi = pns.append_sensory_data_for_feagi('training', name_id, message_to_feagi)
+    id_data = {'i___id': name_id}
+    message_to_feagi = sensors.add_generic_input_to_feagi_data(id_data, message_to_feagi)
     # Process ends for the ID training
     return message_to_feagi
