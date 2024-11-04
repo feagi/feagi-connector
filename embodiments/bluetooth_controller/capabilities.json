@@ -3,7 +3,7 @@
 		"input": {
 			"accelerometer": {
 				"0": {
-					"custom_name": "accelerometer_0",
+					"custom_name": "acc",
 					"disabled": false,
 					"feagi_index": 0,
 					"max_value": [
@@ -16,6 +16,88 @@
 						0,
 						0
 					]
+				}
+			},
+			"gyro": {
+				"0": {
+					"custom_name": "gyro",
+					"disabled": false,
+					"feagi_index": 0,
+					"max_value": [
+						0,
+						0,
+						0
+					],
+					"min_value": [
+						0,
+						0,
+						0
+					]
+				}
+			},
+			"servo_position": {
+				"0": {
+					"custom_name": "head",
+					"disabled": false,
+					"feagi_index": 0,
+					"max_value": 90,
+					"min_value": -90
+				},
+				"1": {
+					"custom_name": "leg_8",
+					"disabled": false,
+					"feagi_index": 1,
+					"max_value": 90,
+					"min_value": -90
+				},
+				"2": {
+					"custom_name": "leg_12",
+					"disabled": false,
+					"feagi_index": 2,
+					"max_value": 90,
+					"min_value": -90
+				},
+				"3": {
+					"custom_name": "leg_9",
+					"disabled": false,
+					"feagi_index": 3,
+					"max_value": 90,
+					"min_value": -90
+				},
+				"4": {
+					"custom_name": "leg_13",
+					"disabled": false,
+					"feagi_index": 4,
+					"max_value": 90,
+					"min_value": -90
+				},
+				"5": {
+					"custom_name": "leg_11",
+					"disabled": false,
+					"feagi_index": 5,
+					"max_value": 90,
+					"min_value": -90
+				},
+				"6": {
+					"custom_name": "leg_15",
+					"disabled": false,
+					"feagi_index": 6,
+					"max_value": 90,
+					"min_value": -90
+				},
+				"7": {
+					"custom_name": "leg_10",
+					"disabled": false,
+					"feagi_index": 7,
+					"max_value": 90,
+					"min_value": -90
+				},
+				"8": {
+					"custom_name": "leg_14",
+					"disabled": false,
+					"feagi_index": 8,
+					"max_value": 90,
+					"min_value": -90
 				}
 			},
 			"infrared": {
@@ -44,7 +126,7 @@
 			"servo": {
 				"0": {
 					"custom_name": "head",
-					"default_value": 90,
+					"default_value": 0,
 					"disabled": false,
 					"feagi_index": 0,
 					"max_power": 10,
@@ -53,7 +135,7 @@
 				},
 				"1": {
 					"custom_name": "leg_8",
-					"default_value": 90,
+					"default_value": 0,
 					"disabled": false,
 					"feagi_index": 1,
 					"max_power": 10,
@@ -62,67 +144,68 @@
 				},
 				"2": {
 					"custom_name": "leg_12",
-					"default_value": 90,
-					"disabled": false,
-					"feagi_index": 2,
-					"max_power": 10,
-					"max_value": 90,
-					"min_value": -90
-				},
-				"3": {
-					"custom_name": "leg_9",
-					"default_value": 90,
-					"disabled": false,
-					"feagi_index": 3,
-					"max_power": 10,
-					"max_value": 90,
-					"min_value": -90
-				},
-				"4": {
-					"custom_name": "leg_13",
-					"default_value": 90,
-					"disabled": false,
-					"feagi_index": 4,
-					"max_power": 10,
-					"max_value": 90,
-					"min_value": -90
-				},
-				"5": {
-					"custom_name": "leg_11",
-					"default_value": 90,
+					"default_value": 0,
 					"disabled": false,
 					"feagi_index": 5,
 					"max_power": 10,
 					"max_value": 90,
 					"min_value": -90
 				},
-				"6": {
-					"custom_name": "leg_15",
-					"default_value": 90,
+				"3": {
+					"custom_name": "leg_9",
+					"default_value": 0,
+					"disabled": false,
+					"feagi_index": 2,
+					"max_power": 10,
+					"max_value": 90,
+					"min_value": -90
+				},
+				"4": {
+					"custom_name": "leg_13",
+					"default_value": 0,
 					"disabled": false,
 					"feagi_index": 6,
 					"max_power": 10,
 					"max_value": 90,
 					"min_value": -90
 				},
+				"5": {
+					"custom_name": "leg_11",
+					"default_value": 0,
+					"disabled": false,
+					"feagi_index": 3,
+					"max_power": 10,
+					"max_value": 90,
+					"min_value": -90
+				},
+				"6": {
+					"custom_name": "leg_15",
+					"default_value": 0,
+					"disabled": false,
+					"feagi_index": 8,
+					"max_power": 10,
+					"max_value": 90,
+					"min_value": -90
+				},
 				"7": {
 					"custom_name": "leg_10",
-					"default_value": 90,
+					"default_value": 0,
 					"disabled": false,
-					"feagi_index": 7,
+					"feagi_index": 4,
 					"max_power": 10,
 					"max_value": 90,
 					"min_value": -90
 				},
 				"8": {
 					"custom_name": "leg_14",
-					"default_value": 90,
+					"default_value": 0,
 					"disabled": false,
-					"feagi_index": 8,
+					"feagi_index": 7,
 					"max_power": 10,
 					"max_value": 90,
 					"min_value": -90
-				}},
+				}
+			},
 			"motor": {
 				"0": {
 					"custom_name": "left_wheel",
