@@ -38,7 +38,7 @@ current_device = {}
 connected_agents = dict()  # Initalize
 connected_agents['0'] = False  # By default, it is not connected by client's websocket
 muse_data = {}
-embodiment_id = {'servo_status': {}}
+embodiment_id = {'servo_status': {}, 'acceleration': {}, 'gyro': {}}
 
 
 async def bridge_to_godot():
@@ -80,34 +80,21 @@ def feagi_to_petoi_id(device_id):
 def petoi_listen(message, full_data):
     global gyro
     try:
-        split_data = message.split()
+        split_data = message['data'].split()
         received_data = {}
         if len(split_data) == 9:
             for servo_id in range(len(split_data)):
                 received_data[str(servo_id)] = int(float(split_data[servo_id]))
-        embodiment_id['servo_status'] = received_data
-        if '#' in message:
-            cleaned_data = message.replace('\r', '')
-            cleaned_data = cleaned_data.replace('\n', '')
-            test = cleaned_data.split('#')
-            new_data = full_data + test[0]
-            new_data = new_data.split(",")
-            processed_data = []
-            for i in new_data:
-                full_number = str()
-                for x in i:
-                    if x in [".", "-"] or x.isdigit():
-                        full_number += x
-                if full_number:
-                    processed_data.append(float(full_number))
-            # Add gyro data into feagi data
-            gyro['gyro'] = {'0': processed_data[0], '1': processed_data[1],
-                            '2': processed_data[2]}
-            full_data = test[1]
+            embodiment_id['servo_status'] = received_data
+        if len(split_data) == 6:
+            embodiment_id['gyro'] = {0: float(split_data[0]), 1: float(split_data[1]), 2: float(split_data[2])}
+            embodiment_id['acceleration'] = {0:int(split_data[3]), 1: int(split_data[4]), 2: int(split_data[5])}
         else:
             full_data = message
     except Exception as Error_case:
         pass
+        print("error: ", Error_case)
+        traceback.print_exc()
     return full_data
     # print("error: ", Error_case)
     # traceback.print_exc()
@@ -159,6 +146,12 @@ async def echo(websocket, path):
         for device_name in data_from_bluetooth:
             if device_name not in current_device['name']:
                 current_device['name'].append(device_name)
+                if device_name == 'petoi':
+                    feagi_servo_data_to_send = 'i '
+                    for position in capabilities['output']['servo']:
+                        feagi_servo_data_to_send += str(feagi_to_petoi_id(int(position))) + " " + str(
+                            capabilities['output']['servo'][position]['default_value']) + " "
+                    ws.append(feagi_servo_data_to_send)
             connected_agents['0'] = True  # Since this section gets data from client, its marked as true
 
             if not ws_operation:
@@ -235,7 +228,7 @@ def petoi_action(obtained_data):
     if recieved_misc_data:
         for data_point in recieved_misc_data:
             if data_point == 0:
-                WS_STRING = 'G'
+                WS_STRING = 'gPb'
             if data_point == 1:
                 WS_STRING = 'f'
     if servo_data:
@@ -362,6 +355,24 @@ if __name__ == "__main__":
                                                                  message_to_feagi,
                                                                  current_data=embodiment_id['servo_status'],
                                                                  symmetric=True)
+            if embodiment_id['gyro']:
+                # print("gyro: ", petoi_data['gyro'])
+                message_to_feagi = sensors.create_data_for_feagi(
+                    sensor='gyro',
+                    capabilities=capabilities,
+                    message_to_feagi=message_to_feagi,
+                    current_data=embodiment_id['gyro'],
+                    symmetric=True,
+                    measure_enable=True)
+            if embodiment_id['acceleration']:
+                # print("acc: ", petoi_data['acceleration'])
+                message_to_feagi = sensors.create_data_for_feagi(
+                    sensor='accelerometer',
+                    capabilities=capabilities,
+                    message_to_feagi=message_to_feagi,
+                    current_data=embodiment_id['acceleration'],
+                    symmetric=True,
+                    measure_enable=True)
 
             message_to_feagi['timestamp'] = datetime.now()
             message_to_feagi['counter'] = msg_counter
