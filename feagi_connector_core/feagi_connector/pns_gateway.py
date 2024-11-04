@@ -17,11 +17,10 @@ limitations under the License.
 """
 
 import time
+import numpy
 import asyncio
 import threading
 import traceback
-
-import numpy
 from feagi_connector import router
 from feagi_connector import retina
 from feagi_connector import feagi_interface as feagi
@@ -183,13 +182,13 @@ def obtain_blink_data(raw_frame, message_from_feagi, capabilities):
     """
     It will update based on the blink opu.
     """
-    if isinstance(raw_frame, numpy.ndarray):
+    if isinstance(raw_frame, dict):
         if "o_blnk" in message_from_feagi["opu_data"]:
             if message_from_feagi["opu_data"]["o_blnk"]:
                 if 'camera' in capabilities['input']:
                     for index in capabilities['input']['camera']:
-                        if raw_frame.any():
-                            capabilities['input']['camera'][index]['blink'] = raw_frame
+                        if raw_frame[index].any():
+                            capabilities['input']['camera'][index]['blink'] = raw_frame[index]
     return capabilities
 
 
@@ -389,7 +388,7 @@ def fetch_vision_turner(message_from_feagi, capabilities):
                                 capabilities['input']['camera'][index]["percentage_to_allow_data"] = int(((intensity_select / max_depth_of_cortical) * (10 - 1)) + 1) / 10
                         else:
                             for index in capabilities['input']['camera']:
-                                capabilities['input']['camera'][index]["threshold_default"][int(device_id)] = int(((intensity_select / max_depth_of_cortical) * (max_range - min_range)) + min_range)
+                                capabilities['input']['camera'][index]["threshold_default"] = int(((intensity_select / max_depth_of_cortical) * (max_range - min_range)) + min_range)
     return capabilities
 
 
