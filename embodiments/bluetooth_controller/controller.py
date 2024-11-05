@@ -139,46 +139,48 @@ async def echo(websocket, path):
     The function echoes the data it receives from other connected websockets
     and sends the data from FEAGI to the connected websockets.
     """
-    current_device['name'] = []
-    full_data = ''
-    async for message in websocket:
-        data_from_bluetooth = json.loads(message)
-        for device_name in data_from_bluetooth:
-            if device_name not in current_device['name']:
-                current_device['name'].append(device_name)
-                if device_name == 'petoi':
-                    feagi_servo_data_to_send = 'i '
-                    for position in capabilities['output']['servo']:
-                        feagi_servo_data_to_send += str(feagi_to_petoi_id(int(position))) + " " + str(
-                            capabilities['output']['servo'][position]['default_value']) + " "
-                    ws.append(feagi_servo_data_to_send)
-            connected_agents['0'] = True  # Since this section gets data from client, its marked as true
+    try:
+        current_device['name'] = []
+        full_data = ''
+        async for message in websocket:
+            data_from_bluetooth = json.loads(message)
+            for device_name in data_from_bluetooth:
+                if device_name not in current_device['name']:
+                    current_device['name'].append(device_name)
+                    if device_name == 'petoi':
+                        feagi_servo_data_to_send = 'i '
+                        for position in capabilities['output']['servo']:
+                            feagi_servo_data_to_send += str(feagi_to_petoi_id(int(position))) + " " + str(
+                                capabilities['output']['servo'][position]['default_value']) + " "
+                        ws.append(feagi_servo_data_to_send)
+                connected_agents['0'] = True  # Since this section gets data from client, its marked as true
 
-            if not ws_operation:
-                ws_operation.append(websocket)
-            else:
-                ws_operation[0] = websocket
+                if not ws_operation:
+                    ws_operation.append(websocket)
+                else:
+                    ws_operation[0] = websocket
 
-            if device_name == "microbit":
-                microbit_listen(data_from_bluetooth['microbit']['data'])
-            elif device_name == "petoi":
-                full_data = petoi_listen(data_from_bluetooth['petoi'], full_data)  # Needs to add
-            elif device_name == "muse":
-                muse_listen(data_from_bluetooth['muse'])
-            elif device_name == "generic":
-                print("generic")
-                pass  # Needs to figure how to address this
+                if device_name == "microbit":
+                    microbit_listen(data_from_bluetooth['microbit']['data'])
+                elif device_name == "petoi":
+                    full_data = petoi_listen(data_from_bluetooth['petoi'], full_data)  # Needs to add
+                elif device_name == "muse":
+                    muse_listen(data_from_bluetooth['muse'])
+                elif device_name == "generic":
+                    print("generic")
+                    pass  # Needs to figure how to address this
+                else:
+                    print("unknown device")
+                    print("message: ", data_from_bluetooth)
+    except:
+        connected_agents['0'] = False  # Once client disconnects, mark it as false
+        muse_data.clear()
+        current_device['name'].clear()
+        for i in microbit_data:
+            if isinstance(microbit_data[i], dict):
+                microbit_data[i].clear()
             else:
-                print("unknown device")
-                print("message: ", data_from_bluetooth)
-    connected_agents['0'] = False  # Once client disconnects, mark it as false
-    muse_data.clear()
-    current_device['name'].clear()
-    for i in microbit_data:
-        if isinstance(microbit_data[i], dict):
-            microbit_data[i].clear()
-        else:
-            microbit_data[i] = None
+                microbit_data[i] = None
 
 
 
@@ -275,23 +277,8 @@ def microbit_action(obtained_data):
         ws.append(WS_STRING)
 
 
-if __name__ == "__main__":
-
-    # NEW JSON UPDATE
-    configuration = feagi.build_up_from_configuration()
-    feagi_settings = configuration["feagi_settings"]
-    agent_settings = configuration['agent_settings']
-    capabilities = configuration['capabilities']
-    feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
-    feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
-    agent_settings['godot_websocket_port'] = os.environ.get('WS_MICROBIT_PORT', "9052")
-    message_to_feagi = {}
-    # END JSON UPDATE
-
+def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, message_to_feagi):
     microbit_data = {'ir': [], 'ultrasonic': {}, 'acceleration': {}, 'sound_level': {}}
-    threading.Thread(target=websocket_operation, daemon=True).start()
-    # threading.Thread(target=bridge_to_godot, daemon=True).start()
-    threading.Thread(target=bridge_operation, daemon=True).start()
     feagi_flag = False
     print("Waiting on FEAGI...")
     while not feagi_flag:
@@ -299,7 +286,7 @@ if __name__ == "__main__":
             os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1"),
             int(os.environ.get('FEAGI_OPU_PORT', "3000"))
         )
-        sleep(2)
+        sleep(0.1)
     previous_data_frame = {}
     runtime_data = {"cortical_data": {}, "current_burst_id": None,
                     "stimulation_period": 0.01, "feagi_state": None,
@@ -386,3 +373,41 @@ if __name__ == "__main__":
             print("ERROR: ", e)
             traceback.print_exc()
             break
+
+
+if __name__ == '__main__':
+    # NEW JSON UPDATE
+    configuration = feagi.build_up_from_configuration()
+    feagi_settings = configuration["feagi_settings"]
+    agent_settings = configuration['agent_settings']
+    capabilities = configuration['capabilities']
+    feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
+    feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
+    agent_settings['godot_websocket_port'] = os.environ.get('WS_MICROBIT_PORT', "9052")
+    message_to_feagi = {}
+    # END JSON UPDATE
+    threading.Thread(target=websocket_operation, daemon=True).start()
+    # threading.Thread(target=bridge_to_godot, daemon=True).start()
+    threading.Thread(target=bridge_operation, daemon=True).start()
+    print("Waiting on a device to connect....")
+    while not connected_agents['capabilities']:
+        sleep(2)
+    while True:
+        while not connected_agents['capabilities']:
+            sleep(0.1) # Repeated but inside loop
+        if connected_agents['capabilities']:
+            capabilities = connected_agents['capabilities']
+            feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
+            feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
+            agent_settings['godot_websocket_port'] = os.environ.get('WS_GODOT_GENERIC_PORT', "9055")
+        feagi_auth_url = feagi_settings.pop('feagi_auth_url', None)
+        print("FEAGI AUTH URL ------- ", feagi_auth_url)
+        try:
+            feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities,
+                       message_to_feagi)
+        except Exception as e:
+            print(f"Controller run failed", e)
+            traceback.print_exc()
+            sleep(2)
+        connected_agents['device'] = ""
+        connected_agents['capabilities'] = {}
