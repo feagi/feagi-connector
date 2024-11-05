@@ -36,6 +36,8 @@ servo_status = {}
 gyro = {}
 current_device = {}
 connected_agents = dict()  # Initalize
+connected_agents['capabilities'] = {}
+connected_agents['device'] = ""
 connected_agents['0'] = False  # By default, it is not connected by client's websocket
 muse_data = {}
 embodiment_id = {'servo_status': {}, 'acceleration': {}, 'gyro': {}}
@@ -78,7 +80,6 @@ def feagi_to_petoi_id(device_id):
 
 
 def petoi_listen(message, full_data):
-    global gyro
     try:
         split_data = message['data'].split()
         received_data = {}
