@@ -150,12 +150,11 @@ async def echo(websocket, path):
         async for message in websocket:
             data_from_bluetooth = json.loads(message)
             for device_name in data_from_bluetooth:
-                if device_name not in current_device['name']:
-                    if "em-" in device_name:
-                        em_name_to_id = embodiment_id_map(device_name)
-                        current_device['name'].append(em_name_to_id)
-                    else:
-                        current_device['name'].append(device_name)
+                name_of_device = device_name
+                if "em-" in device_name:
+                    name_of_device = embodiment_id_map(name_of_device)
+                if name_of_device not in current_device['name']:
+                    current_device['name'].append(device_name)
                     if current_device['name'] == 'petoi':
                         feagi_servo_data_to_send = 'i '
                         for position in capabilities['output']['servo']:
