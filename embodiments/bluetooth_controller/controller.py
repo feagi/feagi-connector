@@ -40,7 +40,8 @@ connected_agents['capabilities'] = {}
 connected_agents['device'] = ""
 connected_agents['0'] = False  # By default, it is not connected by client's websocket
 muse_data = {}
-embodiment_id = {'servo_status': {}, 'acceleration': {}, 'gyro': {}}
+embodiment_id = {'servo_status': {}, 'acceleration': {}, 'gyro': {}, 'sound_level': {}, 'ir': [], 'ultrasonic': {}}
+
 
 def embodiment_id_map(name):
     embodiment_id = {"em-fasioijs" : "petoi", "em-bsfuiref": "microbit"}
@@ -107,7 +108,6 @@ def petoi_listen(message, full_data):
 
 
 def microbit_listen(message):
-    global microbit_data
     ir_list = []
     if message[0] == 'f':
         pass
@@ -118,21 +118,22 @@ def microbit_listen(message):
     else:
         ir_list.append(1)
     try:
+        print("raw data: ", message)
         x_acc = int(message[2:6])
         y_acc = int(message[6:10])
         z_acc = int(message[10:14])
         ultrasonic = float(message[14:16])
         sound_level = int(message[16:18])
         # Store values in dictionary
-        microbit_data['ir'] = ir_list
-        microbit_data['ultrasonic'] = ultrasonic / 25
-        microbit_data['acceleration'] = {0: x_acc, 1: y_acc, 2: z_acc}
-        microbit_data['sound_level'] = {sound_level}
+        embodiment_id['ir'] = ir_list
+        embodiment_id['ultrasonic'] = ultrasonic / 25
+        embodiment_id['acceleration'] = {0: x_acc, 1: y_acc, 2: z_acc}
+        embodiment_id['sound_level'] = {sound_level}
         return
     except Exception as Error_case:
         pass
-        # print("error: ", Error_case)
-        # print("raw: ", message)
+        print("error: ", Error_case)
+        print("raw: ", message)
 
 
 def bridge_operation():
@@ -154,6 +155,7 @@ async def echo(websocket, path):
                 if "em-" in device_name:
                     name_of_device = embodiment_id_map(name_of_device)
                 if name_of_device not in current_device['name']:
+                    print("current vice: ", name_of_device)
                     current_device['name'].append(name_of_device)
                     if name_of_device == 'petoi':
                         feagi_servo_data_to_send = 'i '
@@ -186,11 +188,11 @@ async def echo(websocket, path):
         connected_agents['0'] = False  # Once client disconnects, mark it as false
         muse_data.clear()
         current_device['name'].clear()
-        for i in microbit_data:
-            if isinstance(microbit_data[i], dict):
-                microbit_data[i].clear()
+        for i in embodiment_id:
+            if isinstance(embodiment_id[i], dict):
+                embodiment_id[i].clear()
             else:
-                microbit_data[i] = None
+                embodiment_id[i] = None
 
 
 
@@ -288,7 +290,6 @@ def microbit_action(obtained_data):
 
 
 def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, message_to_feagi):
-    microbit_data = {'ir': [], 'ultrasonic': {}, 'acceleration': {}, 'sound_level': {}}
     feagi_flag = False
     print("Waiting on FEAGI...")
     while not feagi_flag:
@@ -332,19 +333,20 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, mes
                         petoi_action(obtained_signals)
 
             # OPU section ENDS
-            if microbit_data['ultrasonic']:
+            print("DATA CURRENTLY ", embodiment_id)
+            if embodiment_id['ultrasonic']:
                 message_to_feagi = sensors.create_data_for_feagi(sensor='proximity', capabilities=capabilities, message_to_feagi=message_to_feagi,
-                                                                 current_data=microbit_data['ultrasonic'], measure_enable=True)
+                                                                 current_data=embodiment_id['ultrasonic'], measure_enable=True)
 
-            if microbit_data['acceleration']:
+            if embodiment_id['acceleration']:
                 if pns.full_template_information_corticals:
-                    message_to_feagi = sensors.convert_ir_to_ipu_data(microbit_data['ir'], len(capabilities['input']['infrared']), message_to_feagi)
+                    message_to_feagi = sensors.convert_ir_to_ipu_data(embodiment_id['ir'], len(capabilities['input']['infrared']), message_to_feagi)
                     # The IR will need to turn the inverse IR on if it doesn't detect. This would confuse humans when
                     # cutebot is not on. So the solution is to put this under the acceleration. It is under acceleration
                     # because without acceleration, the micro:bit is not on. This leverages the advantage to detect if it
                     # is still on.
                     message_to_feagi = sensors.create_data_for_feagi(sensor='accelerometer', capabilities=capabilities, message_to_feagi=message_to_feagi,
-                                                                     current_data=microbit_data['acceleration'], symmetric=True,
+                                                                     current_data=embodiment_id['acceleration'], symmetric=True,
                                                                      measure_enable=True)
             if embodiment_id['servo_status']:
                 message_to_feagi = sensors.create_data_for_feagi('servo_position',
