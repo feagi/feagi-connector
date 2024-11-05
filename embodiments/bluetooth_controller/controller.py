@@ -154,7 +154,7 @@ async def echo(websocket, path):
                 if "em-" in device_name:
                     name_of_device = embodiment_id_map(name_of_device)
                 if name_of_device not in current_device['name']:
-                    current_device['name'].append(device_name)
+                    current_device['name'].append(name_of_device)
                     if current_device['name'] == 'petoi':
                         feagi_servo_data_to_send = 'i '
                         for position in capabilities['output']['servo']:
