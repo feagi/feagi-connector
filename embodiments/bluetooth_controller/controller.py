@@ -152,11 +152,11 @@ async def echo(websocket, path):
             for device_name in data_from_bluetooth:
                 if device_name not in current_device['name']:
                     if "em-" in device_name:
-                        em_name = embodiment_id_map(device_name)
-                        current_device['name'].append(em_name)
+                        em_name_to_id = embodiment_id_map(device_name)
+                        current_device['name'].append(em_name_to_id)
                     else:
                         current_device['name'].append(device_name)
-                    if device_name == 'petoi':
+                    if current_device['name'] == 'petoi':
                         feagi_servo_data_to_send = 'i '
                         for position in capabilities['output']['servo']:
                             feagi_servo_data_to_send += str(feagi_to_petoi_id(int(position))) + " " + str(
@@ -169,18 +169,18 @@ async def echo(websocket, path):
                 else:
                     ws_operation[0] = websocket
 
-                if device_name == "microbit":
+                if current_device['name'] == "microbit":
                     microbit_listen(data_from_bluetooth[device_name]['data'])
-                elif device_name == "petoi":
+                elif current_device['name'] == "petoi":
                     full_data = petoi_listen(data_from_bluetooth[device_name], full_data)  # Needs to add
-                elif device_name == "muse":
+                elif current_device['name'] == "muse":
                     muse_listen(data_from_bluetooth[device_name])
-                elif device_name == "generic":
+                elif current_device['name'] == "generic":
                     print("generic")
                     pass  # Needs to figure how to address this
                 else:
                     print("unknown device")
-                    print("message: ", data_from_bluetooth)
+                    print("message: ", data_from_bluetooth, " and device: ", current_device['name'])
     except Exception as error:
         print("error: ", error)
         traceback.print_exc()
