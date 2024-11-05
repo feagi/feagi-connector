@@ -333,7 +333,7 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, mes
                         petoi_action(obtained_signals)
 
             # OPU section ENDS
-            print("DATA CURRENTLY ", embodiment_id)
+            print("DATA CURRENTLY ", embodiment_id) 
             if embodiment_id['ultrasonic']:
                 message_to_feagi = sensors.create_data_for_feagi(sensor='proximity', capabilities=capabilities, message_to_feagi=message_to_feagi,
                                                                  current_data=embodiment_id['ultrasonic'], measure_enable=True)
