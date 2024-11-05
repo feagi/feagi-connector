@@ -173,7 +173,8 @@ async def echo(websocket, path):
                 else:
                     print("unknown device")
                     print("message: ", data_from_bluetooth)
-    except:
+    except Exception as error:
+        print("error: ", error)
         connected_agents['0'] = False  # Once client disconnects, mark it as false
         muse_data.clear()
         current_device['name'].clear()
