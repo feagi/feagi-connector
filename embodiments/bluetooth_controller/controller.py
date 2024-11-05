@@ -155,7 +155,7 @@ async def echo(websocket, path):
                     name_of_device = embodiment_id_map(name_of_device)
                 if name_of_device not in current_device['name']:
                     current_device['name'].append(name_of_device)
-                    if current_device['name'] == 'petoi':
+                    if name_of_device == 'petoi':
                         feagi_servo_data_to_send = 'i '
                         for position in capabilities['output']['servo']:
                             feagi_servo_data_to_send += str(feagi_to_petoi_id(int(position))) + " " + str(
@@ -168,13 +168,13 @@ async def echo(websocket, path):
                 else:
                     ws_operation[0] = websocket
 
-                if current_device['name'] == "microbit":
+                if name_of_device == "microbit":
                     microbit_listen(data_from_bluetooth[device_name]['data'])
-                elif current_device['name'] == "petoi":
+                elif name_of_device == "petoi":
                     full_data = petoi_listen(data_from_bluetooth[device_name], full_data)  # Needs to add
-                elif current_device['name'] == "muse":
+                elif name_of_device == "muse":
                     muse_listen(data_from_bluetooth[device_name])
-                elif current_device['name'] == "generic":
+                elif name_of_device == "generic":
                     print("generic")
                     pass  # Needs to figure how to address this
                 else:
