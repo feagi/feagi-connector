@@ -42,6 +42,10 @@ connected_agents['0'] = False  # By default, it is not connected by client's web
 muse_data = {}
 embodiment_id = {'servo_status': {}, 'acceleration': {}, 'gyro': {}}
 
+def embodiment_id_map(name):
+    embodiment_id = {"em-fasioijs" : "petoi", "em-bsfuiref": "microbit"}
+    return embodiment_id[name]
+
 
 async def bridge_to_godot():
     while True:
@@ -146,6 +150,8 @@ async def echo(websocket, path):
         async for message in websocket:
             data_from_bluetooth = json.loads(message)
             for device_name in data_from_bluetooth:
+                if "em-" in device_name:
+                    device_name = embodiment_id_map(device_name)
                 if device_name not in current_device['name']:
                     current_device['name'].append(device_name)
                     if device_name == 'petoi':
