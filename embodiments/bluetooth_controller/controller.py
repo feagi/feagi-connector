@@ -118,7 +118,6 @@ def microbit_listen(message):
     else:
         ir_list.append(1)
     try:
-        print("raw data: ", message)
         x_acc = int(message[2:6])
         y_acc = int(message[6:10])
         z_acc = int(message[10:14])
@@ -148,8 +147,6 @@ async def echo(websocket, path):
     try:
         current_device['name'] = []
         full_data = ''
-        configuration = feagi.build_up_from_configuration()
-        capabilities = configuration['capabilities']
         async for message in websocket:
             data_from_bluetooth = json.loads(message)
             for device_name in data_from_bluetooth:
@@ -157,9 +154,8 @@ async def echo(websocket, path):
                 if "em-" in device_name:
                     name_of_device = embodiment_id_map(name_of_device)
                 if name_of_device not in current_device['name']:
-                    print("current vice: ", name_of_device)
                     current_device['name'].append(name_of_device)
-                    connected_agents['capabilities'] = capabilities
+                    # connected_agents['capabilities'] = capabilities #TODO: NEEDS TO UPDATE THIS
                     if name_of_device == 'petoi':
                         feagi_servo_data_to_send = 'i '
                         for position in capabilities['output']['servo']:
@@ -187,14 +183,11 @@ async def echo(websocket, path):
     except Exception as error:
         print("error: ", error)
         traceback.print_exc()
-        connected_agents['0'] = False  # Once client disconnects, mark it as false
-        muse_data.clear()
-        current_device['name'].clear()
-        for i in embodiment_id:
-            if isinstance(embodiment_id[i], dict):
-                embodiment_id[i].clear()
-            else:
-                embodiment_id[i] = None
+    connected_agents['0'] = False  # Once client disconnects, mark it as false
+    muse_data.clear()
+    current_device['name'].clear()
+    for i in embodiment_id:
+        embodiment_id[i].clear()
 
 
 
@@ -320,7 +313,7 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, mes
 
     actuators.start_motors(capabilities)  # initialize motors for you.
 
-    while True:
+    while connected_agents['0']:
         try:
             message_from_feagi = pns.message_from_feagi
             # OPU section STARTS
@@ -335,7 +328,6 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, mes
                         petoi_action(obtained_signals)
 
             # OPU section ENDS
-            print("DATA CURRENTLY ", embodiment_id) 
             if embodiment_id['ultrasonic']:
                 message_to_feagi = sensors.create_data_for_feagi(sensor='proximity', capabilities=capabilities, message_to_feagi=message_to_feagi,
                                                                  current_data=embodiment_id['ultrasonic'], measure_enable=True)
@@ -405,7 +397,7 @@ if __name__ == '__main__':
     threading.Thread(target=bridge_operation, daemon=True).start()
     print("Waiting on a device to connect....")
     while not connected_agents['capabilities']:
-        sleep(2)
+        sleep(0.5)
     while True:
         while not connected_agents['capabilities']:
             sleep(0.1) # Repeated but inside loop
