@@ -41,6 +41,9 @@ connected_agents['device'] = ""
 connected_agents['0'] = False  # By default, it is not connected by client's websocket
 muse_data = {}
 embodiment_id = {'servo_status': {}, 'acceleration': {}, 'gyro': {}, 'sound_level': {}, 'ir': [], 'ultrasonic': {}}
+runtime_data = {"cortical_data": {}, "current_burst_id": None,
+                "stimulation_period": 0.01, "feagi_state": None,
+                "feagi_network": None}
 
 
 def embodiment_id_map(name):
@@ -151,11 +154,13 @@ async def echo(websocket, path):
             data_from_bluetooth = json.loads(message)
             for device_name in data_from_bluetooth:
                 name_of_device = device_name
+                if device_name == 'capabilities':
+                    connected_agents['capabilities'] = data_from_bluetooth['capabilities']
+                    break
                 if "em-" in device_name:
                     name_of_device = embodiment_id_map(name_of_device)
                 if name_of_device not in current_device['name']:
                     current_device['name'].append(name_of_device)
-                    # connected_agents['capabilities'] = capabilities #TODO: NEEDS TO UPDATE THIS
                     if name_of_device == 'petoi':
                         feagi_servo_data_to_send = 'i '
                         for position in capabilities['output']['servo']:
@@ -187,7 +192,12 @@ async def echo(websocket, path):
     muse_data.clear()
     current_device['name'].clear()
     for i in embodiment_id:
-        embodiment_id[i].clear()
+        if isinstance(embodiment_id[i], dict):
+            embodiment_id[i].clear()
+        if isinstance(embodiment_id[i], list):
+            embodiment_id[i].clear()
+        else:
+            embodiment_id[i] = None
 
 
 
@@ -285,6 +295,7 @@ def microbit_action(obtained_data):
 
 
 def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, message_to_feagi):
+    global runtime_data # Literally no reason for it to be here. Somehow it is needed?????
     feagi_flag = False
     print("Waiting on FEAGI...")
     while not feagi_flag:
@@ -293,10 +304,6 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, mes
             int(os.environ.get('FEAGI_OPU_PORT', "3000"))
         )
         sleep(0.1)
-    previous_data_frame = {}
-    runtime_data = {"cortical_data": {}, "current_burst_id": None,
-                    "stimulation_period": 0.01, "feagi_state": None,
-                    "feagi_network": None}
 
     feagi_auth_url = feagi_settings.pop('feagi_auth_url', None)
     print("FEAGI AUTH URL ------- ", feagi_auth_url)
