@@ -148,6 +148,8 @@ async def echo(websocket, path):
     try:
         current_device['name'] = []
         full_data = ''
+        configuration = feagi.build_up_from_configuration()
+        capabilities = configuration['capabilities']
         async for message in websocket:
             data_from_bluetooth = json.loads(message)
             for device_name in data_from_bluetooth:
@@ -157,11 +159,11 @@ async def echo(websocket, path):
                 if name_of_device not in current_device['name']:
                     print("current vice: ", name_of_device)
                     current_device['name'].append(name_of_device)
+                    connected_agents['capabilities'] = capabilities
                     if name_of_device == 'petoi':
                         feagi_servo_data_to_send = 'i '
                         for position in capabilities['output']['servo']:
-                            feagi_servo_data_to_send += str(feagi_to_petoi_id(int(position))) + " " + str(
-                                capabilities['output']['servo'][position]['default_value']) + " "
+                            feagi_servo_data_to_send += str(feagi_to_petoi_id(int(position))) + " " + str(capabilities['output']['servo'][position]['default_value']) + " "
                         ws.append(feagi_servo_data_to_send)
                 connected_agents['0'] = True  # Since this section gets data from client, its marked as true
 
