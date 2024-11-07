@@ -143,8 +143,8 @@ def microbit_listen(message):
         return
     except Exception as Error_case:
         pass
-        print("error: ", Error_case)
-        print("raw: ", message)
+        # print("error: ", Error_case)
+        # print("raw: ", message)
 
 
 def bridge_operation():
@@ -169,12 +169,17 @@ async def echo(websocket, path):
                 if "em-" in device_name:
                     name_of_device = embodiment_id_map(name_of_device)
                 if name_of_device not in current_device['name']:
-                    current_device['name'].append(name_of_device)
-                    if name_of_device == 'petoi':
+                    if name_of_device == 'petoi' and connected_agents['capabilities']:
                         feagi_servo_data_to_send = 'i '
-                        for position in capabilities['output']['servo']:
-                            feagi_servo_data_to_send += str(feagi_to_petoi_id(int(position))) + " " + str(capabilities['output']['servo'][position]['default_value']) + " "
+                        for position in connected_agents['capabilities']['output']['servo']:
+                            feagi_servo_data_to_send += str(feagi_to_petoi_id(int(position))) + " " + str(connected_agents['capabilities']['output']['servo'][position]['default_value']) + " "
+                        actuators.start_servos(connected_agents['capabilities'])
                         ws.append(feagi_servo_data_to_send)
+                    elif name_of_device in ['microbit']:
+                        pass
+                    else:
+                        break
+                    current_device['name'].append(name_of_device)
                 connected_agents['0'] = True  # Since this section gets data from client, its marked as true
 
                 if not ws_operation:
@@ -320,14 +325,14 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, mes
     # # # FEAGI registration # # # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     # - - - - - - - - - - - - - - - - - - #
     feagi_settings, runtime_data, api_address, feagi_ipu_channel, feagi_opu_channel = \
-        feagi.connect_to_feagi(feagi_settings, runtime_data, agent_settings, capabilities,
+        feagi.connect_to_feagi(feagi_settings, runtime_data, agent_settings, connected_agents['capabilities'],
                                __version__)
     threading.Thread(target=pns.feagi_listener, args=(feagi_opu_channel,), daemon=True).start()
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     msg_counter = runtime_data["feagi_state"]['burst_counter']
     runtime_data['acceleration'] = {}
 
-    actuators.start_motors(capabilities)  # initialize motors for you.
+    actuators.start_motors(connected_agents['capabilities'])  # initialize motors for you.
 
     while connected_agents['0']:
         try:
@@ -345,22 +350,23 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, mes
 
             # OPU section ENDS
             if embodiment_id['ultrasonic']:
-                message_to_feagi = sensors.create_data_for_feagi(sensor='proximity', capabilities=capabilities, message_to_feagi=message_to_feagi,
+                message_to_feagi = sensors.create_data_for_feagi(sensor='proximity', capabilities=connected_agents['capabilities'], message_to_feagi=message_to_feagi,
                                                                  current_data=embodiment_id['ultrasonic'], measure_enable=True)
 
             if embodiment_id['acceleration']:
                 if pns.full_template_information_corticals:
-                    message_to_feagi = sensors.convert_ir_to_ipu_data(embodiment_id['ir'], len(capabilities['input']['infrared']), message_to_feagi)
+                    if 'infrared' in connected_agents['capabilities']['input']:
+                        message_to_feagi = sensors.convert_ir_to_ipu_data(embodiment_id['ir'], len(connected_agents['capabilities']['input']['infrared']), message_to_feagi)
                     # The IR will need to turn the inverse IR on if it doesn't detect. This would confuse humans when
                     # cutebot is not on. So the solution is to put this under the acceleration. It is under acceleration
                     # because without acceleration, the micro:bit is not on. This leverages the advantage to detect if it
                     # is still on.
-                    message_to_feagi = sensors.create_data_for_feagi(sensor='accelerometer', capabilities=capabilities, message_to_feagi=message_to_feagi,
+                    message_to_feagi = sensors.create_data_for_feagi(sensor='accelerometer', capabilities=connected_agents['capabilities'], message_to_feagi=message_to_feagi,
                                                                      current_data=embodiment_id['acceleration'], symmetric=True,
                                                                      measure_enable=True)
             if embodiment_id['servo_status']:
                 message_to_feagi = sensors.create_data_for_feagi('servo_position',
-                                                                 capabilities,
+                                                                 connected_agents['capabilities'],
                                                                  message_to_feagi,
                                                                  current_data=embodiment_id['servo_status'],
                                                                  symmetric=True)
@@ -368,7 +374,7 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, mes
                 # print("gyro: ", petoi_data['gyro'])
                 message_to_feagi = sensors.create_data_for_feagi(
                     sensor='gyro',
-                    capabilities=capabilities,
+                    capabilities=connected_agents['capabilities'],
                     message_to_feagi=message_to_feagi,
                     current_data=embodiment_id['gyro'],
                     symmetric=True,
@@ -377,7 +383,7 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, mes
                 # print("acc: ", petoi_data['acceleration'])
                 message_to_feagi = sensors.create_data_for_feagi(
                     sensor='accelerometer',
-                    capabilities=capabilities,
+                    capabilities=connected_agents['capabilities'],
                     message_to_feagi=message_to_feagi,
                     current_data=embodiment_id['acceleration'],
                     symmetric=True,
