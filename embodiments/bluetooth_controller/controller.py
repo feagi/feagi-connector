@@ -44,11 +44,20 @@ embodiment_id = {'servo_status': {}, 'acceleration': {}, 'gyro': {}, 'sound_leve
 runtime_data = {"cortical_data": {}, "current_burst_id": None,
                 "stimulation_period": 0.01, "feagi_state": None,
                 "feagi_network": None}
+embodiment_name = {}
+try:
+    fcap = open('device_bluetooth.json')
+    json_embodiment = json.load(fcap)
+    embodiment_name = json_embodiment
+    fcap.close()
+except Exception as error:
+    embodiment_name = {}
+
+
 
 
 def embodiment_id_map(name):
-    embodiment_id = {"em-fasioijs" : "petoi", "em-bsfuiref": "microbit"}
-    return embodiment_id[name]
+    return embodiment_name[name]
 
 
 async def bridge_to_godot():
