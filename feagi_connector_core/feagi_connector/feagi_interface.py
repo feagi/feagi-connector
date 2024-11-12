@@ -223,7 +223,10 @@ def unique_function_for_special_opu(opu_data, processed_opu_data, cortical_name)
                 if 'o_mctl' in opu_data:
                     for data_point in opu_data['o_mctl']:
                         processed_data_point = block_to_array(data_point)
-                        device_power = opu_data['o_mctl'][data_point]
+                        if pns.full_list_dimension['o_mctl']['cortical_dimensions'][2] == 1:
+                            device_power = opu_data['o_mctl'][data_point]
+                        else:
+                            device_power = ((processed_data_point[2] + 1.0) / (pns.full_list_dimension['o_mctl']['cortical_dimensions'][2]))
                         device_id = build_up_from_mctl(processed_data_point)
                         index = processed_data_point[0] // 4
                         if device_id is not None:
