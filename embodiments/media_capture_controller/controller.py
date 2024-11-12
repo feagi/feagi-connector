@@ -85,7 +85,6 @@ async def echo(websocket):
     """
     global connected_agents
     try:
-        ws.append({"newRefreshRate": 60})
         async for message in websocket:
             connected_agents['0'] = True  # Since this section gets data from client, its marked as true
             if not ws_operation:
