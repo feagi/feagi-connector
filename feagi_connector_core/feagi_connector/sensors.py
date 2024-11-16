@@ -162,7 +162,6 @@ def create_data_for_feagi(sensor, capabilities, message_to_feagi, current_data, 
                                 message_to_feagi = add_generic_input_to_feagi_data(create_data_list,
                                                                                            message_to_feagi)
                 except Exception as e:
-                  print("here: ", e)
                   traceback.print_exc()
     return message_to_feagi
 
