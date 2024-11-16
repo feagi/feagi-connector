@@ -108,8 +108,7 @@ def create_data_for_feagi(sensor, capabilities, message_to_feagi, current_data, 
                           for inner_device_id in range(len(current_data[device_id])): # x, y, z, or r, p, y (depending on the application)
                             if measure_enable:
                               capabilities['input'][sensor][device_id]['max_value'][inner_device_id], \
-                                    capabilities['input'][sensor][device_id]['min_value'][
-                                        device_id][inner_device_id] = measuring_max_and_min_range(
+                                    capabilities['input'][sensor][device_id]['min_value'][inner_device_id] = measuring_max_and_min_range(
                                     current_data[device_id][inner_device_id],
                                     capabilities['input'][sensor][device_id]['max_value'][inner_device_id],
                                     capabilities['input'][sensor][device_id]['min_value'][inner_device_id])
