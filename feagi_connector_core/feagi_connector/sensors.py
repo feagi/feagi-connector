@@ -125,22 +125,22 @@ def create_data_for_feagi(sensor, capabilities, message_to_feagi, current_data, 
                                   create_data_list, message_to_feagi)
                         else:
                             for inner_device_id in current_data:
-                                if measure_enable:
-                                    capabilities['input'][sensor][str(inner_device_id)]['max_value'], \
-                                        capabilities['input'][sensor][str(inner_device_id)]['min_value'] = measuring_max_and_min_range(
-                                        current_data[inner_device_id],
-                                        capabilities['input'][sensor][str(inner_device_id)]['max_value'],
-                                        capabilities['input'][sensor][str(inner_device_id)]['min_value'])
-                                if current_data[inner_device_id] == 0:
-                                    current_data[inner_device_id] = 1
-                                position_in_feagi_location = convert_sensor_to_ipu_data(
-                                    capabilities['input'][sensor][str(inner_device_id)]['min_value'],
-                                    capabilities['input'][sensor][str(inner_device_id)]['max_value'],
-                                    current_data[inner_device_id],
-                                    capabilities['input'][sensor][str(inner_device_id)]['feagi_index'],
-                                    sensor_name=sensor,
-                                    symmetric=symmetric)
-                                create_data_list[cortical_id][position_in_feagi_location] = 100
+                              if measure_enable:
+                                  capabilities['input'][sensor][str(inner_device_id)]['max_value'], \
+                                      capabilities['input'][sensor][str(inner_device_id)]['min_value'] = measuring_max_and_min_range(
+                                      current_data[inner_device_id],
+                                      capabilities['input'][sensor][str(inner_device_id)]['max_value'],
+                                      capabilities['input'][sensor][str(inner_device_id)]['min_value'])
+                              if current_data[inner_device_id] == 0:
+                                  current_data[inner_device_id] = 1
+                              position_in_feagi_location = convert_sensor_to_ipu_data(
+                                  capabilities['input'][sensor][str(inner_device_id)]['min_value'],
+                                  capabilities['input'][sensor][str(inner_device_id)]['max_value'],
+                                  current_data[inner_device_id],
+                                  capabilities['input'][sensor][str(inner_device_id)]['feagi_index'],
+                                  sensor_name=sensor,
+                                  symmetric=symmetric)
+                              create_data_list[cortical_id][position_in_feagi_location] = 100
                             if create_data_list[cortical_id]:
                                 message_to_feagi = add_generic_input_to_feagi_data(
                                     create_data_list, message_to_feagi)
@@ -161,6 +161,7 @@ def create_data_for_feagi(sensor, capabilities, message_to_feagi, current_data, 
                                 message_to_feagi = add_generic_input_to_feagi_data(create_data_list,
                                                                                            message_to_feagi)
                 except Exception as e:
+                  print("Last error is from: ", sensor, " and the current data: ", current_data, " and the numbers in ", sensor, " is currently: ", len(capabilities['input'][sensor]))
                   traceback.print_exc()
     return message_to_feagi
 
