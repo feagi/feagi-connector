@@ -105,8 +105,8 @@ def petoi_listen(message, full_data):
                 received_data[str(servo_id)] = int(float(split_data[servo_id]))
             embodiment_id['servo_status'] = received_data
         if len(split_data) == 6:
-            embodiment_id['gyro'] = {0: float(split_data[0]), 1: float(split_data[1]), 2: float(split_data[2])}
-            embodiment_id['acceleration'] = {0:int(split_data[3]), 1: int(split_data[4]), 2: int(split_data[5])}
+            embodiment_id['gyro']['0'] = [float(split_data[0]), float(split_data[1]), float(split_data[2])]
+            embodiment_id['acceleration']['0'] = [int(split_data[3]), int(split_data[4]), int(split_data[5])]
         else:
             full_data = message
     except Exception as Error_case:
@@ -138,7 +138,7 @@ def microbit_listen(message):
         # Store values in dictionary
         embodiment_id['ir'] = ir_list
         embodiment_id['ultrasonic'] = ultrasonic / 25
-        embodiment_id['acceleration'] = {0: x_acc, 1: y_acc, 2: z_acc}
+        embodiment_id['acceleration']['0'] = [x_acc,  y_acc, z_acc]
         embodiment_id['sound_level'] = {sound_level}
         return
     except Exception as Error_case:
