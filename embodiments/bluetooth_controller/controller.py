@@ -208,7 +208,7 @@ async def echo(websocket, path):
     for i in embodiment_id:
         if isinstance(embodiment_id[i], dict):
             embodiment_id[i].clear()
-        if isinstance(embodiment_id[i], list):
+        elif isinstance(embodiment_id[i], list):
             embodiment_id[i].clear()
         else:
             embodiment_id[i] = None
