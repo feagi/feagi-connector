@@ -45,7 +45,8 @@ def convert_sensor_to_ipu_data(min_output, max_output, current_data, device_id, 
                 current_position = (current_data / total_range) * max_input
             else:
                 current_position = pns.get_map_value(current_data, min_output, max_output, 0, max_input)
-            data = str(device_id) + '-0-' + str(int(round(current_position)))
+            # data = str(device_id) + '-0-' + str(int(round(current_position)))
+            data = (device_id, 0, int(round(current_position)))
             return data
     return None
 
