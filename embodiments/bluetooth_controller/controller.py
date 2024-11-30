@@ -54,6 +54,53 @@ except Exception as error:
     embodiment_name = {}
 
 
+feagi_misc_to_petoi_token_mapping = {
+        0: 'gPb',
+        1: 'f',
+        2: 'kbalance',
+        3: 'd',
+        4: 'ksit',
+        5: 'kstr',
+        6: 'khi',
+        7: 'kpee',
+        8: 'kpu',
+        9: 'kphF',
+        10: 'kphL',
+        11: 'kphR',
+        12: 'kch',
+        13: 'kbk',
+        14: 'kkc',
+        15: 'khg',
+        16: 'khu',
+        17: 'krc',
+        18: 'kscrh',
+        19: 'kdg',
+        20: 'kwh',
+        21: 'kgbd',
+        22: 'ktbl',
+        23: 'kbx',
+        24: 'kfiv',
+        25: 'kbf',
+        26: 'khsk',
+        27: 'kgdb',
+        28: 'kbx',
+        29: 'kjmp',
+        30: 'kang',
+        31: 'c',
+        32: 'kpd',
+        33: 'kwk',
+        34: 'krn',
+        35: 'ktr',
+        36: 'L',
+        37: 'R',
+        38: 'kbuttup',
+        39: 'kchr',
+        40: 'kbk',
+        41: 'kcmh',
+        42: 'khds',
+        43: 'ksnf',
+        44: 'knd'
+    }
 
 
 def embodiment_id_map(name):
@@ -214,7 +261,6 @@ async def echo(websocket, path):
             embodiment_id[i] = None
 
 
-
 async def main():
     """
     The main function handles the websocket and spins the asyncio to run the echo function
@@ -259,97 +305,9 @@ def petoi_action(obtained_data):
         WS_STRING = servo_for_feagi
 
     if recieved_misc_data:
+        # Note: Only the last command is being considered and the rest are disposed
         for data_point in recieved_misc_data:
-            if data_point == 0:
-                WS_STRING = 'gPb'
-            if data_point == 1:
-                WS_STRING = 'f'
-            if data_point == 2:
-                WS_STRING = 'kbalance'
-            if data_point == 3:
-                WS_STRING = 'd'
-            if data_point == 4:
-                WS_STRING = 'ksit'
-            if data_point == 5:
-                WS_STRING = 'kstr'
-            if data_point == 6:
-                WS_STRING = 'khi'
-            if data_point == 7:
-                WS_STRING = 'kpee'
-            if data_point == 8:
-                WS_STRING = 'kpu'
-            if data_point == 9:
-                WS_STRING = 'kphF'
-            if data_point == 10:
-                WS_STRING = 'kphL'
-            if data_point == 11:
-                WS_STRING = 'kphR'
-            if data_point == 12:
-                WS_STRING = 'kch'
-            if data_point == 13:
-                WS_STRING = 'kbk'
-            if data_point == 14:
-                WS_STRING = 'kkc'
-            if data_point == 15:
-                WS_STRING = 'khg'
-            if data_point == 16:
-                WS_STRING = 'khu'
-            if data_point == 17:
-                WS_STRING = 'krc'
-            if data_point == 18:
-                WS_STRING = 'kscrh'
-            if data_point == 19:
-                WS_STRING = 'kdg'
-            if data_point == 20:
-                WS_STRING = 'kwh'
-            if data_point == 21:
-                WS_STRING = 'kgbd'
-            if data_point == 22:
-                WS_STRING = 'ktbl'
-            if data_point == 23:
-                WS_STRING = 'kbx'
-            if data_point == 24:
-                WS_STRING = 'kfiv'
-            if data_point == 25:
-                WS_STRING = 'kbf'
-            if data_point == 26:
-                WS_STRING = 'khsk'
-            if data_point == 27:
-                WS_STRING = 'kgdb'
-            if data_point == 28:
-                WS_STRING = 'kbx'
-            if data_point == 29:
-                WS_STRING = 'kjmp'
-            if data_point == 30:
-                WS_STRING = 'kang'
-            if data_point == 31:
-                WS_STRING = 'c'
-            if data_point == 32:
-                WS_STRING = 'kpd'
-            if data_point == 33:
-                WS_STRING = 'kwk'
-            if data_point == 34:
-                WS_STRING = 'krn'
-            if data_point == 35:
-                WS_STRING = 'ktr'
-            if data_point == 36:
-                WS_STRING = 'L'
-            if data_point == 37:
-                WS_STRING = 'R'
-            if data_point == 38:
-                WS_STRING = 'kbuttup'
-            if data_point == 39:
-                WS_STRING = 'kchr'
-            if data_point == 40:
-                WS_STRING = 'kbk'
-            if data_point == 41:
-                WS_STRING = 'kcmh'
-            if data_point == 42:
-                WS_STRING = 'khds'
-            if data_point == 43:
-                WS_STRING = 'ksnf'
-            if data_point == 44:
-                WS_STRING = 'knd'
+            WS_STRING = feagi_misc_to_petoi_token_mapping.get(data_point)
 
     if servo_data:
         servo_for_feagi = 'i '
