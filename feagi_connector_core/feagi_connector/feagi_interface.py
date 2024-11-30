@@ -269,20 +269,29 @@ def translate_feagi_into_robot(cortical_id, cortical_name, opu_data, processed_o
                 processed_opu_data[name_actuator][device_id] = add_value / len(average_length[device_id])
     return processed_opu_data
 
+
 def opu_calculator(feagi_data, cortical_id):
   print("FEAGI DATA: ", feagi_data)
   new_processed_data = {}
-  add_value = 0.0
-  total_keys = len(feagi_data)
-  increment = 0
-  for data_point in feagi_data:
-    key = data_point
-    print("key: ", key)
-    add_value += ((feagi_data[data_point] * (key[2] + 1)) / pns.full_list_dimension[cortical_id]['cortical_dimensions'][2])
-    increment += 1
-    if add_value != 0.0 and total_keys == increment:
-      new_processed_data[(key[0], key[1])] = add_value / total_keys
-      print("RESULT: ", new_processed_data)
+
+  # iterate each group of xy
+  grouped_data = {}
+  for key, value in feagi_data.items():
+    xy_key = (key[0], key[1])
+    if xy_key not in grouped_data:
+      grouped_data[xy_key] = []
+    grouped_data[xy_key].append((key[2], value))
+
+  # calculate each group
+  for xy_key, points in grouped_data.items():
+    add_value = 0.0
+    total_points = len(points)
+    for z, value in points:
+      add_value += (value * (z + 1)) / pns.full_list_dimension[cortical_id]['cortical_dimensions'][2]
+    if add_value != 0.0:
+      new_processed_data[xy_key] = add_value / total_points
+
+  print("RESULT: ", new_processed_data)
   return new_processed_data
 
 
@@ -296,8 +305,8 @@ def opu_processor(data):
               add_value = 0.0
               if cortical_id not in processed_opu_data:
                 processed_opu_data[cortical_id] = {}
-              hardcoded_data =  {(0,0,1): 1.0, (0,0,4): 0.6}
-              print("HERE: ", opu_calculator(hardcoded_data, cortical_id))
+              # hardcoded_data =  {(0,0,1): 1.0, (0,0,4): 0.6}
+              print("HERE: ", opu_calculator(opu_data[cortical_id], cortical_id))
               # print("add value: ", add_value)
               # if add_value != 0.0:
               #   processed_opu_data[cortical_id] = add_value / len(opu_data[cortical_id])
