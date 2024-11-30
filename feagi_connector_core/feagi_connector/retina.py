@@ -212,7 +212,8 @@ def create_feagi_data(significant_changes=[], current=[], shape=[], index=[], co
             for x in range(size_of_frame[0]):
                 for y in range(size_of_frame[1]):
                     if significant_changes[x, y]:
-                        key = f'{offset_x + y}-{((int(size_of_frame[0]) - 1) - x)}-{0}'
+                        # key = f'{offset_x + y}-{((int(size_of_frame[0]) - 1) - x)}-{0}'
+                        key = (offset_x+y, ((int(size_of_frame[0]) - 1) - x), 0)
                         # key = f'{y}-{(int(size_of_frame[0]) - 1) - x}-{0}'
                         feagi_data[key] = int(current[x, y])
         else:
@@ -220,7 +221,8 @@ def create_feagi_data(significant_changes=[], current=[], shape=[], index=[], co
                 for y in range(size_of_frame[1]):
                     for z in range(size_of_frame[2]):
                         if significant_changes[x, y, z]:
-                            key = f'{offset_x + y}-{((int(size_of_frame[0]) - 1) - x)}-{z}'
+                            # key = f'{offset_x + y}-{((int(size_of_frame[0]) - 1) - x)}-{z}'
+                            key = (offset_x + y, ((int(size_of_frame[0]) - 1) - x), z)
                             # key = f'{y}-{((int(size_of_frame[0]) - 1) - x)}-{z}'
                             feagi_data[key] = int(current[x, y, z])
     return feagi_data
