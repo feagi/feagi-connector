@@ -246,32 +246,31 @@ def unique_function_for_special_opu(opu_data, processed_opu_data, cortical_name)
     return processed_opu_data
 
 
-def translate_feagi_into_robot(cortical_id, cortical_name, opu_data, processed_opu_data):
-    if cortical_id in pns.full_list_dimension:
-        average_length = dict()
-        name_actuator = cortical_name
-        if name_actuator == 'motion_control' or name_actuator == 'servo_position':
-            return unique_function_for_special_opu(opu_data, processed_opu_data, name_actuator)
-        for data_point in opu_data[cortical_id]:
-            processed_data_point = block_to_array(data_point)
-            device_id = processed_data_point[0]
-            device_power = opu_data[cortical_id][data_point]
-            if device_id in average_length:
-                average_length[device_id].append([device_power, processed_data_point[2]])
-            else:
-                average_length[device_id] = [[device_power, processed_data_point[2]]]
-        if average_length:
-            processed_opu_data = {name_actuator: {}}
-            for device_id in average_length:
-                add_value = 0.0
-                for x in average_length[device_id]:
-                    add_value += ((x[1] + 1) / pns.full_list_dimension[cortical_id]['cortical_dimensions'][2]) * x[0]
-                processed_opu_data[name_actuator][device_id] = add_value / len(average_length[device_id])
-    return processed_opu_data
+# def translate_feagi_into_robot(cortical_id, cortical_name, opu_data, processed_opu_data):
+#     if cortical_id in pns.full_list_dimension:
+#         average_length = dict()
+#         name_actuator = cortical_name
+#         if name_actuator == 'motion_control' or name_actuator == 'servo_position':
+#             return unique_function_for_special_opu(opu_data, processed_opu_data, name_actuator)
+#         for data_point in opu_data[cortical_id]:
+#             processed_data_point = block_to_array(data_point)
+#             device_id = processed_data_point[0]
+#             device_power = opu_data[cortical_id][data_point]
+#             if device_id in average_length:
+#                 average_length[device_id].append([device_power, processed_data_point[2]])
+#             else:
+#                 average_length[device_id] = [[device_power, processed_data_point[2]]]
+#         if average_length:
+#             processed_opu_data = {name_actuator: {}}
+#             for device_id in average_length:
+#                 add_value = 0.0
+#                 for x in average_length[device_id]:
+#                     add_value += ((x[1] + 1) / pns.full_list_dimension[cortical_id]['cortical_dimensions'][2]) * x[0]
+#                 processed_opu_data[name_actuator][device_id] = add_value / len(average_length[device_id])
+#     return processed_opu_data
 
 
 def opu_calculator(feagi_data, cortical_id):
-  print("FEAGI DATA: ", feagi_data)
   new_processed_data = {}
 
   # iterate each group of xy
@@ -291,7 +290,6 @@ def opu_calculator(feagi_data, cortical_id):
     if add_value != 0.0:
       new_processed_data[xy_key] = add_value / total_points
 
-  print("RESULT: ", new_processed_data)
   return new_processed_data
 
 
@@ -303,25 +301,10 @@ def opu_processor(data):
         if opu_data is not None:
             for cortical_id in opu_data:
               add_value = 0.0
-              if cortical_id not in processed_opu_data:
-                processed_opu_data[cortical_id] = {}
-              # hardcoded_data =  {(0,0,1): 1.0, (0,0,4): 0.6}
-              print("HERE: ", opu_calculator(opu_data[cortical_id], cortical_id))
-              # print("add value: ", add_value)
-              # if add_value != 0.0:
-              #   processed_opu_data[cortical_id] = add_value / len(opu_data[cortical_id])
-              # print("PROCESSED OPU DATA ONLY WITHOUT ANYTHING ELSE: ", processed_opu_data)
-                # processed_opu_data[cortical_id][(key[0], key[1], key[2])] = opu_data[cortical_id][data_point]
-            # print(processed_opu_data)
-
-              # print("length: ", len(opu_data[cortical_id])) # Use this for divide
-                # if cortical_id in pns.full_list_dimension:
-                #   cortical_name = pns.name_to_feagi_id_opu(cortical_id)
-                #   print("test: ", opu_data[cortical_id])
-                    # processed_opu_data = translate_feagi_into_robot(cortical_id=cortical_id,
-                    #                                                 cortical_name=cortical_name,
-                    #                                                 opu_data=opu_data,
-                    #                                                 processed_opu_data=processed_opu_data)
+              if cortical_id in pns.full_list_dimension:
+                if cortical_id not in processed_opu_data:
+                  processed_opu_data[cortical_id] = {}
+                processed_opu_data[cortical_id] = opu_calculator(opu_data[cortical_id], cortical_id)
             return processed_opu_data
     except Exception as error:
         print("error: ", error)
