@@ -136,26 +136,25 @@ def feagi_outbound(feagi_ip_host, feagi_opu_port):
     Return the zmq address of outbound
     """
     return 'tcp://' + feagi_ip_host + ':' + \
-           feagi_opu_port
+        feagi_opu_port
 
 
 def convert_new_networking_into_old_networking(feagi_settings):
-    back_to_old_json =  {
-            "feagi_url": None,
-            "feagi_dns": None,
-            "feagi_host": None,
-            "feagi_api_port": None,
+    back_to_old_json = {
+        "feagi_url": None,
+        "feagi_dns": None,
+        "feagi_host": None,
+        "feagi_api_port": None,
 
     }
     ip = feagi_settings['feagi_url'].split('//')
-    back_to_old_json['feagi_host'] = ip[1] # grab ip only
+    back_to_old_json['feagi_host'] = ip[1]  # grab ip only
     back_to_old_json['feagi_api_port'] = feagi_settings['feagi_api_port']
     if feagi_settings['magic_link']:
         print("use the flag, '--magic_link 'url'")
         # Not yet.
         # back_to_old_json['magic_link'] = feagi_settings['magic_link']
     return back_to_old_json
-
 
 
 def msg_processor(self, msg, msg_type, capabilities):
@@ -215,6 +214,7 @@ def compose_message_to_feagi(original_message, data=None, battery=0):
             1: runtime_data["battery_charge_level"] / 100}
     return message_to_feagi, runtime_data["battery_charge_level"]
 
+
 def unique_function_for_special_opu(opu_data, processed_opu_data, cortical_name):
     if "motion_control" == cortical_name:
         if opu_data['o_mctl']:
@@ -226,7 +226,8 @@ def unique_function_for_special_opu(opu_data, processed_opu_data, cortical_name)
                         if pns.full_list_dimension['o_mctl']['cortical_dimensions'][2] == 1:
                             device_power = opu_data['o_mctl'][data_point]
                         else:
-                            device_power = ((processed_data_point[2] + 1.0) / (pns.full_list_dimension['o_mctl']['cortical_dimensions'][2]))
+                            device_power = ((processed_data_point[2] + 1.0) / (
+                            pns.full_list_dimension['o_mctl']['cortical_dimensions'][2]))
                         device_id = build_up_from_mctl(processed_data_point)
                         index = processed_data_point[0] // 4
                         if device_id is not None:
@@ -238,10 +239,10 @@ def unique_function_for_special_opu(opu_data, processed_opu_data, cortical_name)
         if opu_data['o_spos']:
             processed_opu_data['servo_position'] = {}
             for data_point in opu_data['o_spos']:
-                        processed_data_point = block_to_array(data_point)
-                        device_id = processed_data_point[0]
-                        device_power = processed_data_point[2]
-                        processed_opu_data['servo_position'][device_id] = device_power
+                processed_data_point = block_to_array(data_point)
+                device_id = processed_data_point[0]
+                device_power = processed_data_point[2]
+                processed_opu_data['servo_position'][device_id] = device_power
     return processed_opu_data
 
 
@@ -268,19 +269,50 @@ def translate_feagi_into_robot(cortical_id, cortical_name, opu_data, processed_o
                 processed_opu_data[name_actuator][device_id] = add_value / len(average_length[device_id])
     return processed_opu_data
 
+def opu_calculator(feagi_data, cortical_id):
+  print("FEAGI DATA: ", feagi_data)
+  new_processed_data = {}
+  add_value = 0.0
+  total_keys = len(feagi_data)
+  increment = 0
+  for data_point in feagi_data:
+    key = data_point
+    print("key: ", key)
+    add_value += ((feagi_data[data_point] * (key[2] + 1)) / pns.full_list_dimension[cortical_id]['cortical_dimensions'][2])
+    increment += 1
+    if add_value != 0.0 and total_keys == increment:
+      new_processed_data[(key[0], key[1])] = add_value / total_keys
+      print("RESULT: ", new_processed_data)
+  return new_processed_data
+
 
 def opu_processor(data):
     try:
         processed_opu_data = {}
         opu_data = data["opu_data"]
+        processed_opu_data = {}
         if opu_data is not None:
             for cortical_id in opu_data:
-                if cortical_id in pns.full_list_dimension:
-                    cortical_name = pns.name_to_feagi_id_opu(cortical_id)
-                    processed_opu_data = translate_feagi_into_robot(cortical_id=cortical_id,
-                                                                    cortical_name=cortical_name,
-                                                                    opu_data=opu_data,
-                                                                    processed_opu_data=processed_opu_data)
+              add_value = 0.0
+              if cortical_id not in processed_opu_data:
+                processed_opu_data[cortical_id] = {}
+              hardcoded_data =  {(0,0,1): 1.0, (0,0,4): 0.6}
+              print("HERE: ", opu_calculator(hardcoded_data, cortical_id))
+              # print("add value: ", add_value)
+              # if add_value != 0.0:
+              #   processed_opu_data[cortical_id] = add_value / len(opu_data[cortical_id])
+              # print("PROCESSED OPU DATA ONLY WITHOUT ANYTHING ELSE: ", processed_opu_data)
+                # processed_opu_data[cortical_id][(key[0], key[1], key[2])] = opu_data[cortical_id][data_point]
+            # print(processed_opu_data)
+
+              # print("length: ", len(opu_data[cortical_id])) # Use this for divide
+                # if cortical_id in pns.full_list_dimension:
+                #   cortical_name = pns.name_to_feagi_id_opu(cortical_id)
+                #   print("test: ", opu_data[cortical_id])
+                    # processed_opu_data = translate_feagi_into_robot(cortical_id=cortical_id,
+                    #                                                 cortical_name=cortical_name,
+                    #                                                 opu_data=opu_data,
+                    #                                                 processed_opu_data=processed_opu_data)
             return processed_opu_data
     except Exception as error:
         print("error: ", error)
@@ -303,7 +335,7 @@ def control_data_processor(data):
                 configuration.capabilities["position"][position_index]["z"] = \
                     float(control_data['robot_starting_position'][position_index][2])
         return configuration.capabilities["motor"]["power_coefficient"], \
-               configuration.capabilities["position"]
+            configuration.capabilities["position"]
 
 
 def connect_to_feagi(feagi_settings, runtime_data, agent_settings, capabilities, current_version,
@@ -346,7 +378,6 @@ def connect_to_feagi(feagi_settings, runtime_data, agent_settings, capabilities,
         router.websocket_client_initalize('', '', dns=websocket_url)
         threading.Thread(target=router.websocket_recieve, daemon=True).start()
 
-
     return feagi_settings, runtime_data, api_address, feagi_ipu_channel, feagi_opu_channel
 
 
@@ -366,39 +397,39 @@ def build_up_from_mctl(id):
         (3, 2): "roll_right"
     }
     # Get the action from the dictionary, return None if not found
-    return action_map.get((id[0]%4, id[1]))
+    return action_map.get((id[0] % 4, id[1]))
 
 
 def configuration_load(path='./'):
     # NEW JSON UPDATE
     try:
-      fcap = open(path + 'capabilities.json')
-      json_capabilities = json.load(fcap)
-      capabilities = json_capabilities['capabilities']
-      fcap.close()
+        fcap = open(path + 'capabilities.json')
+        json_capabilities = json.load(fcap)
+        capabilities = json_capabilities['capabilities']
+        fcap.close()
     except Exception as error:
-      capabilities = {}
-      # print("ERROR: ", error)
+        capabilities = {}
+        # print("ERROR: ", error)
 
     try:
-      fnet = open(path + 'networking.json')
-      configuration = json.load(fnet)
-      feagi_settings = configuration["feagi_settings"]
-      agent_settings = configuration['agent_settings']
-      feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
-      feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
-      if 'description' in configuration:
-          pns.ver = configuration['description']
-      fnet.close()
+        fnet = open(path + 'networking.json')
+        configuration = json.load(fnet)
+        feagi_settings = configuration["feagi_settings"]
+        agent_settings = configuration['agent_settings']
+        feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
+        feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
+        if 'description' in configuration:
+            pns.ver = configuration['description']
+        fnet.close()
     except Exception as error:
-      # print("ERROR: ", error)
-      feagi_settings = {}
-      agent_settings = {}
-
+        # print("ERROR: ", error)
+        feagi_settings = {}
+        agent_settings = {}
 
     message_to_feagi = {"data": {}}
     return feagi_settings, agent_settings, capabilities, message_to_feagi, configuration
     # END JSON UPDATE
+
 
 def reading_parameters_to_confirm_communication(new_settings, configuration, path="."):
     # Check if feagi_connector has arg
@@ -410,7 +441,8 @@ def reading_parameters_to_confirm_communication(new_settings, configuration, pat
     parser.add_argument('-port', '--port', help='to use feagi_port', required=False)
     args = vars(parser.parse_args())
     if 'feagi_dns' in new_settings:
-        print("OLD networking.json DETECTED! Please update your networking.json to latest. Next update will be removed that could crash the feagi controller if the old networking.json is not updated!!!")
+        print(
+            "OLD networking.json DETECTED! Please update your networking.json to latest. Next update will be removed that could crash the feagi controller if the old networking.json is not updated!!!")
         feagi_settings = new_settings
     else:
         print("using new json")
@@ -427,7 +459,7 @@ def reading_parameters_to_confirm_communication(new_settings, configuration, pat
                     feagi_settings['magic_link'] = args[arg]
                     break
             configuration['feagi_settings']['feagi_url'] = feagi_settings['magic_link']
-            with open(path+'networking.json', 'w') as f:
+            with open(path + 'networking.json', 'w') as f:
                 json.dump(configuration, f, indent=4)
         else:
             feagi_settings['magic_link'] = feagi_settings['feagi_url']
@@ -447,7 +479,7 @@ def reading_parameters_to_confirm_communication(new_settings, configuration, pat
             del feagi_settings['feagi_dns']
         if 'magic_link' in feagi_settings:
             del feagi_settings['magic_link']
-            with open(path+'networking.json', 'w') as f:
+            with open(path + 'networking.json', 'w') as f:
                 json.dump(configuration, f, indent=4)
         while not feagi_flag:
             feagi_flag = is_FEAGI_reachable(os.environ.get('FEAGI_HOST_INTERNAL', feagi_settings["feagi_host"]),
@@ -461,9 +493,11 @@ def reading_parameters_to_confirm_communication(new_settings, configuration, pat
         if args['ip']:
             feagi_settings['feagi_host'] = args['ip']
         while not feagi_flag:
-            feagi_flag = is_FEAGI_reachable(os.environ.get('FEAGI_HOST_INTERNAL', feagi_settings["feagi_host"]),int(os.environ.get('FEAGI_OPU_PORT', feagi_settings['feagi_opu_port'])))
+            feagi_flag = is_FEAGI_reachable(os.environ.get('FEAGI_HOST_INTERNAL', feagi_settings["feagi_host"]),
+                                            int(os.environ.get('FEAGI_OPU_PORT', feagi_settings['feagi_opu_port'])))
             sleep(2)
     return feagi_settings, configuration
+
 
 def build_up_from_configuration(path="./"):
     feagi_settings, agent_settings, capabilities, message_to_feagi, configuration = configuration_load(path)
@@ -471,7 +505,7 @@ def build_up_from_configuration(path="./"):
     # overwrite manual
     default_capabilities = pns.create_runtime_default_list(default_capabilities, capabilities)
 
-    feagi_settings, configuration = reading_parameters_to_confirm_communication(feagi_settings, configuration,path)
+    feagi_settings, configuration = reading_parameters_to_confirm_communication(feagi_settings, configuration, path)
     return {
         "feagi_settings": feagi_settings,
         "agent_settings": agent_settings,
@@ -479,6 +513,7 @@ def build_up_from_configuration(path="./"):
         "message_to_feagi": message_to_feagi,
         "capabilities": capabilities
     }
+
 
 def map_value(val, min1, max1, min2, max2):
     """ Performs linear transformation to map value from
