@@ -96,6 +96,7 @@ def signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings, feagi_
         router.websocket_send(message_to_feagi)
     router.msg_counter += 1
 
+
 def grab_geometry():
     """
     To get the size of vision cortical areas (e.g., C, TL, TM...)
@@ -147,12 +148,12 @@ def obtain_opu_data(message_from_feagi):
     if message_from_feagi:
         opu_data = feagi.opu_processor(message_from_feagi)
         for i in opu_data:
-          cortical_name = pns.name_to_feagi_id_opu(i)
-          if opu_data[i]:
-            for x in opu_data[i]:
-              if cortical_name not in opu_signal_dict:
-                opu_signal_dict[cortical_name] = {}
-              opu_signal_dict[cortical_name][x[0]] = opu_data[i][x]
+            cortical_name = pns.name_to_feagi_id_opu(i)
+            if opu_data[i]:
+                for x in opu_data[i]:
+                    if cortical_name not in opu_signal_dict:
+                        opu_signal_dict[cortical_name] = {}
+                    opu_signal_dict[cortical_name][x[0]] = opu_data[i][x]
     return opu_signal_dict
 
 
@@ -231,9 +232,11 @@ def eccentricity_control_update(message_from_feagi, capabilities):
                         max_range = capabilities['input']['camera'][index]['vision_range'][1]
                         min_range = capabilities['input']['camera'][index]['vision_range'][0]
                         if device_id == '0':
-                          capabilities['input']['camera'][index]["eccentricity_control"]["X offset percentage"] = int(((intensity_select / max_depth_of_cortical) * (max_range - min_range)) + min_range)
+                            capabilities['input']['camera'][index]["eccentricity_control"]["X offset percentage"] = int(
+                                ((intensity_select / max_depth_of_cortical) * (max_range - min_range)) + min_range)
                         if device_id == '1':
-                          capabilities['input']['camera'][index]["eccentricity_control"]["Y offset percentage"] = int(((intensity_select / max_depth_of_cortical) * (max_range - min_range)) + min_range)
+                            capabilities['input']['camera'][index]["eccentricity_control"]["Y offset percentage"] = int(
+                                ((intensity_select / max_depth_of_cortical) * (max_range - min_range)) + min_range)
 
     return capabilities
 
@@ -253,9 +256,11 @@ def modulation_control_update(message_from_feagi, capabilities):
                         max_range = capabilities['input']['camera'][index]['vision_range'][1]
                         min_range = capabilities['input']['camera'][index]['vision_range'][0]
                         if device_id == '0':
-                          capabilities['input']['camera'][index]["modulation_control"]["X offset percentage"] = int(((intensity_select / max_depth_of_cortical) * (max_range - min_range)) + min_range)
+                            capabilities['input']['camera'][index]["modulation_control"]["X offset percentage"] = int(
+                                ((intensity_select / max_depth_of_cortical) * (max_range - min_range)) + min_range)
                         if device_id == '1':
-                          capabilities['input']['camera'][index]["modulation_control"]["Y offset percentage"] = int(((intensity_select / max_depth_of_cortical) * (max_range - min_range)) + min_range)
+                            capabilities['input']['camera'][index]["modulation_control"]["Y offset percentage"] = int(
+                                ((intensity_select / max_depth_of_cortical) * (max_range - min_range)) + min_range)
     return capabilities
 
 
@@ -268,6 +273,7 @@ def detect_ID_data(message_from_feagi):
         if message_from_feagi["opu_data"]["o___id"]:
             return message_from_feagi["opu_data"]["o___id"]
     return {}
+
 
 def recognize_location_data(message_from_feagi):
     """
@@ -306,6 +312,7 @@ def fetch_full_dimensions():
     """
     return router.fetch_geometry()
 
+
 def fetch_full_template_information():
     """
     List of the full size and names of every cortical area. It does not include properties such as
@@ -333,7 +340,8 @@ def check_genome_status(message_from_feagi, capabilities):
             response = full_list_dimension
             if 'camera' in capabilities['input']:
                 for index in capabilities['input']['camera']:
-                    resize_list = retina.obtain_cortical_vision_size(capabilities['input']['camera'][index]["index"], response)
+                    resize_list = retina.obtain_cortical_vision_size(capabilities['input']['camera'][index]["index"],
+                                                                     response)
             previous_genome_timestamp = message_from_feagi["genome_changed"]
         current_tracker = obtain_genome_number(genome_tracker, message_from_feagi)
         if len(resize_list) == 0:
@@ -341,7 +349,8 @@ def check_genome_status(message_from_feagi, capabilities):
             if 'camera' in capabilities['input']:
                 if 'camera' in capabilities['input']:
                     for index in capabilities['input']['camera']:
-                        resize_list = retina.obtain_cortical_vision_size(capabilities['input']['camera'][index]["index"], response)
+                        resize_list = retina.obtain_cortical_vision_size(
+                            capabilities['input']['camera'][index]["index"], response)
         if genome_tracker != current_tracker:
             full_list_dimension = fetch_full_dimensions()
             genome_tracker = current_tracker
@@ -386,10 +395,12 @@ def fetch_vision_turner(message_from_feagi, capabilities):
                         min_range = capabilities['input']['camera']['0']["threshold_range"][0]
                         if int(device_id) == 1:
                             for index in capabilities['input']['camera']:
-                                capabilities['input']['camera'][index]["percentage_to_allow_data"] = int(((intensity_select / max_depth_of_cortical) * (10 - 1)) + 1) / 10
+                                capabilities['input']['camera'][index]["percentage_to_allow_data"] = int(
+                                    ((intensity_select / max_depth_of_cortical) * (10 - 1)) + 1) / 10
                         else:
                             for index in capabilities['input']['camera']:
-                                capabilities['input']['camera'][index]["threshold_default"] = int(((intensity_select / max_depth_of_cortical) * (max_range - min_range)) + min_range)
+                                capabilities['input']['camera'][index]["threshold_default"] = int(
+                                    ((intensity_select / max_depth_of_cortical) * (max_range - min_range)) + min_range)
     return capabilities
 
 
@@ -424,26 +435,29 @@ def fetch_enhancement_data(message_from_feagi, capabilities):
                         if device_id == 1:
                             intensity_select = (int(data_point.split('-')[-1]))
                             max_depth_of_cortical = full_list_dimension['ov_enh']['cortical_dimensions'][
-                                                     2] - 1
+                                                        2] - 1
                             max_range = 1.4
                             min_range = 0.5
                             for index in capabilities['input']['camera']:
-                                capabilities['input']['camera'][index]["enhancement"][int(device_id)] = float(((intensity_select / max_depth_of_cortical) * (max_range - min_range)) + min_range)
+                                capabilities['input']['camera'][index]["enhancement"][int(device_id)] = float(
+                                    ((intensity_select / max_depth_of_cortical) * (max_range - min_range)) + min_range)
                         if device_id == 2:
                             intensity_select = (int(data_point.split('-')[-1]))
                             max_depth_of_cortical = full_list_dimension['ov_enh']['cortical_dimensions'][
-                                                     2] - 1
+                                                        2] - 1
                             max_range = 2.0
                             min_range = 0.8
                             for index in capabilities['input']['camera']:
-                                capabilities['input']['camera'][index]["enhancement"][int(device_id)] = float(((intensity_select/ max_depth_of_cortical) * (max_range - min_range)) + min_range)
+                                capabilities['input']['camera'][index]["enhancement"][int(device_id)] = float(
+                                    ((intensity_select / max_depth_of_cortical) * (max_range - min_range)) + min_range)
                         if device_id == 0:
                             intensity_select = (int(data_point.split('-')[-1]))
                             max_depth_of_cortical = full_list_dimension['ov_enh']['cortical_dimensions'][2]
                             max_range = 100
                             min_range = -100
                             for index in capabilities['input']['camera']:
-                                capabilities['input']['camera'][index]["enhancement"][int(device_id)] = float(((intensity_select/ max_depth_of_cortical) * (max_range - min_range)) + min_range)
+                                capabilities['input']['camera'][index]["enhancement"][int(device_id)] = float(
+                                    ((intensity_select / max_depth_of_cortical) * (max_range - min_range)) + min_range)
     return capabilities
 
 
@@ -468,7 +482,7 @@ def create_runtime_default_list(list, capabilities):
     """
     if not list:
         list = {
-            "input":{
+            "input": {
                 "camera": {
                     "0": {
                         "type": "ipu",
@@ -499,6 +513,7 @@ def create_runtime_default_list(list, capabilities):
         list = camera_config_update(list, capabilities)
     return list
 
+
 # This is why u don't use chatgpt. zzzz
 # def update_dict(d, u):
 #     for k, v in u.items():
@@ -513,12 +528,13 @@ def camera_config_update(list, capabilities):
     Update the capabilities to overwrite the default generated capabilities.
     """
     if capabilities:
-      if 'camera' in capabilities['input']:
-          for index in capabilities['input']['camera']:
-              for key in list['input']['camera']['0']:
-                  if key not in capabilities['input']['camera'][index]:
-                      capabilities['input']['camera'][index][key] = list['input']['camera']['0'][key]
+        if 'camera' in capabilities['input']:
+            for index in capabilities['input']['camera']:
+                for key in list['input']['camera']['0']:
+                    if key not in capabilities['input']['camera'][index]:
+                        capabilities['input']['camera'][index][key] = list['input']['camera']['0'][key]
     return capabilities
+
 
 def name_to_feagi_id_ipu(sensor_name):
     try:
@@ -528,6 +544,7 @@ def name_to_feagi_id_ipu(sensor_name):
         traceback.print_exc()
         return None
 
+
 def name_to_feagi_id_opu(sensor_name):
     try:
         return pns.full_template_information_corticals['OPU']['supported_devices'][sensor_name]['controller_id']
@@ -535,6 +552,16 @@ def name_to_feagi_id_opu(sensor_name):
         print(f"This sensor, {sensor_name}, is not available at the moment.")
         traceback.print_exc()
         return None
+
+
+def check_actuator_measure(cortical_id):
+    try:
+        return pns.full_template_information_corticals['OPU']['supported_devices'][cortical_id]['measurable']
+    except:
+        print(f"This sensor, {cortical_id}, is not available at the moment.")
+        traceback.print_exc()
+        return None
+
 
 def feagi_listener(feagi_opu_channel):
     """
