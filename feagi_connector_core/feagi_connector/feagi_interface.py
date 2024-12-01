@@ -227,7 +227,7 @@ def unique_function_for_special_opu(opu_data, processed_opu_data, cortical_name)
                             device_power = opu_data['o_mctl'][data_point]
                         else:
                             device_power = ((processed_data_point[2] + 1.0) / (
-                            pns.full_list_dimension['o_mctl']['cortical_dimensions'][2]))
+                                pns.full_list_dimension['o_mctl']['cortical_dimensions'][2]))
                         device_id = build_up_from_mctl(processed_data_point)
                         index = processed_data_point[0] // 4
                         if device_id is not None:
@@ -271,40 +271,41 @@ def unique_function_for_special_opu(opu_data, processed_opu_data, cortical_name)
 
 
 def opu_calculator(feagi_data, cortical_id):
-  new_processed_data = {}
+    new_processed_data = {}
 
-  # iterate each group of xy
-  grouped_data = {}
-  for key, value in feagi_data.items():
-    xy_key = (key[0], key[1])
-    if xy_key not in grouped_data:
-      grouped_data[xy_key] = []
-    grouped_data[xy_key].append((key[2], value))
+    # iterate each group of xy
+    grouped_data = {}
+    for key, value in feagi_data.items():
+        xy_key = (key[0], key[1])
+        if xy_key not in grouped_data:
+            grouped_data[xy_key] = []
+        grouped_data[xy_key].append((key[2], value))
 
-  # calculate each group
-  for xy_key, points in grouped_data.items():
-    add_value = 0.0
-    total_points = len(points)
-    for z, value in points:
-      add_value += (value * (z + 1)) / pns.full_list_dimension[cortical_id]['cortical_dimensions'][2]
-    if add_value != 0.0:
-      new_processed_data[xy_key] = add_value / total_points
+    # calculate each group
+    for xy_key, points in grouped_data.items():
+        add_value = 0.0
+        total_points = len(points)
+        for z, value in points:
+            add_value += (value * (z + 1)) / pns.full_list_dimension[cortical_id]['cortical_dimensions'][2]
+        if add_value != 0.0:
+            new_processed_data[xy_key] = add_value / total_points
 
-  return new_processed_data
+    return new_processed_data
 
 
 def opu_processor(data):
     try:
-        processed_opu_data = {}
         opu_data = data["opu_data"]
         processed_opu_data = {}
         if opu_data is not None:
             for cortical_id in opu_data:
-              add_value = 0.0
-              if cortical_id in pns.full_list_dimension:
-                if cortical_id not in processed_opu_data:
-                  processed_opu_data[cortical_id] = {}
-                processed_opu_data[cortical_id] = opu_calculator(opu_data[cortical_id], cortical_id)
+                if cortical_id in pns.full_list_dimension:
+                    if cortical_id not in processed_opu_data:
+                        processed_opu_data[cortical_id] = {}
+                    if not pns.check_actuator_measure(cortical_id):
+                        processed_opu_data[cortical_id] = opu_data[cortical_id]
+                    else:
+                        processed_opu_data[cortical_id] = opu_calculator(opu_data[cortical_id], cortical_id)
             return processed_opu_data
     except Exception as error:
         print("error: ", error)
