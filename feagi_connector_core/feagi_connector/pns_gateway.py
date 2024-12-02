@@ -150,12 +150,15 @@ def obtain_opu_data(message_from_feagi):
           cortical_name = pns.name_to_feagi_id_opu(i)
           if opu_data[i]:
             for x in opu_data[i]:
-              if cortical_name not in opu_signal_dict:
-                opu_signal_dict[cortical_name] = {}
-              if cortical_name == "motion_control":
-                opu_signal_dict[cortical_name][feagi.build_up_from_mctl(x)] = opu_data[i][x]
-              else:
-                opu_signal_dict[cortical_name][x[0]] = opu_data[i][x]
+                index = x[0] // 4
+                if cortical_name not in opu_signal_dict:
+                    opu_signal_dict[cortical_name] = {}
+                if cortical_name == "motion_control":
+                    if index not in opu_signal_dict[cortical_name]:
+                        opu_signal_dict[cortical_name][index] = {}
+                    opu_signal_dict[cortical_name][index][feagi.build_up_from_mctl(x)] = opu_data[i][x]
+                else:
+                    opu_signal_dict[cortical_name][x[0]] = opu_data[i][x]
     return opu_signal_dict
 
 
