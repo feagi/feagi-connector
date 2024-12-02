@@ -54,6 +54,53 @@ except Exception as error:
     embodiment_name = {}
 
 
+feagi_misc_to_petoi_token_mapping = {
+        0: 'gPb',
+        1: 'f',
+        2: 'kbalance',
+        3: 'd',
+        4: 'ksit',
+        5: 'kstr',
+        6: 'khi',
+        7: 'kpee',
+        8: 'kpu',
+        9: 'kphF',
+        10: 'kphL',
+        11: 'kphR',
+        12: 'kch',
+        13: 'kbk',
+        14: 'kkc',
+        15: 'khg',
+        16: 'khu',
+        17: 'krc',
+        18: 'kscrh',
+        19: 'kdg',
+        20: 'kwh',
+        21: 'kgbd',
+        22: 'ktbl',
+        23: 'kbx',
+        24: 'kfiv',
+        25: 'kbf',
+        26: 'khsk',
+        27: 'kgdb',
+        28: 'kbx',
+        29: 'kjmp',
+        30: 'kang',
+        31: 'c',
+        32: 'kpd',
+        33: 'kwk',
+        34: 'krn',
+        35: 'ktr',
+        36: 'L',
+        37: 'R',
+        38: 'kbuttup',
+        39: 'kchr',
+        40: 'kbk',
+        41: 'kcmh',
+        42: 'khds',
+        43: 'ksnf',
+        44: 'knd'
+    }
 
 
 def embodiment_id_map(name):
@@ -105,8 +152,8 @@ def petoi_listen(message, full_data):
                 received_data[str(servo_id)] = int(float(split_data[servo_id]))
             embodiment_id['servo_status'] = received_data
         if len(split_data) == 6:
-            embodiment_id['gyro'] = {0: float(split_data[0]), 1: float(split_data[1]), 2: float(split_data[2])}
-            embodiment_id['acceleration'] = {0:int(split_data[3]), 1: int(split_data[4]), 2: int(split_data[5])}
+            embodiment_id['gyro']['0'] = [float(split_data[0]), float(split_data[1]), float(split_data[2])]
+            embodiment_id['acceleration']['0'] = [int(split_data[3]), int(split_data[4]), int(split_data[5])]
         else:
             full_data = message
     except Exception as Error_case:
@@ -138,7 +185,7 @@ def microbit_listen(message):
         # Store values in dictionary
         embodiment_id['ir'] = ir_list
         embodiment_id['ultrasonic'] = ultrasonic / 25
-        embodiment_id['acceleration'] = {0: x_acc, 1: y_acc, 2: z_acc}
+        embodiment_id['acceleration']['0'] = [x_acc,  y_acc, z_acc]
         embodiment_id['sound_level'] = {sound_level}
         return
     except Exception as Error_case:
@@ -208,11 +255,10 @@ async def echo(websocket, path):
     for i in embodiment_id:
         if isinstance(embodiment_id[i], dict):
             embodiment_id[i].clear()
-        if isinstance(embodiment_id[i], list):
+        elif isinstance(embodiment_id[i], list):
             embodiment_id[i].clear()
         else:
             embodiment_id[i] = None
-
 
 
 async def main():
@@ -259,11 +305,10 @@ def petoi_action(obtained_data):
         WS_STRING = servo_for_feagi
 
     if recieved_misc_data:
+        # Note: Only the last command is being considered and the rest are disposed
         for data_point in recieved_misc_data:
-            if data_point == 0:
-                WS_STRING = 'gPb'
-            if data_point == 1:
-                WS_STRING = 'f'
+            WS_STRING = feagi_misc_to_petoi_token_mapping.get(data_point)
+
     if servo_data:
         servo_for_feagi = 'i '
         for device_id in servo_data:
