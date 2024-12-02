@@ -14,16 +14,19 @@ def window_average(sequence):
     return sum(sequence) // len(sequence)
 
 
-def obtain_opu_data(device_list, message_from_feagi):
-    opu_signal_dict = {}
-    opu_data = feagi.opu_processor(message_from_feagi)
-    for i in device_list:
-        if i in opu_data and opu_data[i]:
-            for x in opu_data[i]:
-                if i not in opu_signal_dict:
-                    opu_signal_dict[i] = {}
-                opu_signal_dict[i][x] = opu_data[i][x]
-    return opu_signal_dict
+# def obtain_opu_data(device_list, message_from_feagi):
+#     opu_signal_dict = {}
+#     print("called: ", message_from_feagi)
+#     opu_data = feagi.opu_processor(message_from_feagi)
+#     print("test: ", opu_data)
+#     for i in device_list:
+#         if i in opu_data and opu_data[i]:
+#             for x in opu_data[i]:
+#                 if i not in opu_signal_dict:
+#                     opu_signal_dict[i] = {}
+#                 opu_signal_dict[i][x] = opu_data[i][x]
+#     print("here: ", opu_signal_dict)
+#     return opu_signal_dict
 
 
 def motor_generate_power(power_maximum, feagi_power):
@@ -360,8 +363,7 @@ def check_convert_gpio_to_input(obtained_data):
 
 
 def get_position_data(power, min_output, max_output):
-    max_input = pns.full_list_dimension['o_spos']['cortical_dimensions'][2]
-    return (power / max_input) * (max_output - min_output) + min_output
+    return power * (max_output - min_output) + min_output
 
 
 def actuator_to_feagi_map(capabilities):
