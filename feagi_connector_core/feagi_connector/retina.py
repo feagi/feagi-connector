@@ -573,23 +573,21 @@ def vision_progress(capabilities={}, feagi_settings={}, raw_frame={}):
     global genome_tracker, previous_genome_timestamp
     burst_counter = {}
     while True:
-        message_from_feagi = pns.message_from_feagi
-        if message_from_feagi is not None and message_from_feagi and message_from_feagi['burst_counter'] != burst_counter:
-            burst_counter = message_from_feagi['burst_counter']
-            capabilities = pns.fetch_vision_turner(message_from_feagi, capabilities)
-            capabilities = pns.fetch_enhancement_data(message_from_feagi, capabilities)
-            capabilities = pns.fetch_threshold_type(message_from_feagi, capabilities)
-            capabilities = pns.fetch_mirror_opu(message_from_feagi, capabilities)
-            # Update resize if genome has been changed:
-            pns.check_genome_status(message_from_feagi, capabilities)
-            if isinstance(raw_frame, dict):
-                if 'vision' in raw_frame:
-                    capabilities = pns.obtain_blink_data(raw_frame['vision'], message_from_feagi, capabilities)  # for javascript webcam
-            capabilities = pns.monitor_switch(message_from_feagi, capabilities)
-            capabilities = pns.eccentricity_control_update(message_from_feagi, capabilities)
-            capabilities = pns.modulation_control_update(message_from_feagi, capabilities)
-            feagi_settings['feagi_burst_speed'] = pns.check_refresh_rate(message_from_feagi, feagi_settings['feagi_burst_speed'])
-        sleep(feagi_settings['feagi_burst_speed'])
+      message_from_feagi = pns.message_from_feagi
+      opu_data_message_only = pns.obtain_opu_data(message_from_feagi)
+      if message_from_feagi is not None and message_from_feagi and message_from_feagi['burst_counter'] != burst_counter:
+          burst_counter = message_from_feagi['burst_counter']
+          capabilities = pns.fetch_vision_turner(opu_data_message_only, capabilities)
+          capabilities = pns.fetch_enhancement_data(opu_data_message_only, capabilities)
+          # capabilities = pns.fetch_threshold_type(opu_data_message_only, capabilities) # TODO: revisit this
+          capabilities = pns.fetch_mirror_opu(opu_data_message_only, capabilities)
+          # Update resize if genome has been changed:
+          pns.check_genome_status(message_from_feagi, capabilities)
+          capabilities = pns.obtain_blink_data(raw_frame['vision'], message_from_feagi, capabilities)  # for javascript webcam
+          capabilities = pns.eccentricity_control_update(opu_data_message_only, capabilities)
+          capabilities = pns.modulation_control_update(opu_data_message_only, capabilities)
+          feagi_settings['feagi_burst_speed'] = pns.check_refresh_rate(message_from_feagi, feagi_settings['feagi_burst_speed'])
+      sleep(feagi_settings['feagi_burst_speed'])
 
     # return capabilities, feagi_settings['feagi_burst_speed']
 
