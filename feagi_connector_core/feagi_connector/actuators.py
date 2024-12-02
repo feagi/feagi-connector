@@ -363,8 +363,7 @@ def check_convert_gpio_to_input(obtained_data):
 
 
 def get_position_data(power, min_output, max_output):
-    max_input = pns.full_list_dimension['o_spos']['cortical_dimensions'][2]
-    return (power / max_input) * (max_output - min_output) + min_output
+    return power * (max_output - min_output) + min_output
 
 
 def actuator_to_feagi_map(capabilities):
