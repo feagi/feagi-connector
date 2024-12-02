@@ -181,21 +181,6 @@ def obtain_data_type(data):
         print("Couldn't find: ", type(data).__name__, " and full name of the class: ", type(data))
         return "Unknown"
 
-
-def obtain_blink_data(raw_frame, message_from_feagi, capabilities):
-    """
-    It will update based on the blink opu.
-    """
-    if isinstance(raw_frame, dict):
-        if "o_blnk" in message_from_feagi["opu_data"]:
-            if message_from_feagi["opu_data"]["o_blnk"]:
-                if 'camera' in capabilities['input']:
-                    for index in capabilities['input']['camera']:
-                        if raw_frame[index].any():
-                            capabilities['input']['camera'][index]['blink'] = raw_frame[index]
-    return capabilities
-
-
 def obtain_genome_number(genome_tracker, message_from_feagi):
     """
     Update when the genome modified.
@@ -204,79 +189,6 @@ def obtain_genome_number(genome_tracker, message_from_feagi):
         if message_from_feagi['genome_num'] != genome_tracker:
             return message_from_feagi['genome_num']
     return genome_tracker
-
-
-def eccentricity_control_update(message_from_feagi, capabilities):
-  """
-  Update camera eccentricity control settings based on FEAGI message.
-
-  Args:
-      message_from_feagi (dict): Message containing eccentricity control settings
-      capabilities (dict): System capabilities configuration
-
-  Returns:
-      dict: Updated capabilities with new eccentricity values
-  """
-  if full_list_dimension:
-    range = {
-      0: {'min': 1, 'max': 99},  # X offset range
-      1: {'min': 1, 'max': 99}  # Y offset range
-    }
-
-    if 'eccentricity_control' in message_from_feagi:
-      if 'camera' in capabilities.get('input', {}):
-        for camera_index in capabilities['input']['camera']:
-          for device_id, intensity_select in message_from_feagi['eccentricity_control'].items():
-            device_id = int(device_id)
-            if device_id not in range:
-              continue
-
-            ranges = range[device_id]
-            scaled_value = int((intensity_select * (ranges['max'] - ranges['min'])) + ranges['min'])
-
-            if device_id == 0:
-              capabilities['input']['camera'][camera_index]["eccentricity_control"][
-                "X offset percentage"] = scaled_value
-            elif device_id == 1:
-              capabilities['input']['camera'][camera_index]["eccentricity_control"][
-                "Y offset percentage"] = scaled_value
-
-  return capabilities
-
-
-def modulation_control_update(message_from_feagi, capabilities):
-  """
-  Update camera modulation control settings based on FEAGI message.
-
-  Args:
-      message_from_feagi (dict): Message containing modulation control settings
-      capabilities (dict): System capabilities configuration
-
-  Returns:
-      dict: Updated capabilities with new modulation values
-  """
-  if full_list_dimension:
-    range = {
-      0: {'min': 1, 'max': 99},  # X offset range
-      1: {'min': 1, 'max': 99}  # Y offset range
-    }
-    if 'modulation_control' in message_from_feagi:
-      if 'camera' in capabilities.get('input', {}):
-        for camera_index in capabilities['input']['camera']:
-          for device_id, intensity_select in message_from_feagi['modulation_control'].items():
-            device_id = int(device_id)
-            if device_id not in range:
-              continue
-            ranges = range[device_id]
-            scaled_value = int((intensity_select * (ranges['max'] - ranges['min'])) + ranges['min'])
-
-            if device_id == 0:
-              capabilities['input']['camera'][camera_index]["modulation_control"]["X offset percentage"] = scaled_value
-            elif device_id == 1:
-              capabilities['input']['camera'][camera_index]["modulation_control"]["Y offset percentage"] = scaled_value
-
-  return capabilities
-
 
 def detect_ID_data(message_from_feagi):
     """
@@ -389,51 +301,6 @@ def check_genome_status_no_vision(message_from_feagi):
             genome_tracker = current_tracker
 
 
-def fetch_vision_turner(message_from_feagi, capabilities):
-  """
-  Updates vision threshold settings for camera inputs based on FEAGI messages.
-
-  This function processes two threshold parameters that control edge detection sensitivity
-  and data transmission rates:
-
-  Parameters:
-      message_from_feagi (dict): Message containing threshold settings where:
-          - threshold[0] (float): Edge detection sensitivity multiplier (0-1)
-              - Will be multiplied by 255 to get final threshold
-              - Higher values = less sensitive
-              - Lower values = more sensitive
-          - threshold[1] (float): Data transmission filter (0-1)
-              - Controls how much visual data passes to FEAGI
-              - 1.0 = allow all data
-              - 0.0 = minimal data transmission
-
-      capabilities (dict): System capabilities configuration containing camera settings
-
-  Returns:
-      dict: Updated capabilities dictionary with new threshold values
-
-  Example:
-      message = {
-          'threshold': {
-              0: 0.2,  # Will set threshold_default to 51 (0.2 * 255)
-              1: 0.5   # Will allow 50% of data through
-          }
-      }
-      capabilities = fetch_vision_turner(message, capabilities)
-  """
-  if full_list_dimension:
-    if 'threshold' in message_from_feagi:
-      if message_from_feagi["threshold"]:
-        if 'camera' in capabilities['input']:
-          for index in capabilities['input']['camera']:
-            for data_point in message_from_feagi["threshold"]:
-              if data_point == 0:
-                capabilities['input']['camera'][index]["threshold_default"] = 255 * message_from_feagi["threshold"][
-                  data_point]
-              if data_point == 1:
-                capabilities['input']['camera'][index]["percentage_to_allow_data"] = message_from_feagi["threshold"][
-                  data_point]
-  return capabilities
 
 
 def fetch_threshold_type(message_from_feagi, capabilities):
@@ -444,42 +311,6 @@ def fetch_threshold_type(message_from_feagi, capabilities):
                 device_id = int(data_point.split('-')[0])
                 capabilities['camera']["threshold_type"][int(device_id)] = True
     return capabilities
-
-
-def fetch_mirror_opu(message_from_feagi, capabilities):
-  if 'horizontal_flip' in message_from_feagi:
-    if 'camera' in capabilities['input']:
-        for index in capabilities['input']['camera']:
-            if capabilities['input']['camera'][index]["mirror"]:
-                capabilities['input']['camera'][index]["mirror"] = False
-            else:
-                capabilities['input']['camera'][index]["mirror"] = True
-  return capabilities
-
-
-def fetch_enhancement_data(message_from_feagi, capabilities):
-  if full_list_dimension:
-
-    range = {
-      0: {'min': -100, 'max': 100},
-      1: {'min': 0.5, 'max': 1.4},
-      2: {'min': 0.8, 'max': 2.0}
-    }
-    if "enhancement" in message_from_feagi:
-        if message_from_feagi["enhancement"]:
-          if capabilities:
-            if 'camera' in capabilities['input']:
-              for data_point in message_from_feagi["enhancement"]:
-                intensity_select = message_from_feagi["enhancement"][data_point]
-                device_id = int(data_point)
-                if device_id not in range:
-                  continue
-                ranges = range[device_id]
-                for camera_index in capabilities['input']['camera']:
-                  capabilities['input']['camera'][camera_index]["enhancement"][device_id] = \
-                    float((intensity_select * (ranges['max'] - ranges['min'])) + ranges['min'])
-  return capabilities
-
 
 def create_runtime_default_list(list, capabilities):
     """
