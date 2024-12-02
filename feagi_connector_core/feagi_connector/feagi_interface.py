@@ -215,35 +215,35 @@ def compose_message_to_feagi(original_message, data=None, battery=0):
     return message_to_feagi, runtime_data["battery_charge_level"]
 
 
-def unique_function_for_special_opu(opu_data, processed_opu_data, cortical_name):
-    if "motion_control" == cortical_name:
-        if opu_data['o_mctl']:
-            processed_opu_data['motion_control'] = {}
-            if "o_mctl" in pns.full_list_dimension:
-                if 'o_mctl' in opu_data:
-                    for data_point in opu_data['o_mctl']:
-                        processed_data_point = block_to_array(data_point)
-                        if pns.full_list_dimension['o_mctl']['cortical_dimensions'][2] == 1:
-                            device_power = opu_data['o_mctl'][data_point]
-                        else:
-                            device_power = ((processed_data_point[2] + 1.0) / (
-                                pns.full_list_dimension['o_mctl']['cortical_dimensions'][2]))
-                        device_id = build_up_from_mctl(processed_data_point)
-                        index = processed_data_point[0] // 4
-                        if device_id is not None:
-                            if index in processed_opu_data['motion_control']:
-                                processed_opu_data['motion_control'][index].update({device_id: device_power})
-                            else:
-                                processed_opu_data['motion_control'][index] = {device_id: device_power}
-    if "servo_position" == cortical_name:
-        if opu_data['o_spos']:
-            processed_opu_data['servo_position'] = {}
-            for data_point in opu_data['o_spos']:
-                processed_data_point = block_to_array(data_point)
-                device_id = processed_data_point[0]
-                device_power = processed_data_point[2]
-                processed_opu_data['servo_position'][device_id] = device_power
-    return processed_opu_data
+# def unique_function_for_special_opu(opu_data, processed_opu_data, cortical_name):
+#     if "motion_control" == cortical_name:
+#         if opu_data['o_mctl']:
+#             processed_opu_data['motion_control'] = {}
+#             if "o_mctl" in pns.full_list_dimension:
+#                 if 'o_mctl' in opu_data:
+#                     for data_point in opu_data['o_mctl']:
+#                         processed_data_point = block_to_array(data_point)
+#                         if pns.full_list_dimension['o_mctl']['cortical_dimensions'][2] == 1:
+#                             device_power = opu_data['o_mctl'][data_point]
+#                         else:
+#                             device_power = ((processed_data_point[2] + 1.0) / (
+#                                 pns.full_list_dimension['o_mctl']['cortical_dimensions'][2]))
+#                         device_id = build_up_from_mctl(processed_data_point)
+#                         index = processed_data_point[0] // 4
+#                         if device_id is not None:
+#                             if index in processed_opu_data['motion_control']:
+#                                 processed_opu_data['motion_control'][index].update({device_id: device_power})
+#                             else:
+#                                 processed_opu_data['motion_control'][index] = {device_id: device_power}
+#     if "servo_position" == cortical_name:
+#         if opu_data['o_spos']:
+#             processed_opu_data['servo_position'] = {}
+#             for data_point in opu_data['o_spos']:
+#                 processed_data_point = block_to_array(data_point)
+#                 device_id = processed_data_point[0]
+#                 device_power = processed_data_point[2]
+#                 processed_opu_data['servo_position'][device_id] = device_power
+#     return processed_opu_data
 
 
 # def translate_feagi_into_robot(cortical_id, cortical_name, opu_data, processed_opu_data):
