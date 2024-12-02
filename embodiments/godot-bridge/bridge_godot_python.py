@@ -76,15 +76,14 @@ def main(feagi_settings, runtime_data, capabilities):
             if one_frame["genome_changed"] != previous_genome_timestamp:
                 previous_genome_timestamp = one_frame["genome_changed"]
                 if one_frame["genome_changed"] is not None:
-                    if one_frame["genome_num"] != current_genome_number or one_frame[
-                        'change_register'] != current_register_number:
+                    if one_frame["genome_num"] != current_genome_number or one_frame['change_register']['agent'] != current_register_number:
                         print("updated time")
                         if send_to_BV_queue:
                             send_to_BV_queue[0] = "update"
                         else:
                             send_to_BV_queue.append("updated")
                         current_genome_number = one_frame["genome_num"]
-                        current_register_number = one_frame['change_register']
+                        current_register_number = one_frame['change_register']['agent']
             runtime_data["stimulation_period"] = one_frame['burst_frequency']
 
             # processed_one_frame is the data from godot. It break down due to absolutely and

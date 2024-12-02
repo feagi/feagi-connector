@@ -19,42 +19,6 @@ import traceback
 import time
 from feagi_connector import pns_gateway as pns
 
-#
-# def add_infrared_to_feagi_data(ir_list, message_to_feagi, capabilities):
-#     formatted_ir_data = {sensor: True for sensor in ir_list}
-#     for ir_sensor in range(int(capabilities['infrared']['count'])):
-#         if ir_sensor not in formatted_ir_data:
-#             formatted_ir_data[ir_sensor] = False
-#     return pns.append_sensory_data_for_feagi('ir', formatted_ir_data, message_to_feagi)
-#
-#
-# def add_ultrasonic_to_feagi_data(ultrasonic_list, message_to_feagi):
-#     formatted_ultrasonic_data = {sensor: data for sensor, data in enumerate([ultrasonic_list])}
-#     return pns.append_sensory_data_for_feagi('ultrasonic', formatted_ultrasonic_data,
-#                                              message_to_feagi)
-#
-#
-# def add_battery_to_feagi_data(battery_list, message_to_feagi):
-#     formatted_battery_data = {sensor: data for sensor, data in enumerate([battery_list])}
-#     return pns.append_sensory_data_for_feagi(sensor, formatted_battery_data,
-#                                              message_to_feagi)
-#
-#
-# def add_gyro_to_feagi_data(gyro_list, message_to_feagi):
-#     return pns.append_sensory_data_for_feagi(sensor, gyro_list, message_to_feagi)
-#
-#
-# def add_acc_to_feagi_data(accelerator_list, message_to_feagi):
-#     return pns.append_sensory_data_for_feagi('accelerator', accelerator_list, message_to_feagi)
-#
-#
-# def add_encoder_to_feagi_data(encoder_list, message_to_feagi):
-#     return pns.append_sensory_data_for_feagi('encoder_data', encoder_list, message_to_feagi)
-#
-#
-# def add_sound_to_feagi_data(hear_list, message_to_feagi):
-#     return pns.append_sensory_data_for_feagi('hearing', hear_list, message_to_feagi)
-
 
 def add_generic_input_to_feagi_data(generic_list, message_to_feagi):
     message_to_feagi['created_at'] = time.time()
@@ -73,7 +37,7 @@ def add_agent_status(status, message_to_feagi, agent_settings):
 
 def convert_sensor_to_ipu_data(min_output, max_output, current_data, device_id, sensor_name, symmetric=False):
     if pns.full_list_dimension:
-        cortical_id = pns.name_to_feagi_id(sensor_name=sensor_name)
+        cortical_id = pns.name_to_feagi_id_ipu(sensor_name=sensor_name)
         if cortical_id in pns.full_list_dimension:
             max_input = pns.full_list_dimension[cortical_id]['cortical_dimensions'][2] - 1
             total_range = max_output - min_output
@@ -81,7 +45,8 @@ def convert_sensor_to_ipu_data(min_output, max_output, current_data, device_id, 
                 current_position = (current_data / total_range) * max_input
             else:
                 current_position = pns.get_map_value(current_data, min_output, max_output, 0, max_input)
-            data = str(device_id) + '-0-' + str(int(round(current_position)))
+            # data = str(device_id) + '-0-' + str(int(round(current_position)))
+            data = (device_id, 0, int(round(current_position)))
             return data
     return None
 
@@ -135,24 +100,25 @@ def create_data_for_feagi(sensor, capabilities, message_to_feagi, current_data, 
     if pns.full_template_information_corticals:
         for device_id in capabilities['input'][sensor]:
             if not capabilities['input'][sensor][device_id]['disabled']:
-                cortical_id = pns.name_to_feagi_id(sensor_name=sensor)
+                cortical_id = pns.name_to_feagi_id_ipu(sensor_name=sensor)
                 create_data_list = dict()
                 create_data_list[cortical_id] = dict()
                 try:
-                    if isinstance(current_data, list) or isinstance(current_data, dict):
+                    if isinstance(current_data, dict):
                         if isinstance(capabilities['input'][sensor][device_id]['max_value'], list):
-                            for inner_device_id in range(len(capabilities['input'][sensor][device_id]['max_value'])):
+                            for inner_device_id in range(
+                                    len(current_data[device_id])):  # x, y, z, or r, p, y (depending on the application)
                                 if measure_enable:
                                     capabilities['input'][sensor][device_id]['max_value'][inner_device_id], \
                                         capabilities['input'][sensor][device_id]['min_value'][
                                             inner_device_id] = measuring_max_and_min_range(
-                                        current_data[inner_device_id],
+                                        current_data[device_id][inner_device_id],
                                         capabilities['input'][sensor][device_id]['max_value'][inner_device_id],
                                         capabilities['input'][sensor][device_id]['min_value'][inner_device_id])
                                 position_in_feagi_location = convert_sensor_to_ipu_data(
                                     capabilities['input'][sensor][device_id]['min_value'][inner_device_id],
                                     capabilities['input'][sensor][device_id]['max_value'][inner_device_id],
-                                    current_data[inner_device_id],
+                                    current_data[device_id][inner_device_id],
                                     capabilities['input'][sensor][device_id]['feagi_index'] + inner_device_id,
                                     sensor_name=sensor,
                                     symmetric=True)
@@ -164,7 +130,8 @@ def create_data_for_feagi(sensor, capabilities, message_to_feagi, current_data, 
                             for inner_device_id in current_data:
                                 if measure_enable:
                                     capabilities['input'][sensor][str(inner_device_id)]['max_value'], \
-                                        capabilities['input'][sensor][str(inner_device_id)]['min_value'] = measuring_max_and_min_range(
+                                        capabilities['input'][sensor][str(inner_device_id)][
+                                            'min_value'] = measuring_max_and_min_range(
                                         current_data[inner_device_id],
                                         capabilities['input'][sensor][str(inner_device_id)]['max_value'],
                                         capabilities['input'][sensor][str(inner_device_id)]['min_value'])
@@ -186,7 +153,9 @@ def create_data_for_feagi(sensor, capabilities, message_to_feagi, current_data, 
                             create_data_list = dict()
                             create_data_list[cortical_id] = dict()
                             if measure_enable:
-                                capabilities['input'][sensor][device_id]['max_value'], capabilities['input'][sensor][device_id]['min_value'] = measuring_max_and_min_range(current_data, capabilities['input'][sensor][device_id]['max_value'],
+                                capabilities['input'][sensor][device_id]['max_value'], \
+                                capabilities['input'][sensor][device_id]['min_value'] = measuring_max_and_min_range(
+                                    current_data, capabilities['input'][sensor][device_id]['max_value'],
                                     capabilities['input'][sensor][device_id]['min_value'])
 
                             position_in_feagi_location = convert_sensor_to_ipu_data(
@@ -196,12 +165,12 @@ def create_data_for_feagi(sensor, capabilities, message_to_feagi, current_data, 
                             create_data_list[cortical_id][position_in_feagi_location] = 100
                             if create_data_list[cortical_id]:
                                 message_to_feagi = add_generic_input_to_feagi_data(create_data_list,
-                                                                                           message_to_feagi)
+                                                                                   message_to_feagi)
                 except Exception as e:
-                    print("here: ", e)
+                    print("Last error is from: ", sensor, " and the current data: ", current_data,
+                          " and the numbers in ", sensor, " is currently: ", len(capabilities['input'][sensor]))
                     traceback.print_exc()
     return message_to_feagi
-
 
 
 def convert_xyz_to_012(old_dictionary_data):
@@ -215,4 +184,3 @@ def convert_xyz_to_012(old_dictionary_data):
             new_dictionary_data[increment] = old_dictionary_data[key][nested_key]
             increment += 1
     return new_dictionary_data
-

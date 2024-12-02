@@ -36,8 +36,75 @@ servo_status = {}
 gyro = {}
 current_device = {}
 connected_agents = dict()  # Initalize
+connected_agents['capabilities'] = {}
+connected_agents['device'] = ""
 connected_agents['0'] = False  # By default, it is not connected by client's websocket
 muse_data = {}
+embodiment_id = {'servo_status': {}, 'acceleration': {}, 'gyro': {}, 'sound_level': {}, 'ir': [], 'ultrasonic': {}}
+runtime_data = {"cortical_data": {}, "current_burst_id": None,
+                "stimulation_period": 0.01, "feagi_state": None,
+                "feagi_network": None}
+embodiment_name = {}
+try:
+    fcap = open('device_bluetooth.json')
+    json_embodiment = json.load(fcap)
+    embodiment_name = json_embodiment
+    fcap.close()
+except Exception as error:
+    embodiment_name = {}
+
+
+feagi_misc_to_petoi_token_mapping = {
+        0: 'gPb',
+        1: 'f',
+        2: 'kbalance',
+        3: 'd',
+        4: 'ksit',
+        5: 'kstr',
+        6: 'khi',
+        7: 'kpee',
+        8: 'kpu',
+        9: 'kphF',
+        10: 'kphL',
+        11: 'kphR',
+        12: 'kch',
+        13: 'kbk',
+        14: 'kkc',
+        15: 'khg',
+        16: 'khu',
+        17: 'krc',
+        18: 'kscrh',
+        19: 'kdg',
+        20: 'kwh',
+        21: 'kgbd',
+        22: 'ktbl',
+        23: 'kbx',
+        24: 'kfiv',
+        25: 'kbf',
+        26: 'khsk',
+        27: 'kgdb',
+        28: 'kbx',
+        29: 'kjmp',
+        30: 'kang',
+        31: 'c',
+        32: 'kpd',
+        33: 'kwk',
+        34: 'krn',
+        35: 'ktr',
+        36: 'L',
+        37: 'R',
+        38: 'kbuttup',
+        39: 'kchr',
+        40: 'kbk',
+        41: 'kcmh',
+        42: 'khds',
+        43: 'ksnf',
+        44: 'knd'
+    }
+
+
+def embodiment_id_map(name):
+    return embodiment_name[name]
 
 
 async def bridge_to_godot():
@@ -77,30 +144,22 @@ def feagi_to_petoi_id(device_id):
 
 
 def petoi_listen(message, full_data):
-    global gyro
     try:
-        if '#' in message:
-            cleaned_data = message.replace('\r', '')
-            cleaned_data = cleaned_data.replace('\n', '')
-            test = cleaned_data.split('#')
-            new_data = full_data + test[0]
-            new_data = new_data.split(",")
-            processed_data = []
-            for i in new_data:
-                full_number = str()
-                for x in i:
-                    if x in [".", "-"] or x.isdigit():
-                        full_number += x
-                if full_number:
-                    processed_data.append(float(full_number))
-            # Add gyro data into feagi data
-            gyro['gyro'] = {'0': processed_data[0], '1': processed_data[1],
-                            '2': processed_data[2]}
-            full_data = test[1]
+        split_data = message['data'].split()
+        received_data = {}
+        if len(split_data) == 9:
+            for servo_id in range(len(split_data)):
+                received_data[str(servo_id)] = int(float(split_data[servo_id]))
+            embodiment_id['servo_status'] = received_data
+        if len(split_data) == 6:
+            embodiment_id['gyro']['0'] = [float(split_data[0]), float(split_data[1]), float(split_data[2])]
+            embodiment_id['acceleration']['0'] = [int(split_data[3]), int(split_data[4]), int(split_data[5])]
         else:
             full_data = message
     except Exception as Error_case:
         pass
+        print("error: ", Error_case)
+        traceback.print_exc()
     return full_data
     # print("error: ", Error_case)
     # traceback.print_exc()
@@ -108,7 +167,6 @@ def petoi_listen(message, full_data):
 
 
 def microbit_listen(message):
-    global microbit_data
     ir_list = []
     if message[0] == 'f':
         pass
@@ -125,10 +183,10 @@ def microbit_listen(message):
         ultrasonic = float(message[14:16])
         sound_level = int(message[16:18])
         # Store values in dictionary
-        microbit_data['ir'] = ir_list
-        microbit_data['ultrasonic'] = ultrasonic / 25
-        microbit_data['acceleration'] = {0: x_acc, 1: y_acc, 2: z_acc}
-        microbit_data['sound_level'] = {sound_level}
+        embodiment_id['ir'] = ir_list
+        embodiment_id['ultrasonic'] = ultrasonic / 25
+        embodiment_id['acceleration']['0'] = [x_acc,  y_acc, z_acc]
+        embodiment_id['sound_level'] = {sound_level}
         return
     except Exception as Error_case:
         pass
@@ -145,40 +203,62 @@ async def echo(websocket, path):
     The function echoes the data it receives from other connected websockets
     and sends the data from FEAGI to the connected websockets.
     """
-    current_device['name'] = []
-    full_data = ''
-    async for message in websocket:
-        data_from_bluetooth = json.loads(message)
-        for device_name in data_from_bluetooth:
-            connected_agents['0'] = True  # Since this section gets data from client, its marked as true
-            if device_name not in current_device['name']:
-                current_device['name'].append(device_name)
-            if not ws_operation:
-                ws_operation.append(websocket)
-            else:
-                ws_operation[0] = websocket
+    try:
+        current_device['name'] = []
+        full_data = ''
+        async for message in websocket:
+            data_from_bluetooth = json.loads(message)
+            for device_name in data_from_bluetooth:
+                name_of_device = device_name
+                if device_name == 'capabilities':
+                    connected_agents['capabilities'] = data_from_bluetooth['capabilities']
+                    break
+                if "em-" in device_name:
+                    name_of_device = embodiment_id_map(name_of_device)
+                if name_of_device not in current_device['name']:
+                    if name_of_device == 'petoi' and connected_agents['capabilities']:
+                        feagi_servo_data_to_send = 'i '
+                        for position in connected_agents['capabilities']['output']['servo']:
+                            feagi_servo_data_to_send += str(feagi_to_petoi_id(int(position))) + " " + str(connected_agents['capabilities']['output']['servo'][position]['default_value']) + " "
+                        actuators.start_servos(connected_agents['capabilities'])
+                        ws.append(feagi_servo_data_to_send)
+                    elif name_of_device in ['microbit']:
+                        pass
+                    else:
+                        break
+                    current_device['name'].append(name_of_device)
+                connected_agents['0'] = True  # Since this section gets data from client, its marked as true
 
-            if device_name == "microbit":
-                microbit_listen(data_from_bluetooth['microbit']['data'])
-            elif device_name == "petoi":
-                full_data = petoi_listen(data_from_bluetooth['petoi'], full_data)  # Needs to add
-            elif device_name == "muse":
-                muse_listen(data_from_bluetooth['muse'])
-            elif device_name == "generic":
-                print("generic")
-                pass  # Needs to figure how to address this
-            else:
-                print("unknown device")
-                print("message: ", data_from_bluetooth)
+                if not ws_operation:
+                    ws_operation.append(websocket)
+                else:
+                    ws_operation[0] = websocket
+
+                if name_of_device == "microbit":
+                    microbit_listen(data_from_bluetooth[device_name]['data'])
+                elif name_of_device == "petoi":
+                    full_data = petoi_listen(data_from_bluetooth[device_name], full_data)  # Needs to add
+                elif name_of_device == "muse":
+                    muse_listen(data_from_bluetooth[device_name])
+                elif name_of_device == "generic":
+                    print("generic")
+                    pass  # Needs to figure how to address this
+                else:
+                    print("unknown device")
+                    print("message: ", data_from_bluetooth, " and device: ", current_device['name'])
+    except Exception as error:
+        print("error: ", error)
+        traceback.print_exc()
     connected_agents['0'] = False  # Once client disconnects, mark it as false
     muse_data.clear()
     current_device['name'].clear()
-    for i in microbit_data:
-        if isinstance(microbit_data[i], dict):
-            microbit_data[i].clear()
+    for i in embodiment_id:
+        if isinstance(embodiment_id[i], dict):
+            embodiment_id[i].clear()
+        elif isinstance(embodiment_id[i], list):
+            embodiment_id[i].clear()
         else:
-            microbit_data[i] = None
-
+            embodiment_id[i] = None
 
 
 async def main():
@@ -212,32 +292,31 @@ def muse_listen(obtained_data):
 
 
 def petoi_action(obtained_data):
-    servo_data = actuators.get_servo_data(obtained_data, True)
     WS_STRING = ""
-    if 'servo_position' in obtained_data:
+    servo_data = actuators.get_servo_data(obtained_data)
+    recieve_servo_position_data = actuators.get_servo_position_data(obtained_data)
+    recieved_misc_data = actuators.get_generic_opu_data_from_feagi(obtained_data, 'misc')
+
+    if recieve_servo_position_data:
         servo_for_feagi = 'i '
-        if obtained_data['servo_position'] is not {}:
-            for data_point in obtained_data['servo_position']:
-                device_id = feagi_to_petoi_id(data_point)
-                encoder_position = (((180) / 20) * obtained_data['servo_position'][data_point]) - 90
-                servo_for_feagi += str(device_id) + " " + str(encoder_position) + " "
-            WS_STRING += servo_for_feagi
+        for device_id in recieve_servo_position_data:
+            new_power = int(recieve_servo_position_data[device_id])
+            servo_for_feagi += str(feagi_to_petoi_id(device_id)) + " " + str(new_power) + " "
+        WS_STRING = servo_for_feagi
+
+    if recieved_misc_data:
+        # Note: Only the last command is being considered and the rest are disposed
+        for data_point in recieved_misc_data:
+            WS_STRING = feagi_misc_to_petoi_token_mapping.get(data_point)
+
     if servo_data:
-        WS_STRING = "i"
+        servo_for_feagi = 'i '
         for device_id in servo_data:
-            servo_power = actuators.servo_generate_power(180, servo_data[device_id], device_id)
-            if device_id not in servo_status:
-                servo_status[device_id] = actuators.servo_keep_boundaries(90)
-            else:
-                servo_status[device_id] += servo_power / 10
-                servo_status[device_id] = actuators.servo_keep_boundaries(servo_status[device_id])
-            actual_id = feagi_to_petoi_id(device_id)
-            # print("device id: ", actual_id, ' and power: ', servo_data[device_id], " servo power: ", servo_power)
-            WS_STRING += " " + str(actual_id) + " " + str(
-                int(actuators.servo_keep_boundaries(servo_status[device_id])) - 90)
+            power = int(servo_data[device_id])
+            servo_for_feagi += str(feagi_to_petoi_id(device_id)) + " " + str(power) + " "
+        WS_STRING = servo_for_feagi
     if WS_STRING != "":
         # WS_STRING = WS_STRING + "#"
-        print("sending to main: ", WS_STRING)
         ws.append(WS_STRING)
 
 
@@ -274,23 +353,8 @@ def microbit_action(obtained_data):
         ws.append(WS_STRING)
 
 
-if __name__ == "__main__":
-
-    # NEW JSON UPDATE
-    configuration = feagi.build_up_from_configuration()
-    feagi_settings = configuration["feagi_settings"]
-    agent_settings = configuration['agent_settings']
-    capabilities = configuration['capabilities']
-    feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
-    feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
-    agent_settings['godot_websocket_port'] = os.environ.get('WS_MICROBIT_PORT', "9052")
-    message_to_feagi = {}
-    # END JSON UPDATE
-
-    microbit_data = {'ir': [], 'ultrasonic': {}, 'acceleration': {}, 'sound_level': {}}
-    threading.Thread(target=websocket_operation, daemon=True).start()
-    # threading.Thread(target=bridge_to_godot, daemon=True).start()
-    threading.Thread(target=bridge_operation, daemon=True).start()
+def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, message_to_feagi):
+    global runtime_data # Literally no reason for it to be here. Somehow it is needed?????
     feagi_flag = False
     print("Waiting on FEAGI...")
     while not feagi_flag:
@@ -298,11 +362,7 @@ if __name__ == "__main__":
             os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1"),
             int(os.environ.get('FEAGI_OPU_PORT', "3000"))
         )
-        sleep(2)
-    previous_data_frame = {}
-    runtime_data = {"cortical_data": {}, "current_burst_id": None,
-                    "stimulation_period": 0.01, "feagi_state": None,
-                    "feagi_network": None}
+        sleep(0.1)
 
     feagi_auth_url = feagi_settings.pop('feagi_auth_url', None)
     print("FEAGI AUTH URL ------- ", feagi_auth_url)
@@ -310,16 +370,16 @@ if __name__ == "__main__":
     # # # FEAGI registration # # # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     # - - - - - - - - - - - - - - - - - - #
     feagi_settings, runtime_data, api_address, feagi_ipu_channel, feagi_opu_channel = \
-        feagi.connect_to_feagi(feagi_settings, runtime_data, agent_settings, capabilities,
+        feagi.connect_to_feagi(feagi_settings, runtime_data, agent_settings, connected_agents['capabilities'],
                                __version__)
     threading.Thread(target=pns.feagi_listener, args=(feagi_opu_channel,), daemon=True).start()
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     msg_counter = runtime_data["feagi_state"]['burst_counter']
     runtime_data['acceleration'] = {}
 
-    actuators.start_motors(capabilities)  # initialize motors for you.
+    actuators.start_motors(connected_agents['capabilities'])  # initialize motors for you.
 
-    while True:
+    while connected_agents['0']:
         try:
             message_from_feagi = pns.message_from_feagi
             # OPU section STARTS
@@ -334,20 +394,45 @@ if __name__ == "__main__":
                         petoi_action(obtained_signals)
 
             # OPU section ENDS
-            if microbit_data['ultrasonic']:
-                message_to_feagi = sensors.create_data_for_feagi(sensor='proximity', capabilities=capabilities, message_to_feagi=message_to_feagi,
-                                                                 current_data=microbit_data['ultrasonic'], measure_enable=True)
+            if embodiment_id['ultrasonic']:
+                message_to_feagi = sensors.create_data_for_feagi(sensor='proximity', capabilities=connected_agents['capabilities'], message_to_feagi=message_to_feagi,
+                                                                 current_data=embodiment_id['ultrasonic'], measure_enable=True)
 
-            if microbit_data['acceleration']:
+            if embodiment_id['acceleration']:
                 if pns.full_template_information_corticals:
-                    message_to_feagi = sensors.convert_ir_to_ipu_data(microbit_data['ir'], len(capabilities['input']['infrared']), message_to_feagi)
+                    if 'infrared' in connected_agents['capabilities']['input']:
+                        message_to_feagi = sensors.convert_ir_to_ipu_data(embodiment_id['ir'], len(connected_agents['capabilities']['input']['infrared']), message_to_feagi)
                     # The IR will need to turn the inverse IR on if it doesn't detect. This would confuse humans when
                     # cutebot is not on. So the solution is to put this under the acceleration. It is under acceleration
                     # because without acceleration, the micro:bit is not on. This leverages the advantage to detect if it
                     # is still on.
-                    message_to_feagi = sensors.create_data_for_feagi(sensor='accelerometer', capabilities=capabilities, message_to_feagi=message_to_feagi,
-                                                                     current_data=microbit_data['acceleration'], symmetric=True,
+                    message_to_feagi = sensors.create_data_for_feagi(sensor='accelerometer', capabilities=connected_agents['capabilities'], message_to_feagi=message_to_feagi,
+                                                                     current_data=embodiment_id['acceleration'], symmetric=True,
                                                                      measure_enable=True)
+            if embodiment_id['servo_status']:
+                message_to_feagi = sensors.create_data_for_feagi('servo_position',
+                                                                 connected_agents['capabilities'],
+                                                                 message_to_feagi,
+                                                                 current_data=embodiment_id['servo_status'],
+                                                                 symmetric=True)
+            if embodiment_id['gyro']:
+                # print("gyro: ", petoi_data['gyro'])
+                message_to_feagi = sensors.create_data_for_feagi(
+                    sensor='gyro',
+                    capabilities=connected_agents['capabilities'],
+                    message_to_feagi=message_to_feagi,
+                    current_data=embodiment_id['gyro'],
+                    symmetric=True,
+                    measure_enable=True)
+            if embodiment_id['acceleration']:
+                # print("acc: ", petoi_data['acceleration'])
+                message_to_feagi = sensors.create_data_for_feagi(
+                    sensor='accelerometer',
+                    capabilities=connected_agents['capabilities'],
+                    message_to_feagi=message_to_feagi,
+                    current_data=embodiment_id['acceleration'],
+                    symmetric=True,
+                    measure_enable=True)
 
             message_to_feagi['timestamp'] = datetime.now()
             message_to_feagi['counter'] = msg_counter
@@ -361,3 +446,41 @@ if __name__ == "__main__":
             print("ERROR: ", e)
             traceback.print_exc()
             break
+
+
+if __name__ == '__main__':
+    # NEW JSON UPDATE
+    configuration = feagi.build_up_from_configuration()
+    feagi_settings = configuration["feagi_settings"]
+    agent_settings = configuration['agent_settings']
+    capabilities = configuration['capabilities']
+    feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
+    feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
+    agent_settings['godot_websocket_port'] = os.environ.get('WS_MICROBIT_PORT', "9052")
+    message_to_feagi = {}
+    # END JSON UPDATE
+    threading.Thread(target=websocket_operation, daemon=True).start()
+    # threading.Thread(target=bridge_to_godot, daemon=True).start()
+    threading.Thread(target=bridge_operation, daemon=True).start()
+    print("Waiting on a device to connect....")
+    while not connected_agents['capabilities']:
+        sleep(0.5)
+    while True:
+        while not connected_agents['capabilities']:
+            sleep(0.1) # Repeated but inside loop
+        if connected_agents['capabilities']:
+            capabilities = connected_agents['capabilities']
+            feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
+            feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
+            agent_settings['godot_websocket_port'] = os.environ.get('WS_GODOT_GENERIC_PORT', "9055")
+        feagi_auth_url = feagi_settings.pop('feagi_auth_url', None)
+        print("FEAGI AUTH URL ------- ", feagi_auth_url)
+        try:
+            feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities,
+                       message_to_feagi)
+        except Exception as e:
+            print(f"Controller run failed", e)
+            traceback.print_exc()
+            sleep(2)
+        connected_agents['device'] = ""
+        connected_agents['capabilities'] = {}

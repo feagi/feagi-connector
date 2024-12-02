@@ -6,7 +6,6 @@ from feagi_connector import feagi_interface as feagi
 actuators_mapped = {}
 motor_data = dict()  # formerly rolling_window
 capabilities = dict()  # This will be updated by a controller. On this file, it will initialize as an empty capabilities
-previous_motor_data = {}
 servo_status = {}  # Formerly runtime['servo_status']
 previous_servo_data = {}
 
@@ -15,39 +14,40 @@ def window_average(sequence):
     return sum(sequence) // len(sequence)
 
 
-def obtain_opu_data(device_list, message_from_feagi):
-    opu_signal_dict = {}
-    opu_data = feagi.opu_processor(message_from_feagi)
-    for i in device_list:
-        if i in opu_data and opu_data[i]:
-            for x in opu_data[i]:
-                if i not in opu_signal_dict:
-                    opu_signal_dict[i] = {}
-                opu_signal_dict[i][x] = opu_data[i][x]
-    return opu_signal_dict
+# def obtain_opu_data(device_list, message_from_feagi):
+#     opu_signal_dict = {}
+#     print("called: ", message_from_feagi)
+#     opu_data = feagi.opu_processor(message_from_feagi)
+#     print("test: ", opu_data)
+#     for i in device_list:
+#         if i in opu_data and opu_data[i]:
+#             for x in opu_data[i]:
+#                 if i not in opu_signal_dict:
+#                     opu_signal_dict[i] = {}
+#                 opu_signal_dict[i][x] = opu_data[i][x]
+#     print("here: ", opu_signal_dict)
+#     return opu_signal_dict
 
 
 def motor_generate_power(power_maximum, feagi_power):
-    z_depth = pns.full_list_dimension['o__mot']['cortical_dimensions'][2]
-    if z_depth == 1:
-        return power_maximum * (feagi_power / 100)
-    else:
-        return (feagi_power / (z_depth - 1)) * power_maximum
+    return power_maximum * feagi_power
 
 
 def start_motors(controller_capabilities):
     global actuators_mapped, motor_data, capabilities
-    capabilities = controller_capabilities
-    motor_data = dict()
-    for motor_id in capabilities['output']['motor']:
-        if 'rolling_window_len' in capabilities['output']['motor'][motor_id]:
-            length_rolling_window = capabilities['output']['motor'][motor_id]['rolling_window_len']
-        else:
-            length_rolling_window = 0  # Default to 0 which will be extremely sensitive and stiff
-        motor_data = create_motor_rolling_window_len(length_window=length_rolling_window,
-                                                     current_rolling_window_dict=motor_data,
-                                                     motor_id=motor_id)
-    actuators_mapped = actuator_to_feagi_map(capabilities)
+    # if check_actuator_in_capabilities('motor'): # This needs to be after
+    if 'motor' in controller_capabilities['output']:
+        capabilities = controller_capabilities
+        motor_data = dict()
+        for motor_id in capabilities['output']['motor']:
+            if 'rolling_window_len' in capabilities['output']['motor'][motor_id]:
+                length_rolling_window = capabilities['output']['motor'][motor_id]['rolling_window_len']
+            else:
+                length_rolling_window = 0  # Default to 0 which will be extremely sensitive and stiff
+            motor_data = create_motor_rolling_window_len(length_window=length_rolling_window,
+                                                         current_rolling_window_dict=motor_data,
+                                                         motor_id=motor_id)
+        actuators_mapped = actuator_to_feagi_map(capabilities)
 
 
 def start_servos(controller_capabilities):
@@ -116,22 +116,23 @@ def update_power_of_motor(motor_from_feagi_data):
 
 
 def preparing_motor_data_to_controller():
-    global actuators_mapped, motor_data, previous_motor_data
+    global actuators_mapped, motor_data
     send_motor_data_to_controller = dict()
     for motor_id in actuators_mapped['motor']:
         device_id_list = feagi_mapped_to_dev_index(dev_id='motor', feagi_index=motor_id, mapped_dict=actuators_mapped)
         for motor in device_id_list:
             data_power = motor_data[motor_id][0]
-            if motor not in previous_motor_data or previous_motor_data[motor] != data_power:
-                send_motor_data_to_controller[motor] = data_power
-            previous_motor_data[motor] = data_power
+            send_motor_data_to_controller[motor] = data_power
     return send_motor_data_to_controller
 
 
 def get_motor_data(feagi_data):
-    converted_data = convert_feagi_to_motor_opu(obtained_data=feagi_data)
-    update_power_of_motor(motor_from_feagi_data=converted_data)
-    return preparing_motor_data_to_controller()
+    if check_actuator_in_capabilities('motor'):
+        converted_data = convert_feagi_to_motor_opu(obtained_data=feagi_data)
+        update_power_of_motor(motor_from_feagi_data=converted_data)
+        return preparing_motor_data_to_controller()
+    else:
+        return {}
 
 
 def pass_the_power_to_motor(power_maximum, device_power, device_id, moving_average_len):
@@ -169,11 +170,7 @@ def update_moving_average(moving_average, device_id, device_power):
 
 # Servo OPU starts
 def servo_generate_power(power, feagi_power):
-    z_depth = pns.full_list_dimension['o__ser']['cortical_dimensions'][2]
-    if z_depth == 1:
-        return power * (feagi_power / 100)
-    else:
-        return (feagi_power / (z_depth - 1)) * power
+    return power * feagi_power
 
 
 def update_servo_status_by_default(device_id, initialized_position):
@@ -191,7 +188,7 @@ def servo_negative_or_positive(id, power):
     return power
 
 
-def update_power_of_servo(servo_from_servo_data):
+def update_power_of_servo(servo_from_servo_data, use_previous_servo_data=False):
     global servo_status, capabilities, actuators_mapped
     send_servo_data_to_controller = dict()
     for feagi_id in servo_from_servo_data:
@@ -204,10 +201,14 @@ def update_power_of_servo(servo_from_servo_data):
                 new_power = servo_keep_boundaries(pre_power,
                                                   capabilities['output']['servo'][str(device_id)]['max_value'],
                                                   capabilities['output']['servo'][str(device_id)]['min_value'])
-                if device_id not in previous_servo_data or previous_servo_data[device_id] != new_power:
+                if use_previous_servo_data:
+                    if device_id not in previous_servo_data or previous_servo_data[device_id] != new_power:
+                        send_servo_data_to_controller[device_id] = new_power
+                    servo_status[device_id] = new_power
+                    previous_servo_data[device_id] = new_power
+                else:
                     send_servo_data_to_controller[device_id] = new_power
-                servo_status[device_id] = new_power
-                previous_servo_data[device_id] = new_power
+                    servo_status[device_id] = new_power
     return send_servo_data_to_controller
 
 
@@ -224,19 +225,19 @@ def convert_feagi_to_servo_opu(obtained_data):
     return servo_from_feagi_data
 
 
-def get_servo_data(obtained_data):
+def get_servo_data(obtained_data, use_previous_servo_data=False):
     global capabilities, servo_status
     converted_data = convert_feagi_to_servo_opu(obtained_data)
-    return update_power_of_servo(converted_data)
+    return update_power_of_servo(converted_data, use_previous_servo_data)
 # Servo OPU ends
 
 # Servo Position starts
-def get_servo_position_data(feagi_data):
+def get_servo_position_data(feagi_data, use_previous_servo_data=False):
     converted_data = convert_feagi_to_servo_position_opu(obtained_data=feagi_data)
-    return update_power_of_servo_position(converted_data)
+    return update_power_of_servo_position(converted_data, use_previous_servo_data)
 
 
-def update_power_of_servo_position(servo_from_servo_data):
+def update_power_of_servo_position(servo_from_servo_data, use_previous_servo_data=False):
     global servo_status, capabilities, actuators_mapped
     send_servo_data_to_controller = dict()
     for feagi_id in servo_from_servo_data:
@@ -246,10 +247,14 @@ def update_power_of_servo_position(servo_from_servo_data):
                 new_power = get_position_data(servo_from_servo_data[feagi_id],
                                                         capabilities['output']['servo'][str(device_id)]['min_value'],
                                                         capabilities['output']['servo'][str(device_id)]['max_value'])
-                if device_id not in previous_servo_data or previous_servo_data[device_id] != new_power:
+                if use_previous_servo_data:
+                    if device_id not in previous_servo_data or previous_servo_data[device_id] != new_power:
+                        send_servo_data_to_controller[device_id] = new_power
+                    servo_status[device_id] = new_power
+                    previous_servo_data[device_id] = new_power
+                else:
                     send_servo_data_to_controller[device_id] = new_power
-                servo_status[device_id] = new_power
-                # previous_servo_data[device_id] = new_power
+                    servo_status[device_id] = new_power
     return send_servo_data_to_controller
 
 def convert_feagi_to_servo_position_opu(obtained_data):
@@ -283,17 +288,25 @@ def check_new_speed(obtained_data):
             speed_data[device_id] = device_power
     return speed_data
 
+def check_actuator_in_capabilities(actuator):
+    global capabilities
+    if actuator in capabilities['output']:
+        return True
+    else:
+        return False
+
+
 def get_motion_control_data(obtained_data):
-    global actuators_mapped
+    global actuators_mapped, capabilities
     motion_control_data = dict()
-    if 'motion_control' in obtained_data:
-        for data_point in obtained_data['motion_control']:
-            device_id_list = feagi_mapped_to_dev_index(dev_id='motion_control', feagi_index=data_point,
-                                                       mapped_dict=actuators_mapped)
-            for device_id in device_id_list:
-                device_power = obtained_data['motion_control'][data_point]
-                motion_control_data[device_id] = device_power
-        print(motion_control_data)
+    if check_actuator_in_capabilities('motion_control'):
+        motion_control_data['motion_control'] = dict()
+        if 'motion_control' in obtained_data:
+            for data_point in obtained_data['motion_control']:
+                device_id_list = feagi_mapped_to_dev_index(dev_id='motion_control', feagi_index=data_point, mapped_dict=actuators_mapped)
+                for device_id in device_id_list:
+                    device_power = obtained_data['motion_control'][data_point]
+                    motion_control_data['motion_control'][device_id] = device_power
     return motion_control_data
 
 
@@ -301,13 +314,14 @@ def get_generic_opu_data_from_feagi(obtained_data, actuator_name):
     global actuators_mapped
     generic_data = dict()
     if actuator_name in obtained_data:
-        for data_point in obtained_data[actuator_name]:
-            device_id_list = feagi_mapped_to_dev_index(dev_id=actuator_name, feagi_index=data_point,
-                                                       mapped_dict=actuators_mapped)
-            for device_id in device_id_list:
-                device_id = device_id
-                device_power = obtained_data[actuator_name][data_point]
-                generic_data[device_id] = device_power
+        if check_actuator_in_capabilities(actuator_name):
+            for data_point in obtained_data[actuator_name]:
+                device_id_list = feagi_mapped_to_dev_index(dev_id=actuator_name, feagi_index=data_point,
+                                                           mapped_dict=actuators_mapped)
+                for device_id in device_id_list:
+                    device_id = device_id
+                    device_power = obtained_data[actuator_name][data_point]
+                    generic_data[device_id] = device_power
     return generic_data
 
 
@@ -349,8 +363,7 @@ def check_convert_gpio_to_input(obtained_data):
 
 
 def get_position_data(power, min_output, max_output):
-    max_input = pns.full_list_dimension['o_spos']['cortical_dimensions'][2]
-    return (power / max_input) * (max_output - min_output) + min_output
+    return power * (max_output - min_output) + min_output
 
 
 def actuator_to_feagi_map(capabilities):
