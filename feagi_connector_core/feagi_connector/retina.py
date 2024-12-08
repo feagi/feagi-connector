@@ -605,7 +605,7 @@ def process_visual_stimuli_trainer(real_frame, capabilities, previous_frame_data
     return pns.resize_list, pns.resize_list, capabilities, {}  # sending empty dict
 
 
-def vision_progress(capabilities={}, feagi_settings={}, raw_frame={}):
+def vision_progress(capabilities, feagi_settings, raw_frame):
     global genome_tracker, previous_genome_timestamp
     burst_counter = {}
     while True:
@@ -784,24 +784,33 @@ def fetch_vision_turner(message_from_feagi, capabilities):
 def fetch_enhancement_data(message_from_feagi, capabilities):
     if pns.full_list_dimension:
 
-        range = {
+        default_ranges = {
             0: {'min': -100, 'max': 100},
-            1: {'min': 0.5, 'max': 1.4},
+            1: {'min': 0.0, 'max': 2.0},
             2: {'min': 0.8, 'max': 2.0}
         }
         if "enhancement" in message_from_feagi:
             if message_from_feagi["enhancement"]:
                 if capabilities:
                     if 'camera' in capabilities['input']:
-                        for data_point in message_from_feagi["enhancement"]:
-                            intensity_select = message_from_feagi["enhancement"][data_point]
-                            device_id = int(data_point)
-                            if device_id not in range:
+                        for index in message_from_feagi["enhancement"]:
+                            # Index 0 is brightness
+                            # Index 1 is contrast
+                            # Index 2 is shadows
+                            enhancement_value = message_from_feagi["enhancement"][index]
+                            enhancement_id = int(index)
+                            if enhancement_id not in default_ranges:
                                 continue
-                            ranges = range[device_id]
+                            ranges = default_ranges[enhancement_id]
+                            calculated_enhancement_value = float((enhancement_value *
+                                                                  (ranges['max'] - ranges['min'])) + ranges['min'])
+                            print("intensity_select:------------------------------->", index, enhancement_value,
+                                  calculated_enhancement_value)
                             for camera_index in capabilities['input']['camera']:
-                                capabilities['input']['camera'][camera_index]["enhancement"][device_id] = \
-                                    float((intensity_select * (ranges['max'] - ranges['min'])) + ranges['min'])
+                                capabilities['input']['camera'][camera_index]["enhancement"][enhancement_id] = \
+                                    calculated_enhancement_value
+
+
     return capabilities
 
 
@@ -835,15 +844,15 @@ def check_brightness(frame):
         return "Image is neither too bright nor too dark"
 
 
-def threshold_detect(capabilities):
-    threshold_type = [cv2.THRESH_BINARY, cv2.THRESH_BINARY_INV, cv2.THRESH_TRUNC, cv2.THRESH_TOZERO,
-                      cv2.THRESH_TOZERO_INV, cv2.THRESH_OTSU]
-    threshold_total = cv2.THRESH_BINARY
-    if capabilities['input']['camera'][str(obtain_raw_data)]['threshold_type']:
-        for threshold_selected in range(len(capabilities['input']['camera'][str(obtain_raw_data)]['threshold_type'])):
-            threshold_total = threshold_type[threshold_selected]
-    capabilities['input']['camera'][str(obtain_raw_data)]['threshold_type'].clear()
-    return threshold_total
+# def threshold_detect(capabilities):
+#     threshold_type = [cv2.THRESH_BINARY, cv2.THRESH_BINARY_INV, cv2.THRESH_TRUNC, cv2.THRESH_TOZERO,
+#                       cv2.THRESH_TOZERO_INV, cv2.THRESH_OTSU]
+#     threshold_total = cv2.THRESH_BINARY
+#     if capabilities['input']['camera'][str(obtain_raw_data)]['threshold_type']:
+#         for threshold_selected in range(len(capabilities['input']['camera'][str(obtain_raw_data)]['threshold_type'])):
+#             threshold_total = threshold_type[threshold_selected]
+#     capabilities['input']['camera'][str(obtain_raw_data)]['threshold_type'].clear()
+#     return threshold_total
 
 
 def adjust_brightness(image, bright=None):
@@ -860,10 +869,10 @@ def adjust_contrast(image, contrast=None):
 
 def adjust_shadow(image, shadow=None):
     if shadow:
-        maxIntensity = 255.0
+        max_intensity = 255.0
         phi = 1
         theta = 1
-        adjusted = (maxIntensity / phi) * (image / (maxIntensity / theta)) ** shadow
+        adjusted = (max_intensity / phi) * (image / (max_intensity / theta)) ** shadow
         image = np.array(adjusted, dtype=np.uint8)
     return image
 
