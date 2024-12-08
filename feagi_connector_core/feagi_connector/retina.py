@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-Copyright 2016-2022 The FEAGI Authors. All Rights Reserved.
+Copyright 2016-present Neuraville Inc. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+    https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,14 +18,11 @@ limitations under the License.
 
 import cv2
 import numpy
-import asyncio
-import traceback
 import numpy as np
-import zmq.asyncio
 from time import sleep
 from datetime import datetime
-from feagi_connector import router
-from feagi_connector import pns_gateway as pns
+import pns_gateway as pns
+# from feagi_connector import pns_gateway as pns
 
 genome_tracker = 0
 previous_genome_timestamp = 0
@@ -308,7 +305,7 @@ def get_full_dimension_of_cortical_area(cortical_name=""):
 def process_visual_stimuli(real_frame=[], capabilities={}, previous_frame_data={}, rgb={}, actual_capabilities={},
                            compare_image=True):
     global current_dimension_list, current_mirror_status
-
+    print(" <>+++ " * 10)
     if isinstance(real_frame, numpy.ndarray):
         temp_dict = {0: real_frame}
         real_frame = temp_dict.copy()
