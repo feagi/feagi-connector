@@ -192,7 +192,6 @@ def downsize_regions(frame, resize):
             compressed_dict = np.zeros(resize, dtype=np.uint8)
             compressed_dict = update_astype(compressed_dict)
             return compressed_dict
-    # print("downsize_regions time total: ", (datetime.now() - start_time).total_seconds())
 
 
 def create_feagi_data(significant_changes, current, shape, index, cortical_name, grayscale=False):
@@ -240,7 +239,7 @@ def get_difference_from_two_images(previous, current):
 
 def vision_blink(image, blink):
     """
-    Blink to turn the whole screen briight until next burst
+    Blink to turn the whole screen bright until next burst
     """
     if len(blink) != 0:
         difference = blink
@@ -635,8 +634,8 @@ def vision_progress(capabilities, feagi_settings, raw_frame):
     while True:
         message_from_feagi = pns.message_from_feagi
         opu_data_message_only = pns.obtain_opu_data(message_from_feagi)
-        if message_from_feagi is not None and message_from_feagi and message_from_feagi[
-            'burst_counter'] != burst_counter:
+        if message_from_feagi is not None and message_from_feagi and \
+                message_from_feagi['burst_counter'] != burst_counter:
             burst_counter = message_from_feagi['burst_counter']
             capabilities = fetch_vision_turner(opu_data_message_only, capabilities)
             capabilities = fetch_enhancement_data(opu_data_message_only, capabilities)
@@ -800,8 +799,7 @@ def fetch_vision_turner(message_from_feagi, capabilities):
                                     data_point]
                             if data_point == 1:
                                 capabilities['input']['camera'][index]["percentage_to_allow_data"] = \
-                                message_from_feagi["threshold"][
-                                    data_point]
+                                    message_from_feagi["threshold"][data_point]
     return capabilities
 
 
@@ -897,18 +895,6 @@ def adjust_shadow(image, shadow=None):
         adjusted = (max_intensity / phi) * (image / (max_intensity / theta)) ** shadow
         image = np.array(adjusted, dtype=np.uint8)
     return image
-
-
-def convert_new_json_to_old_json(capabilities, index='0'):
-    """
-    deprecated: Converts the new JSON format to the old JSON format.
-
-    Does nothing
-    """
-
-    print("This function, `convert_new_json_to_old_json`, is deprecated. Please remove this "
-          "function, as it currently does nothing. It will be removed in the next version.")
-    return capabilities
 
 
 def grab_visual_cortex_dimension(capabilities):
