@@ -21,8 +21,8 @@ import numpy
 import numpy as np
 from time import sleep
 from datetime import datetime
-import pns_gateway as pns
-# from feagi_connector import pns_gateway as pns
+# import pns_gateway as pns
+from feagi_connector import pns_gateway as pns
 
 genome_tracker = 0
 previous_genome_timestamp = 0
@@ -67,7 +67,7 @@ def vision_frame_capture(device=0, RGB_flag=True):
 
 
 def vision_region_coordinates(frame_width=None, frame_height=None, x1=None, x2=None, y1=None,
-                              y2=None, camera_index=0, size_list=None):
+                              y2=None, camera_index="0", size_list=None):
     """
     Calculate coordinates for nine different regions within a frame based on given percentages.
 
@@ -302,10 +302,10 @@ def get_full_dimension_of_cortical_area(cortical_name=""):
         current_dimension_list[cortical_name][2]
 
 
-def process_visual_stimuli(real_frame=[], capabilities={}, previous_frame_data={}, rgb={}, actual_capabilities={},
+def process_visual_stimuli(real_frame, capabilities, previous_frame_data, rgb, actual_capabilities,
                            compare_image=True):
     global current_dimension_list, current_mirror_status
-    print(" <>+++ " * 10)
+
     if isinstance(real_frame, numpy.ndarray):
         temp_dict = {0: real_frame}
         real_frame = temp_dict.copy()
@@ -454,12 +454,12 @@ def obtain_cortical_vision_size(camera_index="00", response=""):
     return size_list
 
 
-def drop_high_frequency_events(data=[]):
+def drop_high_frequency_events(data):
     return np.count_nonzero(data)
 
 
-def process_visual_stimuli_trainer(real_frame={}, capabilities={}, previous_frame_data={}, rgb={},
-                                   actual_capabilities={}, compare_image=False):
+def process_visual_stimuli_trainer(real_frame, capabilities, previous_frame_data, rgb,
+                                   actual_capabilities, compare_image=False):
     global current_dimension_list, current_mirror_status
     raw_frame = {}
     if isinstance(real_frame, numpy.ndarray):
@@ -805,21 +805,21 @@ def fetch_enhancement_data(message_from_feagi, capabilities):
     return capabilities
 
 
-def update_astype(data=[]):
+def update_astype(data):
     return data.astype(np.uint8)
 
 
-def RGB_list_to_ndarray(data=[], size=[]):
+def RGB_list_to_ndarray(data, size):
     new_rgb = np.array(data)
     new_rgb = new_rgb.reshape(size[1], size[0], 3)
     return new_rgb
 
 
-def flip_video(data=[]):
+def flip_video(data):
     return cv2.flip(data, 1)
 
 
-def check_brightness(frame=[]):
+def check_brightness(frame):
     # Calculate the average pixel intensity (brightness)
     average_intensity = cv2.mean(frame)[0]
 
@@ -835,7 +835,7 @@ def check_brightness(frame=[]):
         return "Image is neither too bright nor too dark"
 
 
-def threshold_detect(capabilities={}):
+def threshold_detect(capabilities):
     threshold_type = [cv2.THRESH_BINARY, cv2.THRESH_BINARY_INV, cv2.THRESH_TRUNC, cv2.THRESH_TOZERO,
                       cv2.THRESH_TOZERO_INV, cv2.THRESH_OTSU]
     threshold_total = cv2.THRESH_BINARY
@@ -846,22 +846,19 @@ def threshold_detect(capabilities={}):
     return threshold_total
 
 
-def adjust_brightness(image=[], bright=None):
+def adjust_brightness(image, bright=None):
     if bright:
-        highlight = 255
-        alpha_b = (highlight - bright) / 255
-        gamma_b = bright
-        image = cv2.addWeighted(image, alpha_b, image, 0, gamma_b)
+        image = cv2.convertScaleAbs(image, beta=bright)
     return image
 
 
-def adjust_contrast(image=[], contrast=None):
+def adjust_contrast(image, contrast=None):
     if contrast:
-        image = cv2.convertScaleAbs(image, alpha=contrast, beta=0)
+        image = cv2.convertScaleAbs(image, alpha=contrast)
     return image
 
 
-def adjust_shadow(image=[], shadow=None):
+def adjust_shadow(image, shadow=None):
     if shadow:
         maxIntensity = 255.0
         phi = 1
