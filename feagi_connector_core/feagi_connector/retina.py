@@ -43,7 +43,7 @@ def get_device_of_vision(device):
     return cv2.VideoCapture(device)
 
 
-def vision_frame_capture(device=0, RGB_flag=True):
+def vision_frame_capture(device=0, rgb_flag=True):
     """
     Capture frames from the specified `device`, which represents the camera source.
 
@@ -57,10 +57,10 @@ def vision_frame_capture(device=0, RGB_flag=True):
       for grayscale, it displays a single dimension.
       Example format: [[x, y, z], [x, y, z]].
     """
-    start_time = datetime.now()
+
     check, frame = device.read()  # 0 is the default
-    # print("vision_frame_capture time total: ", (datetime.now() - start_time).total_seconds())
-    if RGB_flag:
+
+    if rgb_flag:
         return frame, datetime.now(), check
     else:
         return cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY), datetime.now(), check
@@ -121,7 +121,7 @@ def vision_region_coordinates(frame_width=None, frame_height=None, x1=None, x2=N
     return region_coordinates
 
 
-def split_vision_regions(coordinates={}, raw_frame_data=[]):
+def split_vision_regions(coordinates, raw_frame_data):
     """
     Split a frame into separate regions based on provided coordinates.
 
@@ -141,13 +141,13 @@ def split_vision_regions(coordinates={}, raw_frame_data=[]):
     # start_time = datetime.now()
     frame_segments = dict()
     for region in coordinates:
-        frame_segments[region] = raw_frame_data[coordinates[region][1]:coordinates[region][3],
-                                 coordinates[region][0]:coordinates[region][2]]
+        frame_segments[region] = \
+            raw_frame_data[coordinates[region][1]:coordinates[region][3], coordinates[region][0]:coordinates[region][2]]
     # print("split_vision_regions time total: ", (datetime.now() - start_time).total_seconds())
     return frame_segments
 
 
-def downsize_regions(frame=[], resize=[]):
+def downsize_regions(frame, resize):
     """
     Downsize regions within a frame using specified width and height for compression.
 
@@ -167,26 +167,32 @@ def downsize_regions(frame=[], resize=[]):
     Make sure that the 'frame' input is a valid NumPy ndarray and the 'resize' parameter contains
     appropriate width and height values for compression.
     """
-    # start_time = datetime.now()
+
+    # In case of color image
     if resize[2] == 3:
         try:
             compressed_dict = cv2.resize(frame, [int(resize[0]), int(resize[1])],
                                          interpolation=cv2.INTER_AREA)
+            return compressed_dict
         except Exception as e:
             # print("error inside downsize_regions on retina.py: ", e)
             compressed_dict = np.zeros(resize, dtype=np.uint8)
             compressed_dict = update_astype(compressed_dict)
+            return compressed_dict
+
+    # In case of grayscale image
     if resize[2] == 1:
         try:
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             compressed_dict = cv2.resize(frame, [resize[0], resize[1]],
                                          interpolation=cv2.INTER_AREA)
+            return compressed_dict
         except Exception as e:
             # print(e)
             compressed_dict = np.zeros(resize, dtype=np.uint8)
             compressed_dict = update_astype(compressed_dict)
+            return compressed_dict
     # print("downsize_regions time total: ", (datetime.now() - start_time).total_seconds())
-    return compressed_dict
 
 
 def create_feagi_data(significant_changes, current, shape, index, cortical_name, grayscale=False):
@@ -225,14 +231,14 @@ def create_feagi_data(significant_changes, current, shape, index, cortical_name,
     return feagi_data
 
 
-def get_difference_from_two_images(previous=[], current=[]):
+def get_difference_from_two_images(previous, current):
     """
     Compare two images and detect which pixel changed using cv2 functions.
     """
     return cv2.absdiff(previous, current)
 
 
-def vision_blink(image=[], blink=[]):
+def vision_blink(image, blink):
     """
     Blink to turn the whole screen briight until next burst
     """
@@ -242,11 +248,11 @@ def vision_blink(image=[], blink=[]):
     return image[1]
 
 
-def apply_threshold(difference=[], src=50):
+def apply_threshold(difference, src=50):
     return cv2.threshold(difference, src, 255, cv2.THRESH_TOZERO)
 
 
-def change_detector(previous=[], current=[], src=50, compare_image=True, cortical_name=""):
+def change_detector(previous, current, src=50, compare_image=True, cortical_name=""):
     """
     Detects changes between previous and current frames and checks against a threshold.
 
@@ -265,16 +271,16 @@ def change_detector(previous=[], current=[], src=50, compare_image=True, cortica
             difference = get_difference_from_two_images(previous, current)
         else:
             difference = current
-        _, thresholded = apply_threshold(difference, src=src)
-        return thresholded
+        _, pixel_change_threshold = apply_threshold(difference, src=src)
+        return pixel_change_threshold
     else:
         return {}
 
 
-def generating_rgb_data(cortical_name, thresholded, current, previous, feagi_index, percentage=1.0,
+def generating_rgb_data(cortical_name, pixel_change_threshold, current, previous, feagi_index, percentage=1.0,
                         grayscale=False):
-    if drop_high_frequency_events(thresholded) <= (get_full_dimension_of_cortical_area(cortical_name) * percentage):
-        feagi_data = create_feagi_data(thresholded, current, previous.shape, feagi_index,
+    if drop_high_frequency_events(pixel_change_threshold) <= (get_full_dimension_of_cortical_area(cortical_name) * percentage):
+        feagi_data = create_feagi_data(pixel_change_threshold, current, previous.shape, feagi_index,
                                        cortical_name, grayscale=grayscale)
         return dict(feagi_data)
     else:
@@ -397,7 +403,7 @@ def process_visual_stimuli(real_frame, capabilities, previous_frame_data, rgb, a
                         vision_dict[get_region] = generating_rgb_data(
                             percentage=capabilities['input']['camera'][str(obtain_raw_data)]['percentage_to_allow_data'],
                             cortical_name=get_region,
-                            thresholded=modified_data,
+                            pixel_change_threshold=modified_data,
                             current=one_data_vision[get_region],
                             previous=previous_frame_data[get_region],
                             feagi_index=capabilities['input']['camera'][str(obtain_raw_data)]['feagi_index'])
@@ -419,7 +425,7 @@ def process_visual_stimuli(real_frame, capabilities, previous_frame_data, rgb, a
                         vision_dict[get_region] = generating_rgb_data(
                             percentage=capabilities['input']['camera'][str(obtain_raw_data)]['percentage_to_allow_data'],
                             cortical_name=get_region,
-                            thresholded=modified_data,
+                            pixel_change_threshold=modified_data,
                             current=one_data_vision[get_region],
                             previous=previous_frame_data[get_region],
                             feagi_index=capabilities['input']['camera'][str(obtain_raw_data)]['feagi_index'],
@@ -561,7 +567,7 @@ def process_visual_stimuli_trainer(real_frame, capabilities, previous_frame_data
                             percentage=capabilities['input']['camera'][str(obtain_raw_data)][
                                 'percentage_to_allow_data'],
                             cortical_name=get_region,
-                            thresholded=modified_data,
+                            pixel_change_threshold=modified_data,
                             current=one_data_vision[get_region],
                             previous=previous_frame_data[get_region],
                             feagi_index=capabilities['input']['camera'][str(obtain_raw_data)]['feagi_index'])
@@ -588,7 +594,7 @@ def process_visual_stimuli_trainer(real_frame, capabilities, previous_frame_data
                             percentage=capabilities['input']['camera'][str(obtain_raw_data)][
                                 'percentage_to_allow_data'],
                             cortical_name=get_region,
-                            thresholded=modified_data,
+                            pixel_change_threshold=modified_data,
                             current=one_data_vision[get_region],
                             previous=previous_frame_data[get_region],
                             feagi_index=capabilities['input']['camera'][str(obtain_raw_data)]['feagi_index'],
