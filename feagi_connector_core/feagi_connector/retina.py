@@ -279,7 +279,8 @@ def change_detector(previous, current, src=50, compare_image=True, cortical_name
 
 def generating_rgb_data(cortical_name, pixel_change_threshold, current, previous, feagi_index, percentage=1.0,
                         grayscale=False):
-    if drop_high_frequency_events(pixel_change_threshold) <= (get_full_dimension_of_cortical_area(cortical_name) * percentage):
+    if drop_high_frequency_events(pixel_change_threshold) <= \
+            (get_full_dimension_of_cortical_area(cortical_name) * percentage):
         feagi_data = create_feagi_data(pixel_change_threshold, current, previous.shape, feagi_index,
                                        cortical_name, grayscale=grayscale)
         return dict(feagi_data)
@@ -367,14 +368,17 @@ def process_visual_stimuli(real_frame, capabilities, previous_frame_data, rgb, a
                     compressed_data[cortical] = downsize_regions(frame=segmented_frame_data[cortical],
                                                                  resize=updated_size)
                     if 0 in capabilities['input']['camera'][str(obtain_raw_data)]['enhancement']:
-                        compressed_data[cortical] = adjust_brightness(image=compressed_data[cortical], bright=
-                        capabilities['input']['camera'][str(obtain_raw_data)]['enhancement'][0])
+                        compressed_data[cortical] = adjust_brightness(image=compressed_data[cortical],
+                                                                      bright=capabilities['input']['camera'][
+                                                                          str(obtain_raw_data)]['enhancement'][0])
                     if 1 in capabilities['input']['camera'][str(obtain_raw_data)]['enhancement']:
-                        compressed_data[cortical] = adjust_contrast(image=compressed_data[cortical], contrast=
-                        capabilities['input']['camera'][str(obtain_raw_data)]['enhancement'][1])
+                        compressed_data[cortical] = adjust_contrast(image=compressed_data[cortical],
+                                                                    contrast=capabilities['input']['camera'][
+                                                                        str(obtain_raw_data)]['enhancement'][1])
                     if 2 in capabilities['input']['camera'][str(obtain_raw_data)]['enhancement']:
-                        compressed_data[cortical] = adjust_shadow(image=compressed_data[cortical], shadow=
-                        capabilities['input']['camera'][str(obtain_raw_data)]['enhancement'][2])
+                        compressed_data[cortical] = adjust_shadow(image=compressed_data[cortical],
+                                                                  shadow=capabilities['input']['camera'][
+                                                                      str(obtain_raw_data)]['enhancement'][2])
                     if len(one_data_vision[cortical]) == 0:  # update the newest data into empty one_data_vision
                         one_data_vision[cortical] = compressed_data[cortical]
                     else:
@@ -396,12 +400,14 @@ def process_visual_stimuli(real_frame, capabilities, previous_frame_data, rgb, a
                 if previous_frame_data != {}:
                     if get_region in previous_frame_data:
                         modified_data = change_detector(
-                            previous_frame_data[get_region],
-                            one_data_vision[get_region],
-                            capabilities['input']['camera'][str(obtain_raw_data)]['threshold_default'], compare_image,
-                            get_region)
+                            previous=previous_frame_data[get_region],
+                            current=one_data_vision[get_region],
+                            src=capabilities['input']['camera'][str(obtain_raw_data)]['threshold_default'],
+                            compare_image=compare_image,
+                            cortical_name=get_region)
                         vision_dict[get_region] = generating_rgb_data(
-                            percentage=capabilities['input']['camera'][str(obtain_raw_data)]['percentage_to_allow_data'],
+                            percentage=capabilities['input']['camera'][
+                                str(obtain_raw_data)]['percentage_to_allow_data'],
                             cortical_name=get_region,
                             pixel_change_threshold=modified_data,
                             current=one_data_vision[get_region],
@@ -409,18 +415,20 @@ def process_visual_stimuli(real_frame, capabilities, previous_frame_data, rgb, a
                             feagi_index=capabilities['input']['camera'][str(obtain_raw_data)]['feagi_index'])
                     else:
                         vision_dict[get_region] = change_detector(
-                            np.zeros((3, 3, 3)),
-                            one_data_vision[get_region],
-                            capabilities['input']['camera'][str(obtain_raw_data)]['threshold_default'], compare_image,
-                            get_region)
+                            previous=np.zeros((3, 3, 3)),
+                            current=one_data_vision[get_region],
+                            src=capabilities['input']['camera'][str(obtain_raw_data)]['threshold_default'],
+                            compare_image=compare_image,
+                            cortical_name=get_region)
             else:
                 if previous_frame_data != {}:
                     if get_region in previous_frame_data:
                         modified_data = change_detector(
-                            previous_frame_data[get_region],
-                            one_data_vision[get_region],
-                            capabilities['input']['camera'][str(obtain_raw_data)]['threshold_default'], compare_image,
-                            get_region)
+                            previous=previous_frame_data[get_region],
+                            current=one_data_vision[get_region],
+                            src=capabilities['input']['camera'][str(obtain_raw_data)]['threshold_default'],
+                            compare_image=compare_image,
+                            cortical_name=get_region)
 
                         vision_dict[get_region] = generating_rgb_data(
                             percentage=capabilities['input']['camera'][str(obtain_raw_data)]['percentage_to_allow_data'],
@@ -432,9 +440,11 @@ def process_visual_stimuli(real_frame, capabilities, previous_frame_data, rgb, a
                             grayscale=True)
                     else:
                         vision_dict[get_region] = change_detector(
-                            np.zeros((3, 3, 3)),
-                            one_data_vision[get_region],
-                            capabilities, compare_image, get_region)
+                            previous=np.zeros((3, 3, 3)),
+                            current=one_data_vision[get_region],
+                            src=capabilities,
+                            compare_image=compare_image,
+                            cortical_name=get_region)
         if previous_frame_data:
             previous_frame_data.update(one_data_vision)
         else:
