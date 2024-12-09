@@ -44,6 +44,7 @@ embodiment_id = {'servo_status': {}, 'acceleration': {}, 'gyro': {}, 'sound_leve
 runtime_data = {"cortical_data": {}, "current_burst_id": None,
                 "stimulation_period": 0.01, "feagi_state": None,
                 "feagi_network": None}
+last_data = {'0': ''}
 embodiment_name = {}
 try:
     fcap = open('device_bluetooth.json')
@@ -55,52 +56,26 @@ except Exception as error:
 
 
 feagi_misc_to_petoi_token_mapping = {
-        0: 'gPb',
-        1: 'f',
-        2: 'kbalance',
-        3: 'd',
-        4: 'ksit',
-        5: 'kstr',
-        6: 'khi',
-        7: 'kpee',
-        8: 'kpu',
-        9: 'kphF',
-        10: 'kphL',
-        11: 'kphR',
-        12: 'kch',
-        13: 'kbk',
-        14: 'kkc',
-        15: 'khg',
-        16: 'khu',
-        17: 'krc',
-        18: 'kscrh',
-        19: 'kdg',
-        20: 'kwh',
-        21: 'kgbd',
-        22: 'ktbl',
-        23: 'kbx',
-        24: 'kfiv',
-        25: 'kbf',
-        26: 'khsk',
-        27: 'kgdb',
-        28: 'kbx',
-        29: 'kjmp',
-        30: 'kang',
-        31: 'c',
-        32: 'kpd',
-        33: 'kwk',
-        34: 'krn',
-        35: 'ktr',
-        36: 'L',
-        37: 'R',
-        38: 'kbuttup',
-        39: 'kchr',
-        40: 'kbk',
-        41: 'kcmh',
-        42: 'khds',
-        43: 'ksnf',
-        44: 'knd'
-    }
+        0: 'gPb',              # Keep as is
+        1: 'f',                # Keep as is
+        2: 'ktbl',             # be table
+        3: 'kpee',             # pee
+        4: 'kstr',             # stretch
+        5: 'ksit',             # sit
+        6: 'krest',            # rest
+        7: 'kjmp',             # jump
+        8: 'kfiv',             # high five
+        9: 'kpd',              # act dead
+        10: 'kpu',             # push ups
+        11: 'kwkF',            # walk forward
+        12: 'kbk',             # walk backward
+        13: 'kL',              # walk left
+        14: 'kR',              # walk right
+        15: 'kup',                # Removed other irrelevant mappings
+}
+
+
+
 
 
 def embodiment_id_map(name):
@@ -307,8 +282,10 @@ def petoi_action(obtained_data):
     if recieved_misc_data:
         # Note: Only the last command is being considered and the rest are disposed
         for data_point in recieved_misc_data:
-            WS_STRING = feagi_misc_to_petoi_token_mapping.get(data_point)
-
+            new_data = feagi_misc_to_petoi_token_mapping.get(data_point)
+            if new_data != last_data['0']: # Add this to reduce the chance to crash petoi
+                WS_STRING = feagi_misc_to_petoi_token_mapping.get(data_point)
+                last_data['0'] = new_data
     if servo_data:
         servo_for_feagi = 'i '
         for device_id in servo_data:
@@ -316,7 +293,6 @@ def petoi_action(obtained_data):
             servo_for_feagi += str(feagi_to_petoi_id(device_id)) + " " + str(power) + " "
         WS_STRING = servo_for_feagi
     if WS_STRING != "":
-        # WS_STRING = WS_STRING + "#"
         ws.append(WS_STRING)
 
 
