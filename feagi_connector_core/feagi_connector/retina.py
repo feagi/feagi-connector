@@ -276,8 +276,8 @@ def change_detector(previous, current, src=50, compare_image=True, cortical_name
         return {}
 
 
-def generating_rgb_data(cortical_name, pixel_change_threshold, current, previous, feagi_index, percentage=1.0,
-                        grayscale=False):
+def generate_vision_ipu_data(cortical_name, pixel_change_threshold, current, previous, feagi_index, percentage=1.0,
+                             grayscale=False):
     if drop_high_frequency_events(pixel_change_threshold) <= \
             (get_full_dimension_of_cortical_area(cortical_name) * percentage):
         feagi_data = create_feagi_data(pixel_change_threshold, current, previous.shape, feagi_index,
@@ -299,27 +299,51 @@ def grab_cortical_resolution(name="", cortical=""):
 
 def grab_xy_cortical_resolution(name=""):
     return pns.full_list_dimension[name]['cortical_dimensions_per_device'][0], \
-        pns.full_list_dimension[name]['cortical_dimensions_per_device'][1]
+           pns.full_list_dimension[name]['cortical_dimensions_per_device'][1]
 
 
 def get_full_dimension_of_cortical_area(cortical_name=""):
     global current_dimension_list
     return current_dimension_list[cortical_name][0] * current_dimension_list[cortical_name][1] * \
-        current_dimension_list[cortical_name][2]
+           current_dimension_list[cortical_name][2]
 
 
+# todo: poor naming choices. What does real_frame mean? capabilities vs actual_capabilties is confusing. Why rgb?
 def process_visual_stimuli(real_frame, capabilities, previous_frame_data, rgb, actual_capabilities,
                            compare_image=True):
+    """
+    This is the most critical function for retina and deserves a doc string
+
+    # todo: add docstring!
+    Order of operations:
+    1.
+    2.
+    3.
+    4.
+
+    """
+
     global current_dimension_list, current_mirror_status
+
+    print("real_frame:", real_frame)
+    print("previous_frame_data:", previous_frame_data)
+    print("rgb:", rgb)
+    print("capabilities:", capabilities)
+    print("actual_capabilities:", actual_capabilities)
 
     if isinstance(real_frame, numpy.ndarray):
         temp_dict = {0: real_frame}
         real_frame = temp_dict.copy()
 
+    # todo: why this action has to take place on every single frame? It is very inefficient
+    # Updating runtime capabilities
     capabilities = pns.create_runtime_default_list(capabilities, actual_capabilities)
+
     raw_frame = {}
     if pns.resize_list:
         current_dimension_list = pns.resize_list
+
+        # todo: choose a better name instead of one_data_vision
         one_data_vision = {}
         for obtain_raw_data in real_frame:
             raw_frame[obtain_raw_data] = []
@@ -328,11 +352,15 @@ def process_visual_stimuli(real_frame, capabilities, previous_frame_data, rgb, a
                     raw_frame[obtain_raw_data] = cv2.flip(real_frame[obtain_raw_data], 1)
                 else:
                     raw_frame[obtain_raw_data] = real_frame[obtain_raw_data]
+
+                # Blink accommodation
                 if len(capabilities['input']['camera'][str(obtain_raw_data)]['blink']) > 0:
                     raw_frame[obtain_raw_data] = vision_blink(real_frame[obtain_raw_data],
                                                               capabilities['input']['camera'][str(obtain_raw_data)][
                                                                   'blink'])
                     capabilities['input']['camera'][str(obtain_raw_data)]['blink'] = []
+
+                # Eccentricity and modulation and size adjustment
                 region_coordinates = vision_region_coordinates(
                     frame_width=raw_frame[obtain_raw_data].shape[1],
                     frame_height=raw_frame[obtain_raw_data].shape[0],
@@ -353,14 +381,19 @@ def process_visual_stimuli(real_frame, capabilities, previous_frame_data, rgb, a
                             obtain_cortical_vision_size(camera_index=capabilities['input']['camera'][
                                 str(obtain_raw_data)]['index'],
                                                         response=pns.full_list_dimension))
+
+                # Split visual data to segments accounting for central vision and peripheral vision
                 segmented_frame_data = split_vision_regions(coordinates=region_coordinates,
                                                             raw_frame_data=raw_frame[obtain_raw_data])
 
                 if len(one_data_vision) == 0:
                     for region in segmented_frame_data:
                         one_data_vision[region] = []
+
                 compressed_data = dict()
 
+                # TODO: lighting enhancement should be performed prior to split and resizing
+                # Applying lighting enhancements including brightness, contrast, and shadows
                 for cortical in segmented_frame_data:
                     name = 'iv' + cortical
                     updated_size = grab_cortical_resolution(name, cortical)
@@ -388,13 +421,19 @@ def process_visual_stimuli(real_frame, capabilities, previous_frame_data, rgb, a
                                                                    grab_xy_cortical_resolution(name),
                                                                    interpolation=cv2.INTER_AREA)
 
-        vision_dict = dict()
+        # todo: add a shell frag such as --preview so when that is set the following code runs automatically
         # for segment in compressed_data:
         #     if "_C" in segment:
         #         cv2.imshow(segment, compressed_data[segment])
         # if cv2.waitKey(30) & 0xFF == ord('q'):
         #     pass
+
+        vision_dict = dict()
+
+        # todo: Why is this not performed prior to split and resizing but after the lighting enhancements?
+        # Generate FEAGI vision IPU data by detecting changes between current and prior frame
         for get_region in one_data_vision:
+            # In case of color vision
             if current_dimension_list[get_region][2] == 3:
                 if previous_frame_data != {}:
                     if get_region in previous_frame_data:
@@ -404,7 +443,7 @@ def process_visual_stimuli(real_frame, capabilities, previous_frame_data, rgb, a
                             src=capabilities['input']['camera'][str(obtain_raw_data)]['threshold_default'],
                             compare_image=compare_image,
                             cortical_name=get_region)
-                        vision_dict[get_region] = generating_rgb_data(
+                        vision_dict[get_region] = generate_vision_ipu_data(
                             percentage=capabilities['input']['camera'][
                                 str(obtain_raw_data)]['percentage_to_allow_data'],
                             cortical_name=get_region,
@@ -420,6 +459,8 @@ def process_visual_stimuli(real_frame, capabilities, previous_frame_data, rgb, a
                             compare_image=compare_image,
                             cortical_name=get_region)
             else:
+                # todo: this condition is not accounting for case where cortical area depth is not 1 or 3
+                # In case of grayscale
                 if previous_frame_data != {}:
                     if get_region in previous_frame_data:
                         modified_data = change_detector(
@@ -429,8 +470,9 @@ def process_visual_stimuli(real_frame, capabilities, previous_frame_data, rgb, a
                             compare_image=compare_image,
                             cortical_name=get_region)
 
-                        vision_dict[get_region] = generating_rgb_data(
-                            percentage=capabilities['input']['camera'][str(obtain_raw_data)]['percentage_to_allow_data'],
+                        vision_dict[get_region] = generate_vision_ipu_data(
+                            percentage=capabilities['input']['camera'][str(obtain_raw_data)][
+                                'percentage_to_allow_data'],
                             cortical_name=get_region,
                             pixel_change_threshold=modified_data,
                             current=one_data_vision[get_region],
@@ -444,14 +486,17 @@ def process_visual_stimuli(real_frame, capabilities, previous_frame_data, rgb, a
                             src=capabilities,
                             compare_image=compare_image,
                             cortical_name=get_region)
+
         if previous_frame_data:
             previous_frame_data.update(one_data_vision)
         else:
             previous_frame_data = one_data_vision
+
         if 'camera' in rgb:
             rgb['camera'].update(vision_dict)
         else:
             rgb['camera'] = vision_dict
+
         return previous_frame_data, rgb, capabilities
     return pns.resize_list, pns.resize_list, capabilities  # sending empty dict
 
@@ -468,8 +513,8 @@ def obtain_cortical_vision_size(response, camera_index="00"):
                 if fetch_name in name_from_data:
                     name = name_from_data.replace("iv", "")
                     dimension_array = data[name_from_data]["cortical_dimensions"][0], \
-                        data[name_from_data]["cortical_dimensions"][1], \
-                        data[name_from_data]["cortical_dimensions"][2]
+                                      data[name_from_data]["cortical_dimensions"][1], \
+                                      data[name_from_data]["cortical_dimensions"][2]
                     size_list[name] = dimension_array
     return size_list
 
@@ -478,6 +523,7 @@ def drop_high_frequency_events(data):
     return np.count_nonzero(data)
 
 
+# todo: This function is a duplicate of process_visual_stimuli and needs to be deleted
 def process_visual_stimuli_trainer(real_frame, capabilities, previous_frame_data, rgb,
                                    actual_capabilities, compare_image=False):
     global current_dimension_list, current_mirror_status
@@ -515,8 +561,9 @@ def process_visual_stimuli_trainer(real_frame, capabilities, previous_frame_data
                     if not (capabilities['input']['camera'][str(obtain_raw_data)][
                                 'index'] + '_C') in current_dimension_list:
                         pns.resize_list.update(
-                            obtain_cortical_vision_size(camera_index=capabilities['input']['camera'][str(obtain_raw_data)]['index'],
-                                                        response=pns.full_list_dimension))
+                            obtain_cortical_vision_size(
+                                camera_index=capabilities['input']['camera'][str(obtain_raw_data)]['index'],
+                                response=pns.full_list_dimension))
                 segmented_frame_data = split_vision_regions(coordinates=region_coordinates,
                                                             raw_frame_data=raw_frame[
                                                                 obtain_raw_data])
@@ -566,13 +613,14 @@ def process_visual_stimuli_trainer(real_frame, capabilities, previous_frame_data
             if current_dimension_list[get_region][2] == 3:
                 if previous_frame_data != {}:
                     if get_region in previous_frame_data:
+                        print("1234------->>>>")
                         modified_data = change_detector(
                             previous=previous_frame_data[get_region],
                             current=one_data_vision[get_region],
                             src=capabilities['input']['camera'][str(obtain_raw_data)]['threshold_default'],
                             compare_image=compare_image, cortical_name=get_region)
 
-                        vision_dict[get_region] = generating_rgb_data(
+                        vision_dict[get_region] = generate_vision_ipu_data(
                             percentage=capabilities['input']['camera'][str(obtain_raw_data)][
                                 'percentage_to_allow_data'],
                             cortical_name=get_region,
@@ -599,7 +647,7 @@ def process_visual_stimuli_trainer(real_frame, capabilities, previous_frame_data
                             compare_image=compare_image,
                             cortical_name=get_region)
 
-                        vision_dict[get_region] = generating_rgb_data(
+                        vision_dict[get_region] = generate_vision_ipu_data(
                             percentage=capabilities['input']['camera'][str(obtain_raw_data)][
                                 'percentage_to_allow_data'],
                             cortical_name=get_region,
