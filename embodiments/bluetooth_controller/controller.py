@@ -20,6 +20,7 @@ from datetime import datetime
 from time import sleep
 import traceback
 import websockets
+from urllib.parse import urlparse, parse_qs
 from version import __version__
 from feagi_connector import pns_gateway as pns
 from feagi_connector import sensors as sensors
@@ -44,6 +45,7 @@ embodiment_id = {'servo_status': {}, 'acceleration': {}, 'gyro': {}, 'sound_leve
 runtime_data = {"cortical_data": {}, "current_burst_id": None,
                 "stimulation_period": 0.01, "feagi_state": None,
                 "feagi_network": None}
+last_data = {'0': ''}
 embodiment_name = {}
 try:
     fcap = open('device_bluetooth.json')
@@ -55,52 +57,27 @@ except Exception as error:
 
 
 feagi_misc_to_petoi_token_mapping = {
-        0: 'gPb',
-        1: 'f',
-        2: 'kbalance',
-        3: 'd',
-        4: 'ksit',
-        5: 'kstr',
-        6: 'khi',
-        7: 'kpee',
-        8: 'kpu',
-        9: 'kphF',
-        10: 'kphL',
-        11: 'kphR',
-        12: 'kch',
-        13: 'kbk',
-        14: 'kkc',
-        15: 'khg',
-        16: 'khu',
-        17: 'krc',
-        18: 'kscrh',
-        19: 'kdg',
-        20: 'kwh',
-        21: 'kgbd',
-        22: 'ktbl',
-        23: 'kbx',
-        24: 'kfiv',
-        25: 'kbf',
-        26: 'khsk',
-        27: 'kgdb',
-        28: 'kbx',
-        29: 'kjmp',
-        30: 'kang',
-        31: 'c',
-        32: 'kpd',
-        33: 'kwk',
-        34: 'krn',
-        35: 'ktr',
-        36: 'L',
-        37: 'R',
-        38: 'kbuttup',
-        39: 'kchr',
-        40: 'kbk',
-        41: 'kcmh',
-        42: 'khds',
-        43: 'ksnf',
-        44: 'knd'
-    }
+        0: 'gPb',              # Keep as is
+        1: 'f',                # Keep as is
+        2: 'ktbl',             # be table
+        3: 'kpee',             # pee
+        4: 'kstr',             # stretch
+        5: 'ksit',             # sit
+        6: 'krest',            # rest
+        7: 'kjmp',             # jump
+        8: 'kfiv',             # high five
+        9: 'kpd',              # act dead
+        10: 'kpu',             # push ups
+        11: 'kwkF',            # walk forward
+        12: 'kbk',             # walk backward
+        13: 'kL',              # walk left
+        14: 'kR',              # walk right
+        15: 'kup',                # Removed other irrelevant mappings
+        16: 'gPB'
+}
+
+
+
 
 
 def embodiment_id_map(name):
@@ -161,9 +138,6 @@ def petoi_listen(message, full_data):
         print("error: ", Error_case)
         traceback.print_exc()
     return full_data
-    # print("error: ", Error_case)
-    # traceback.print_exc()
-    # print("raw: ", message)
 
 
 def microbit_listen(message):
@@ -206,12 +180,28 @@ async def echo(websocket, path):
     try:
         current_device['name'] = []
         full_data = ''
+        connected_agents['0'] = True  # Since this section gets data from client, its marked as true
+        query_params = parse_qs(urlparse(path).query)
+        device = query_params.get('device', [None])[0]  # Default to None if 'device' is not provided
+        current_device['name'] = embodiment_id_map(device)
+        if not ws_operation:
+            ws_operation.append(websocket)
+        else:
+            ws_operation[0] = websocket
         async for message in websocket:
             data_from_bluetooth = json.loads(message)
             for device_name in data_from_bluetooth:
                 name_of_device = device_name
                 if device_name == 'capabilities':
                     connected_agents['capabilities'] = data_from_bluetooth['capabilities']
+                    if current_device['name'] == 'petoi' and connected_agents['capabilities']:
+                        feagi_servo_data_to_send = 'i '
+                        for position in connected_agents['capabilities']['output']['servo']:
+                            feagi_servo_data_to_send += str(feagi_to_petoi_id(int(position))) + " " + str(
+                                connected_agents['capabilities']['output']['servo'][position][
+                                    'default_value']) + " "
+                        actuators.start_servos(connected_agents['capabilities'])
+                        ws.append(feagi_servo_data_to_send)
                     break
                 if "em-" in device_name:
                     name_of_device = embodiment_id_map(name_of_device)
@@ -307,8 +297,10 @@ def petoi_action(obtained_data):
     if recieved_misc_data:
         # Note: Only the last command is being considered and the rest are disposed
         for data_point in recieved_misc_data:
-            WS_STRING = feagi_misc_to_petoi_token_mapping.get(data_point)
-
+            new_data = feagi_misc_to_petoi_token_mapping.get(data_point)
+            if new_data != last_data['0']: # Add this to reduce the chance to crash petoi
+                WS_STRING = feagi_misc_to_petoi_token_mapping.get(data_point)
+                last_data['0'] = new_data
     if servo_data:
         servo_for_feagi = 'i '
         for device_id in servo_data:
@@ -316,7 +308,6 @@ def petoi_action(obtained_data):
             servo_for_feagi += str(feagi_to_petoi_id(device_id)) + " " + str(power) + " "
         WS_STRING = servo_for_feagi
     if WS_STRING != "":
-        # WS_STRING = WS_STRING + "#"
         ws.append(WS_STRING)
 
 
@@ -378,7 +369,6 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, mes
     runtime_data['acceleration'] = {}
 
     actuators.start_motors(connected_agents['capabilities'])  # initialize motors for you.
-
     while connected_agents['0']:
         try:
             message_from_feagi = pns.message_from_feagi
