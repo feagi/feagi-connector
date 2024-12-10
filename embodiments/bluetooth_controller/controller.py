@@ -72,6 +72,7 @@ feagi_misc_to_petoi_token_mapping = {
         13: 'kL',              # walk left
         14: 'kR',              # walk right
         15: 'kup',                # Removed other irrelevant mappings
+        16: 'gPB'
 }
 
 
