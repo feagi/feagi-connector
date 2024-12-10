@@ -20,6 +20,7 @@ from datetime import datetime
 from time import sleep
 import traceback
 import websockets
+from urllib.parse import urlparse, parse_qs
 from version import __version__
 from feagi_connector import pns_gateway as pns
 from feagi_connector import sensors as sensors
@@ -137,9 +138,6 @@ def petoi_listen(message, full_data):
         print("error: ", Error_case)
         traceback.print_exc()
     return full_data
-    # print("error: ", Error_case)
-    # traceback.print_exc()
-    # print("raw: ", message)
 
 
 def microbit_listen(message):
@@ -182,12 +180,28 @@ async def echo(websocket, path):
     try:
         current_device['name'] = []
         full_data = ''
+        connected_agents['0'] = True  # Since this section gets data from client, its marked as true
+        query_params = parse_qs(urlparse(path).query)
+        device = query_params.get('device', [None])[0]  # Default to None if 'device' is not provided
+        current_device['name'] = embodiment_id_map(device)
+        if not ws_operation:
+            ws_operation.append(websocket)
+        else:
+            ws_operation[0] = websocket
         async for message in websocket:
             data_from_bluetooth = json.loads(message)
             for device_name in data_from_bluetooth:
                 name_of_device = device_name
                 if device_name == 'capabilities':
                     connected_agents['capabilities'] = data_from_bluetooth['capabilities']
+                    if current_device['name'] == 'petoi' and connected_agents['capabilities']:
+                        feagi_servo_data_to_send = 'i '
+                        for position in connected_agents['capabilities']['output']['servo']:
+                            feagi_servo_data_to_send += str(feagi_to_petoi_id(int(position))) + " " + str(
+                                connected_agents['capabilities']['output']['servo'][position][
+                                    'default_value']) + " "
+                        actuators.start_servos(connected_agents['capabilities'])
+                        ws.append(feagi_servo_data_to_send)
                     break
                 if "em-" in device_name:
                     name_of_device = embodiment_id_map(name_of_device)
@@ -355,7 +369,6 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, capabilities, mes
     runtime_data['acceleration'] = {}
 
     actuators.start_motors(connected_agents['capabilities'])  # initialize motors for you.
-
     while connected_agents['0']:
         try:
             message_from_feagi = pns.message_from_feagi
