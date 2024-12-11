@@ -21,13 +21,13 @@ import numpy
 import numpy as np
 from time import sleep
 from datetime import datetime
-# import pns_gateway as pns
 from feagi_connector import pns_gateway as pns
 
 genome_tracker = 0
 previous_genome_timestamp = 0
 current_dimension_list = {}
 current_mirror_status = False
+preview_flag = False
 
 
 def get_device_of_vision(device):
@@ -308,7 +308,6 @@ def get_full_dimension_of_cortical_area(cortical_name=""):
         current_dimension_list[cortical_name][2]
 
 
-# todo: poor naming choices. What does raw_data_from_controller mean? capabilities vs actual_capabilties is confusing. Why rgb?
 def process_visual_stimuli(raw_data_from_controller, capabilities, previous_frame_data, rgb, actual_capabilities,
                            compare_image=True):
     """
@@ -323,7 +322,7 @@ def process_visual_stimuli(raw_data_from_controller, capabilities, previous_fram
 
     """
 
-    global current_dimension_list, current_mirror_status
+    global current_dimension_list, current_mirror_status, preview_flag
 
     if isinstance(raw_data_from_controller, numpy.ndarray):
         temp_dict = {0: raw_data_from_controller}
@@ -381,8 +380,6 @@ def process_visual_stimuli(raw_data_from_controller, capabilities, previous_fram
                         all_vision_data_list[region] = []
 
                 compressed_data = dict()
-
-                # TODO: lighting enhancement should be performed prior to split and resizing
                 # Applying lighting enhancements including brightness, contrast, and shadows
                 for cortical in segmented_frame_data:
                     name = 'iv' + cortical
@@ -413,11 +410,12 @@ def process_visual_stimuli(raw_data_from_controller, capabilities, previous_fram
                                                                         interpolation=cv2.INTER_AREA)
 
         # todo: add a shell frag such as --preview so when that is set the following code runs automatically
-        # for segment in compressed_data:
-        #     if "_C" in segment:
-        #         cv2.imshow(segment, compressed_data[segment])
-        # if cv2.waitKey(30) & 0xFF == ord('q'):
-        #     pass
+        if preview_flag:
+            for segment in compressed_data:
+                if "_C" in segment:
+                    cv2.imshow(segment, compressed_data[segment])
+            if cv2.waitKey(30) & 0xFF == ord('q'):
+                pass
 
         vision_dict = dict()
 
@@ -522,7 +520,7 @@ def drop_high_frequency_events(data):
 
 def process_visual_stimuli_trainer(raw_data_from_controller, capabilities, previous_frame_data, rgb,
                                    actual_capabilities, compare_image=False):
-    global current_dimension_list, current_mirror_status
+    global current_dimension_list, current_mirror_status, preview_flag
     raw_frame = {}
     if isinstance(raw_data_from_controller, numpy.ndarray):
         temp_dict = {0: raw_data_from_controller}
@@ -586,30 +584,29 @@ def process_visual_stimuli_trainer(raw_data_from_controller, capabilities, previ
                         compressed_data[cortical] = adjust_shadow(image=compressed_data[cortical],
                                                                   shadow=capabilities['input']['camera'][
                                                                       str(obtain_raw_data)]['enhancement'][2])
-                    if len(all_vision_data_list[
-                               cortical]) == 0:  # update the newest data into empty all_vision_data_list
+                    if len(all_vision_data_list[cortical]) == 0:
+                        # update the newest data into empty all_vision_data_list
                         all_vision_data_list[cortical] = compressed_data[cortical]
                     else:
                         all_vision_data_list[cortical] = numpy.concatenate(
                             (all_vision_data_list[cortical], compressed_data[cortical]), axis=1)
-                        if (
-                                len(raw_frame) - 1) == obtain_raw_data:  # Reach to end of the list for camera
+                        if (len(raw_frame) - 1) == obtain_raw_data:  # Reach to end of the list for camera
                             all_vision_data_list[cortical] = cv2.resize(all_vision_data_list[cortical],
                                                                         grab_xy_cortical_resolution(name),
                                                                         interpolation=cv2.INTER_AREA)
 
         vision_dict = dict()
-        # for segment in compressed_data:
-        #     if "_C" in segment:
-        #         cv2.imshow(segment, compressed_data[segment])
-        # if cv2.waitKey(30) & 0xFF == ord('q'):
-        #     pass
+        if preview_flag:
+            for segment in compressed_data:
+                if "_C" in segment:
+                    cv2.imshow(segment, compressed_data[segment])
+            if cv2.waitKey(30) & 0xFF == ord('q'):
+                pass
         modified_data_dict = {}
         for get_region in all_vision_data_list:
             if current_dimension_list[get_region][2] == 3:
                 if previous_frame_data != {}:
                     if get_region in previous_frame_data:
-                        print("1234------->>>>")
                         modified_data = change_detector(
                             previous=previous_frame_data[get_region],
                             current=all_vision_data_list[get_region],
