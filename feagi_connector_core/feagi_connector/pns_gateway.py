@@ -363,22 +363,13 @@ def create_runtime_default_list(list, capabilities):
                         "enhancement": {},  # Enable ov_enh OPU on inside the genome
                         "percentage_to_allow_data": 1.0,
                         # this will be percentage for the full data.,
-                        "dev_index": 0}
+                        "dev_index": 0
+                    }
                 }
             }
         }
         list = camera_config_update(list, capabilities)
     return list
-
-# This is why u don't use chatgpt. zzzz
-# def update_dict(d, u):
-#     for k, v in u.items():
-#         if isinstance(v, dict):
-#             d[k] = update_dict(d.get(k, {}), v)
-#         else:
-#             d[k] = v
-#     return d
-
 
 def camera_config_update(list, capabilities):
     """
