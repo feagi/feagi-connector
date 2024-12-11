@@ -8,6 +8,8 @@ import threading
 import traceback
 import pkg_resources
 from time import sleep
+
+from feagi_connector import retina
 from feagi_connector import router
 from feagi_connector import pns_gateway as pns
 from feagi_connector.version import __version__
@@ -339,7 +341,11 @@ def reading_parameters_to_confirm_communication(new_settings, configuration, pat
     parser.add_argument('-magic', '--magic', help='to use magic link', required=False)
     parser.add_argument('-ip', '--ip', help='to use feagi_ip', required=False)
     parser.add_argument('-port', '--port', help='to use feagi_port', required=False)
+    parser.add_argument('-preview', '--preview', help='To enable the preview of vision',
+                        required=False)
     args = vars(parser.parse_args())
+    if 'preview' in args:
+        retina.preview_flag = True
     if 'feagi_dns' in new_settings:
         print(
             "OLD networking.json DETECTED! Please update your networking.json to latest. Next update will be removed that could crash the feagi controller if the old networking.json is not updated!!!")
