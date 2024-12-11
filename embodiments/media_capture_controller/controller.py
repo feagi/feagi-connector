@@ -139,8 +139,8 @@ def websocket_operation():
 
 def feagi_main(feagi_auth_url, feagi_settings, agent_settings, message_to_feagi, capabilities):
     global runtime_data
-    rgb = {}
-    rgb['camera'] = {}
+    rgb_data_for_feagi = {}
+    rgb_data_for_feagi['camera'] = {}
     rgb_array['current'] = {}
     feagi_flag = False
     print("Waiting on FEAGI...")
@@ -168,10 +168,11 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, message_to_feagi,
         message_from_feagi = pns.message_from_feagi
         if message_from_feagi:
             obtained_signals = {}
-            if 'ov_reg' in message_from_feagi['opu_data']:
-                obtained_signals['activation_regions'] = []
-                for data_point in message_from_feagi['opu_data']['ov_reg']:
-                    obtained_signals['activation_regions'].append(feagi.block_to_array(data_point))
+            obtained_signals = retina.activation_region_break_down(message_from_feagi, obtained_signals)
+            # if 'ov_reg' in message_from_feagi['opu_data']:
+            #     obtained_signals['activation_regions'] = []
+            #     for data_point in message_from_feagi['opu_data']['ov_reg']:
+            #         obtained_signals['activation_regions'].append(feagi.block_to_array(data_point))
             if obtained_signals:
                 obtained_signals['modulation_control'] = default_capabilities['input']['camera']['0']['modulation_control']
                 obtained_signals['eccentricity_control'] = default_capabilities['input']['camera']['0']['eccentricity_control']
@@ -181,21 +182,21 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, message_to_feagi,
             if np.any(rgb_array['current']):
                 raw_frame = rgb_array['current']
                 camera_data["vision"] = raw_frame
-                previous_frame_data, rgb, default_capabilities = \
+                previous_frame_data, rgb_data_for_feagi, default_capabilities = \
                     retina.process_visual_stimuli(
                         raw_frame,
                         default_capabilities,
                         previous_frame_data,
-                        rgb, capabilities)
-                message_to_feagi = pns.generate_feagi_data(rgb, message_to_feagi)
+                        rgb_data_for_feagi, capabilities)
+                message_to_feagi = pns.generate_feagi_data(rgb_data_for_feagi, message_to_feagi)
             message_to_feagi = sensors.add_agent_status(connected_agents['0'],
                                                         message_to_feagi,
                                                         agent_settings)
             pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings, feagi_settings)
             sleep(feagi_settings['feagi_burst_speed'])  # bottleneck
-            if 'camera' in rgb:
-                for i in rgb['camera']:
-                    rgb['camera'][i].clear()
+            if 'camera' in rgb_data_for_feagi:
+                for i in rgb_data_for_feagi['camera']:
+                    rgb_data_for_feagi['camera'][i].clear()
         except Exception as e:
             # pass
             print("ERROR! : ", e, " and resize: ", pns.resize_list)
