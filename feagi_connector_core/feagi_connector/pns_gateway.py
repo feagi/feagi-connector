@@ -218,6 +218,23 @@ def recognize_location_data(message_from_feagi):
                 return message_from_feagi["opu_data"]["o__loc"]
     return {}
 
+def pointer_location(message_from_feagi):
+    """
+    :param message_from_feagi: Should be a dict from FEAGI data only
+    :return: Return the data that given by FEAGI
+    """
+    generate_point_location_list = []
+    if 'opu_data' in message_from_feagi:
+        if "opoint" in message_from_feagi["opu_data"]:
+            if message_from_feagi["opu_data"]["opoint"]:
+                for location in message_from_feagi["opu_data"]["opoint"]:
+                    x = location[0]/full_list_dimension['opoint']['cortical_dimensions'][0]
+                    y = location[1]/full_list_dimension['opoint']['cortical_dimensions'][1]
+                    z = location[2]/full_list_dimension['opoint']['cortical_dimensions'][2]
+                    generate_point_location_list.append((x,y,z))
+                return generate_point_location_list
+    return generate_point_location_list
+
 
 def detect_genome_change(message_from_feagi):
     """
