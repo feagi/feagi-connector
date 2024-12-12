@@ -180,6 +180,9 @@ def action(obtained_data):
         WS_STRING['misc'] = {}
         for data_point in recieved_misc_data:
             WS_STRING['misc'][str(data_point)] = recieved_misc_data[data_point]
+
+    if obtained_data['pointer_location']:
+        WS_STRING['pointer_location'] = obtained_data['pointer_location']
     ws.append(WS_STRING)
 
 
@@ -190,8 +193,8 @@ def data_OPU(action):
         if old_message != message_from_feagi:
             if message_from_feagi:
                 if pns.full_template_information_corticals:
-                    pns.pointer_location(message_from_feagi)
                     obtained_signals = pns.obtain_opu_data(message_from_feagi)
+                    obtained_signals['pointer_location'] = pns.pointer_location(message_from_feagi)
                     action(obtained_signals)
         sleep(0.001)
 
