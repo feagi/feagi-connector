@@ -96,6 +96,7 @@ def signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings, feagi_
         router.websocket_send(message_to_feagi)
     router.msg_counter += 1
 
+
 def grab_geometry():
     """
     To get the size of vision cortical areas (e.g., C, TL, TM...)
@@ -184,6 +185,7 @@ def obtain_data_type(data):
         print("Couldn't find: ", type(data).__name__, " and full name of the class: ", type(data))
         return "Unknown"
 
+
 def obtain_genome_number(genome_tracker, message_from_feagi):
     """
     Update when the genome modified.
@@ -192,6 +194,7 @@ def obtain_genome_number(genome_tracker, message_from_feagi):
         if message_from_feagi['genome_num'] != genome_tracker:
             return message_from_feagi['genome_num']
     return genome_tracker
+
 
 def detect_ID_data(message_from_feagi):
     """
@@ -202,6 +205,7 @@ def detect_ID_data(message_from_feagi):
         if message_from_feagi["opu_data"]["o___id"]:
             return message_from_feagi["opu_data"]["o___id"]
     return {}
+
 
 def recognize_location_data(message_from_feagi):
     """
@@ -240,6 +244,7 @@ def fetch_full_dimensions():
     """
     return router.fetch_geometry()
 
+
 def fetch_full_template_information():
     """
     List of the full size and names of every cortical area. It does not include properties such as
@@ -267,7 +272,7 @@ def check_genome_status(message_from_feagi, capabilities):
             response = full_list_dimension
             if 'camera' in capabilities['input']:
                 for index in capabilities['input']['camera']:
-                    resize_list = retina.obtain_cortical_vision_size(capabilities['input']['camera'][index]["index"], response)
+                    resize_list = retina.obtain_cortical_vision_size(camera_index=capabilities['input']['camera'][index]["index"], response=response)
             previous_genome_timestamp = message_from_feagi["genome_changed"]
         current_tracker = obtain_genome_number(genome_tracker, message_from_feagi)
         if len(resize_list) == 0:
@@ -275,7 +280,7 @@ def check_genome_status(message_from_feagi, capabilities):
             if 'camera' in capabilities['input']:
                 if 'camera' in capabilities['input']:
                     for index in capabilities['input']['camera']:
-                        resize_list = retina.obtain_cortical_vision_size(capabilities['input']['camera'][index]["index"], response)
+                        resize_list = retina.obtain_cortical_vision_size(camera_index=capabilities['input']['camera'][index]["index"], response=response)
         if genome_tracker != current_tracker:
             full_list_dimension = fetch_full_dimensions()
             genome_tracker = current_tracker
@@ -286,7 +291,8 @@ def check_genome_status_no_vision(message_from_feagi):
     Verify if full_list_dimension is empty, size list for vision is empty, if genome has been
     changed, or genome modified in real time.
     """
-    global previous_genome_timestamp, genome_tracker, full_list_dimension, resize_list, full_template_information_corticals
+    global previous_genome_timestamp, genome_tracker, full_list_dimension, resize_list, \
+        full_template_information_corticals
     if message_from_feagi['genome_changed'] is not None:
         if full_list_dimension is None:
             full_list_dimension = []
@@ -304,8 +310,6 @@ def check_genome_status_no_vision(message_from_feagi):
             genome_tracker = current_tracker
 
 
-
-
 def fetch_threshold_type(message_from_feagi, capabilities):
   if 'opu_data' in message_from_feagi:
     if "ov_thr" in message_from_feagi["opu_data"]:
@@ -314,6 +318,7 @@ def fetch_threshold_type(message_from_feagi, capabilities):
                 device_id = int(data_point.split('-')[0])
                 capabilities['camera']["threshold_type"][int(device_id)] = True
     return capabilities
+
 
 def create_runtime_default_list(list, capabilities):
     """
@@ -336,7 +341,7 @@ def create_runtime_default_list(list, capabilities):
     """
     if not list:
         list = {
-            "input":{
+            "input": {
                 "camera": {
                     "0": {
                         "type": "ipu",
@@ -358,33 +363,26 @@ def create_runtime_default_list(list, capabilities):
                         "enhancement": {},  # Enable ov_enh OPU on inside the genome
                         "percentage_to_allow_data": 1.0,
                         # this will be percentage for the full data.,
-                        "dev_index": 0}
+                        "dev_index": 0
+                    }
                 }
             }
         }
         list = camera_config_update(list, capabilities)
     return list
 
-# This is why u don't use chatgpt. zzzz
-# def update_dict(d, u):
-#     for k, v in u.items():
-#         if isinstance(v, dict):
-#             d[k] = update_dict(d.get(k, {}), v)
-#         else:
-#             d[k] = v
-#     return d
-
 def camera_config_update(list, capabilities):
     """
     Update the capabilities to overwrite the default generated capabilities.
     """
     if capabilities:
-      if 'camera' in capabilities['input']:
-          for index in capabilities['input']['camera']:
-              for key in list['input']['camera']['0']:
-                  if key not in capabilities['input']['camera'][index]:
-                      capabilities['input']['camera'][index][key] = list['input']['camera']['0'][key]
+        if 'camera' in capabilities['input']:
+            for index in capabilities['input']['camera']:
+                for key in list['input']['camera']['0']:
+                    if key not in capabilities['input']['camera'][index]:
+                        capabilities['input']['camera'][index][key] = list['input']['camera']['0'][key]
     return capabilities
+
 
 def name_to_feagi_id_ipu(sensor_name):
     try:
@@ -394,6 +392,7 @@ def name_to_feagi_id_ipu(sensor_name):
         traceback.print_exc()
         return None
 
+
 def name_to_feagi_id_opu(sensor_name):
     try:
         return pns.full_template_information_corticals['OPU']['supported_devices'][sensor_name]['controller_id']
@@ -402,13 +401,15 @@ def name_to_feagi_id_opu(sensor_name):
         traceback.print_exc()
         return None
 
+
 def check_actuator_measure(cortical_id):
-  try:
-    return pns.full_template_information_corticals['OPU']['supported_devices'][cortical_id]['measurable']
-  except:
-    print(f"This sensor, {cortical_id}, is not available at the moment.")
-    traceback.print_exc()
-    return None
+    try:
+        return pns.full_template_information_corticals['OPU']['supported_devices'][cortical_id]['measurable']
+    except:
+        print(f"This sensor, {cortical_id}, is not available at the moment.")
+        traceback.print_exc()
+        return None
+
 
 def feagi_listener(feagi_opu_channel):
     """
@@ -426,5 +427,3 @@ def start_websocket_in_threads(function, ip, port, ws_operation, ws, feagi_setti
 
 def get_map_value(val, min1, max1, min2, max2):
     return feagi.map_value(val, min1, max1, min2, max2)
-
-
