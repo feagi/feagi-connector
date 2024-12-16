@@ -183,7 +183,7 @@ async def echo(websocket, path):
         connected_agents['0'] = True  # Since this section gets data from client, its marked as true
         query_params = parse_qs(urlparse(path).query)
         device = query_params.get('device', [None])[0]  # Default to None if 'device' is not provided
-        current_device['name'] = embodiment_id_map(device)
+        current_device['name'] = [embodiment_id_map(device)]
         if not ws_operation:
             ws_operation.append(websocket)
         else:
@@ -194,7 +194,7 @@ async def echo(websocket, path):
                 name_of_device = device_name
                 if device_name == 'capabilities':
                     connected_agents['capabilities'] = data_from_bluetooth['capabilities']
-                    if current_device['name'] == 'petoi' and connected_agents['capabilities']:
+                    if 'petoi' in current_device['name'] and connected_agents['capabilities']:
                         feagi_servo_data_to_send = 'i '
                         for position in connected_agents['capabilities']['output']['servo']:
                             feagi_servo_data_to_send += str(feagi_to_petoi_id(int(position))) + " " + str(
@@ -297,10 +297,10 @@ def petoi_action(obtained_data):
     if recieved_misc_data:
         # Note: Only the last command is being considered and the rest are disposed
         for data_point in recieved_misc_data:
-            new_data = feagi_misc_to_petoi_token_mapping.get(data_point)
-            if new_data != last_data['0']: # Add this to reduce the chance to crash petoi
-                WS_STRING = feagi_misc_to_petoi_token_mapping.get(data_point)
-                last_data['0'] = new_data
+            # new_data = feagi_misc_to_petoi_token_mapping.get(data_point)
+            # if new_data != last_data['0']: # Add this to reduce the chance to crash petoi
+            WS_STRING = feagi_misc_to_petoi_token_mapping.get(data_point)
+                # last_data['0'] = new_data
     if servo_data:
         servo_for_feagi = 'i '
         for device_id in servo_data:
