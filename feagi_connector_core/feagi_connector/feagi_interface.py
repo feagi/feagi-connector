@@ -8,6 +8,8 @@ import threading
 import traceback
 import pkg_resources
 from time import sleep
+
+from feagi_connector import retina
 from feagi_connector import router
 from feagi_connector import pns_gateway as pns
 from feagi_connector.version import __version__
@@ -89,12 +91,6 @@ def feagi_registration(feagi_auth_url, feagi_settings, agent_settings, capabilit
     return runtime_data["feagi_state"]
 
 
-def block_to_array(block_ref):
-    block_id_str = block_ref.split('-')
-    array = [int(x) for x in block_id_str]
-    return array
-
-
 def is_FEAGI_reachable(server_host, server_port):
     try:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -157,37 +153,6 @@ def convert_new_networking_into_old_networking(feagi_settings):
     return back_to_old_json
 
 
-def msg_processor(self, msg, msg_type, capabilities):
-    # TODO: give each subclass a specific msg processor method?
-    # TODO: add an attribute that explicitly defines message type (instead of parsing topic name)?
-    if 'ultrasonic' in msg_type and msg.ranges[1]:
-        return {
-            msg_type: {
-                idx: val for idx, val in enumerate([msg.ranges[1]])
-            }
-        }
-    elif 'IR' in msg_type:
-        rgb_vals = list(msg.data)
-        avg_intensity = sum(rgb_vals) // len(rgb_vals)
-
-        sensor_topic = msg_type.split('/')[0]
-        sensor_id = int(''.join(filter(str.isdigit, sensor_topic)))
-
-        # print("\n***\nAverage Intensity = ", avg_intensity)
-        if avg_intensity > capabilities["infrared"]["threshold"]:
-            return {
-                'ir': {
-                    sensor_id: False
-                }
-            }
-        else:
-            return {
-                'ir': {
-                    sensor_id: True
-                }
-            }
-
-
 def compose_message_to_feagi(original_message, data=None, battery=0):
     """
     accumulates multiple messages in a data structure that can be sent to feagi
@@ -213,62 +178,6 @@ def compose_message_to_feagi(original_message, data=None, battery=0):
         message_to_feagi["data"]["sensory_data"]["battery"] = {
             1: runtime_data["battery_charge_level"] / 100}
     return message_to_feagi, runtime_data["battery_charge_level"]
-
-
-# def unique_function_for_special_opu(opu_data, processed_opu_data, cortical_name):
-#     if "motion_control" == cortical_name:
-#         if opu_data['o_mctl']:
-#             processed_opu_data['motion_control'] = {}
-#             if "o_mctl" in pns.full_list_dimension:
-#                 if 'o_mctl' in opu_data:
-#                     for data_point in opu_data['o_mctl']:
-#                         processed_data_point = block_to_array(data_point)
-#                         if pns.full_list_dimension['o_mctl']['cortical_dimensions'][2] == 1:
-#                             device_power = opu_data['o_mctl'][data_point]
-#                         else:
-#                             device_power = ((processed_data_point[2] + 1.0) / (
-#                                 pns.full_list_dimension['o_mctl']['cortical_dimensions'][2]))
-#                         device_id = build_up_from_mctl(processed_data_point)
-#                         index = processed_data_point[0] // 4
-#                         if device_id is not None:
-#                             if index in processed_opu_data['motion_control']:
-#                                 processed_opu_data['motion_control'][index].update({device_id: device_power})
-#                             else:
-#                                 processed_opu_data['motion_control'][index] = {device_id: device_power}
-#     if "servo_position" == cortical_name:
-#         if opu_data['o_spos']:
-#             processed_opu_data['servo_position'] = {}
-#             for data_point in opu_data['o_spos']:
-#                 processed_data_point = block_to_array(data_point)
-#                 device_id = processed_data_point[0]
-#                 device_power = processed_data_point[2]
-#                 processed_opu_data['servo_position'][device_id] = device_power
-#     return processed_opu_data
-
-
-# def translate_feagi_into_robot(cortical_id, cortical_name, opu_data, processed_opu_data):
-#     if cortical_id in pns.full_list_dimension:
-#         average_length = dict()
-#         name_actuator = cortical_name
-#         if name_actuator == 'motion_control' or name_actuator == 'servo_position':
-#             return unique_function_for_special_opu(opu_data, processed_opu_data, name_actuator)
-#         for data_point in opu_data[cortical_id]:
-#             processed_data_point = block_to_array(data_point)
-#             device_id = processed_data_point[0]
-#             device_power = opu_data[cortical_id][data_point]
-#             if device_id in average_length:
-#                 average_length[device_id].append([device_power, processed_data_point[2]])
-#             else:
-#                 average_length[device_id] = [[device_power, processed_data_point[2]]]
-#         if average_length:
-#             processed_opu_data = {name_actuator: {}}
-#             for device_id in average_length:
-#                 add_value = 0.0
-#                 for x in average_length[device_id]:
-#                     add_value += ((x[1] + 1) / pns.full_list_dimension[cortical_id]['cortical_dimensions'][2]) * x[0]
-#                 processed_opu_data[name_actuator][device_id] = add_value / len(average_length[device_id])
-#     return processed_opu_data
-
 
 def opu_calculator(feagi_data, cortical_id):
     new_processed_data = {}
@@ -432,7 +341,11 @@ def reading_parameters_to_confirm_communication(new_settings, configuration, pat
     parser.add_argument('-magic', '--magic', help='to use magic link', required=False)
     parser.add_argument('-ip', '--ip', help='to use feagi_ip', required=False)
     parser.add_argument('-port', '--port', help='to use feagi_port', required=False)
+    parser.add_argument('-preview', '--preview', help='To enable the preview of vision',
+                        required=False)
     args = vars(parser.parse_args())
+    if 'preview' in args:
+        retina.preview_flag = True
     if 'feagi_dns' in new_settings:
         print(
             "OLD networking.json DETECTED! Please update your networking.json to latest. Next update will be removed that could crash the feagi controller if the old networking.json is not updated!!!")
