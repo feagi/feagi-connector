@@ -11,6 +11,7 @@ from time import sleep
 
 from feagi_connector import retina
 from feagi_connector import router
+from feagi_connector import actuators
 from feagi_connector import pns_gateway as pns
 from feagi_connector.version import __version__
 
@@ -280,6 +281,11 @@ def connect_to_feagi(feagi_settings, runtime_data, agent_settings, capabilities,
         router.websocket_client_initalize('', '', dns=websocket_url)
         threading.Thread(target=router.websocket_recieve, daemon=True).start()
 
+
+    if 'servo' in capabilities['output']:
+        actuators.start_servos(capabilities)
+    if 'motor' in capabilities['output']:
+        actuators.start_motors(capabilities)
     return feagi_settings, runtime_data, api_address, feagi_ipu_channel, feagi_opu_channel
 
 
