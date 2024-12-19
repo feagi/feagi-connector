@@ -281,11 +281,11 @@ def connect_to_feagi(feagi_settings, runtime_data, agent_settings, capabilities,
         router.websocket_client_initalize('', '', dns=websocket_url)
         threading.Thread(target=router.websocket_recieve, daemon=True).start()
 
-
-    if 'servo' in capabilities['output']:
-        actuators.start_servos(capabilities)
-    if 'motor' in capabilities['output']:
-        actuators.start_motors(capabilities)
+    if 'output' in capabilities:
+        if 'servo' in capabilities['output']:
+            actuators.start_servos(capabilities)
+        if 'motor' in capabilities['output']:
+            actuators.start_motors(capabilities)
     return feagi_settings, runtime_data, api_address, feagi_ipu_channel, feagi_opu_channel
 
 
@@ -350,8 +350,9 @@ def reading_parameters_to_confirm_communication(new_settings, configuration, pat
     parser.add_argument('-preview', '--preview', help='To enable the preview of vision',
                         required=False)
     args = vars(parser.parse_args())
-    if 'preview' in args:
-        retina.preview_flag = True
+    if args['preview']:
+        if args['preview'].lower() == 'true':
+            retina.preview_flag = True
     if 'feagi_dns' in new_settings:
         print(
             "OLD networking.json DETECTED! Please update your networking.json to latest. Next update will be removed that could crash the feagi controller if the old networking.json is not updated!!!")
