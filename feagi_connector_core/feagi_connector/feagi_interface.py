@@ -11,8 +11,10 @@ from time import sleep
 
 from feagi_connector import retina
 from feagi_connector import router
+from feagi_connector import actuators
 from feagi_connector import pns_gateway as pns
 from feagi_connector.version import __version__
+from feagi_connector.flag_settings import available_args
 
 
 def validate_requirements(requirements_file='requirements.txt'):
@@ -101,6 +103,10 @@ def is_FEAGI_reachable(server_host, server_port):
         return False
 
 
+def get_flag_list():
+    return available_args
+
+
 def feagi_setting_for_registration(feagi_settings, agent_settings):
     """
     Generate all needed information and return the full data to make it easier to connect with
@@ -178,6 +184,7 @@ def compose_message_to_feagi(original_message, data=None, battery=0):
         message_to_feagi["data"]["sensory_data"]["battery"] = {
             1: runtime_data["battery_charge_level"] / 100}
     return message_to_feagi, runtime_data["battery_charge_level"]
+
 
 def opu_calculator(feagi_data, cortical_id):
     new_processed_data = {}
@@ -280,6 +287,11 @@ def connect_to_feagi(feagi_settings, runtime_data, agent_settings, capabilities,
         router.websocket_client_initalize('', '', dns=websocket_url)
         threading.Thread(target=router.websocket_recieve, daemon=True).start()
 
+    if 'output' in capabilities:
+        if 'servo' in capabilities['output']:
+            actuators.start_servos(capabilities)
+        if 'motor' in capabilities['output']:
+            actuators.start_motors(capabilities)
     return feagi_settings, runtime_data, api_address, feagi_ipu_channel, feagi_opu_channel
 
 
@@ -337,15 +349,14 @@ def reading_parameters_to_confirm_communication(new_settings, configuration, pat
     # Check if feagi_connector has arg
     parser = argparse.ArgumentParser(description='enable to use magic link')
     parser.add_argument('-magic_link', '--magic_link', help='to use magic link', required=False)
-    parser.add_argument('-magic-link', '--magic-link', help='to use magic link', required=False)
-    parser.add_argument('-magic', '--magic', help='to use magic link', required=False)
     parser.add_argument('-ip', '--ip', help='to use feagi_ip', required=False)
     parser.add_argument('-port', '--port', help='to use feagi_port', required=False)
     parser.add_argument('-preview', '--preview', help='To enable the preview of vision',
                         required=False)
     args = vars(parser.parse_args())
-    if 'preview' in args:
-        retina.preview_flag = True
+    if args['preview']:
+        if args['preview'].lower() == 'true':
+            retina.preview_flag = True
     if 'feagi_dns' in new_settings:
         print(
             "OLD networking.json DETECTED! Please update your networking.json to latest. Next update will be removed that could crash the feagi controller if the old networking.json is not updated!!!")
@@ -358,8 +369,8 @@ def reading_parameters_to_confirm_communication(new_settings, configuration, pat
     else:
         feagi_settings['feagi_opu_port'] = os.environ.get('FEAGI_OPU_PORT', "3000")
 
-    if args['magic'] or args['magic_link']:
-        if args['magic'] or args['magic_link']:
+    if args['magic_link']:
+        if args['magic_link']:
             for arg in args:
                 if args[arg] is not None:
                     feagi_settings['magic_link'] = args[arg]
