@@ -348,10 +348,10 @@ def configuration_load(path='./'):
 def reading_parameters_to_confirm_communication(new_settings, configuration, path="."):
     # Check if feagi_connector has arg
     parser = argparse.ArgumentParser(description='enable to use magic link')
-    parser.add_argument('-ml', '--magic_link', help='to use magic link', required=False)
+    parser.add_argument('-magic_link', '--magic_link', help='to use magic link', required=False)
     parser.add_argument('-ip', '--ip', help='to use feagi_ip', required=False)
-    parser.add_argument('-p', '--port', help='to use feagi_port', required=False)
-    parser.add_argument('-prew', '--preview', help='To enable the preview of vision',
+    parser.add_argument('-port', '--port', help='to use feagi_port', required=False)
+    parser.add_argument('-preview', '--preview', help='To enable the preview of vision',
                         required=False)
     args = vars(parser.parse_args())
     if args['preview']:
