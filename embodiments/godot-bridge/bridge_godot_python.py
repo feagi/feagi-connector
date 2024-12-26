@@ -92,8 +92,8 @@ def main(feagi_settings, runtime_data, capabilities):
             processed_one_frame = bridge.feagi_breakdown(one_frame)
             processed_one_frame_dict["activations"] = processed_one_frame
             processed_one_frame_dict["status"]["brain_readiness"] = one_frame.get("brain_readiness")
-            print(processed_one_frame_dict)
-            send_to_BV_queue.append(processed_one_frame_dict)
+            print(json.dumps(processed_one_frame_dict))
+            send_to_BV_queue.append(json.dumps(processed_one_frame_dict))
         # If queue_of_recieve_godot_data has a data, it will obtain the latest then pop it for
         # the next data.
         if queue_of_recieve_godot_data:
