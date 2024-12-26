@@ -1,6 +1,6 @@
 available_args = [
-    '-ml', '--magic_link',
+    '-magic_link', '--magic_link',
     '-ip', '--ip',
-    '-p', '--port',
-    '-prew', '--preview'
+    '-port', '--port',
+    '-preview', '--preview'
 ]
