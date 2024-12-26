@@ -14,6 +14,7 @@ from feagi_connector import router
 from feagi_connector import actuators
 from feagi_connector import pns_gateway as pns
 from feagi_connector.version import __version__
+from feagi_connector.flag_settings import available_args
 
 
 def validate_requirements(requirements_file='requirements.txt'):
@@ -102,6 +103,10 @@ def is_FEAGI_reachable(server_host, server_port):
         return False
 
 
+def get_flag_list():
+    return available_args
+
+
 def feagi_setting_for_registration(feagi_settings, agent_settings):
     """
     Generate all needed information and return the full data to make it easier to connect with
@@ -179,6 +184,7 @@ def compose_message_to_feagi(original_message, data=None, battery=0):
         message_to_feagi["data"]["sensory_data"]["battery"] = {
             1: runtime_data["battery_charge_level"] / 100}
     return message_to_feagi, runtime_data["battery_charge_level"]
+
 
 def opu_calculator(feagi_data, cortical_id):
     new_processed_data = {}
