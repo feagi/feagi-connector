@@ -91,6 +91,9 @@ def main(feagi_settings, runtime_data, capabilities):
             # relatively coordination
             processed_one_frame = bridge.feagi_breakdown(one_frame)
             processed_one_frame_dict["activations"] = processed_one_frame
+            processed_one_frame_dict["status"]["burst_engine"] = one_frame.get("burst_engine")
+            processed_one_frame_dict["status"]["genome_availability"] = one_frame.get("genome_availability")
+            processed_one_frame_dict["status"]["genome_validity"] = one_frame.get("genome_validity")
             processed_one_frame_dict["status"]["brain_readiness"] = one_frame.get("brain_readiness")
             print(json.dumps(processed_one_frame_dict))
             send_to_BV_queue.append(json.dumps(processed_one_frame_dict))
