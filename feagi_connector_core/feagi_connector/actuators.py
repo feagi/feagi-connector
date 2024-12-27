@@ -274,9 +274,12 @@ def check_new_speed(obtained_data):
 
 def check_actuator_in_capabilities(actuator):
     global capabilities
-    if actuator in capabilities['output']:
-        return True
-    else:
+    try:
+        if actuator in capabilities['output']:
+            return True
+        else:
+            return False
+    except:
         return False
 
 

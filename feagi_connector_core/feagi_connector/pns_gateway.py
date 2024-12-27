@@ -405,8 +405,8 @@ def name_to_feagi_id_ipu(sensor_name):
     try:
         return pns.full_template_information_corticals['IPU']['name_to_id_mapping'][sensor_name][0]
     except:
-        print(f"This sensor, {sensor_name}, is not available at the moment.")
-        traceback.print_exc()
+        # print(f"This sensor, {sensor_name}, is not available at the moment.")
+        # traceback.print_exc()
         return None
 
 
@@ -414,8 +414,8 @@ def name_to_feagi_id_opu(sensor_name):
     try:
         return pns.full_template_information_corticals['OPU']['supported_devices'][sensor_name]['controller_id']
     except:
-        print(f"This sensor, {sensor_name}, is not available at the moment.")
-        traceback.print_exc()
+        # print(f"This sensor, {sensor_name}, is not available at the moment.")
+        # traceback.print_exc()
         return None
 
 
@@ -423,8 +423,8 @@ def check_actuator_measure(cortical_id):
     try:
         return pns.full_template_information_corticals['OPU']['supported_devices'][cortical_id]['measurable']
     except:
-        print(f"This sensor, {cortical_id}, is not available at the moment.")
-        traceback.print_exc()
+        # print(f"This sensor, {cortical_id}, is not available at the moment.")
+        # traceback.print_exc()
         return None
 
 
