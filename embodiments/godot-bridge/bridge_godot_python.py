@@ -71,6 +71,10 @@ def main(feagi_settings, runtime_data, capabilities):
         # if not feagi.is_FEAGI_reachable(feagi_settings['feagi_host'], int(feagi_settings['feagi_api_port'])):
         #     break
         one_frame = pns.message_from_feagi
+        processed_one_frame_dict = {
+            "status": {},
+            "activations": []
+        }
         if one_frame != {}:
             pns.check_genome_status_no_vision(one_frame)
             if one_frame["genome_changed"] != previous_genome_timestamp:
@@ -78,10 +82,7 @@ def main(feagi_settings, runtime_data, capabilities):
                 if one_frame["genome_changed"] is not None:
                     if one_frame["genome_num"] != current_genome_number or one_frame['change_register']['agent'] != current_register_number:
                         print("updated time")
-                        if send_to_BV_queue:
-                            send_to_BV_queue[0] = "update"
-                        else:
-                            send_to_BV_queue.append("updated")
+                        processed_one_frame_dict["status"]["genome_changed"] = True
                         current_genome_number = one_frame["genome_num"]
                         current_register_number = one_frame['change_register']['agent']
             runtime_data["stimulation_period"] = one_frame['burst_frequency']
@@ -89,7 +90,12 @@ def main(feagi_settings, runtime_data, capabilities):
             # processed_one_frame is the data from godot. It break down due to absolutely and
             # relatively coordination
             processed_one_frame = bridge.feagi_breakdown(one_frame)
-            send_to_BV_queue.append(processed_one_frame)
+            processed_one_frame_dict["activations"] = processed_one_frame
+            processed_one_frame_dict["status"]["burst_engine"] = one_frame.get("burst_engine")
+            processed_one_frame_dict["status"]["genome_availability"] = one_frame.get("genome_availability")
+            processed_one_frame_dict["status"]["genome_validity"] = one_frame.get("genome_validity")
+            processed_one_frame_dict["status"]["brain_readiness"] = one_frame.get("brain_readiness")
+            send_to_BV_queue.append(json.dumps(processed_one_frame_dict))
         # If queue_of_recieve_godot_data has a data, it will obtain the latest then pop it for
         # the next data.
         if queue_of_recieve_godot_data:

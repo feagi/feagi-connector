@@ -167,9 +167,13 @@ def create_data_for_feagi(sensor, capabilities, message_to_feagi, current_data, 
                                 message_to_feagi = add_generic_input_to_feagi_data(create_data_list,
                                                                                    message_to_feagi)
                 except Exception as e:
-                    print("Last error is from: ", sensor, " and the current data: ", current_data,
-                          " and the numbers in ", sensor, " is currently: ", len(capabilities['input'][sensor]))
-                    traceback.print_exc()
+                    """
+                        uncomment this if you are in development.
+                    """
+                    # print("Last error is from: ", sensor, " and the current data: ", current_data,
+                    #       " and the numbers in ", sensor, " is currently: ", len(capabilities['input'][sensor]))
+                    # traceback.print_exc()
+                    pass
     return message_to_feagi
 
 
