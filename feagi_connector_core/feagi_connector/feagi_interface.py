@@ -152,10 +152,6 @@ def convert_new_networking_into_old_networking(feagi_settings):
     ip = feagi_settings['feagi_url'].split('//')
     back_to_old_json['feagi_host'] = ip[1]  # grab ip only
     back_to_old_json['feagi_api_port'] = feagi_settings['feagi_api_port']
-    if feagi_settings['magic_link']:
-        print("use the flag, '--magic_link 'url'")
-        # Not yet.
-        # back_to_old_json['magic_link'] = feagi_settings['magic_link']
     return back_to_old_json
 
 
@@ -259,7 +255,6 @@ def connect_to_feagi(feagi_settings, runtime_data, agent_settings, capabilities,
     api_address = runtime_data['feagi_state']["feagi_url"]
     router.global_api_address = api_address
     agent_data_port = str(runtime_data["feagi_state"]['agent_state']['agent_data_port'])
-    print("** **", runtime_data["feagi_state"])
     feagi_settings['feagi_burst_speed'] = float(runtime_data["feagi_state"]['burst_duration'])
     if 'magic_link' not in feagi_settings:
         if bind_flag:
@@ -362,7 +357,6 @@ def reading_parameters_to_confirm_communication(new_settings, configuration, pat
             "OLD networking.json DETECTED! Please update your networking.json to latest. Next update will be removed that could crash the feagi controller if the old networking.json is not updated!!!")
         feagi_settings = new_settings
     else:
-        print("using new json")
         feagi_settings = convert_new_networking_into_old_networking(new_settings)
     if args['port']:
         feagi_settings['feagi_opu_port'] = args['port']
