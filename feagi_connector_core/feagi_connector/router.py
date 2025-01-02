@@ -253,7 +253,6 @@ def register_with_feagi(feagi_auth_url, feagi_settings, agent_settings, agent_ca
 
     if 'magic_link' not in feagi_settings:
         # feagi_settings['agent_state']['agent_ip'] = "127.0.0.1"
-        print(f"Final Feagi Settings ---- {feagi_settings}")
         feagi_ip = feagi_settings['feagi_host']
         agent_data_port = feagi_settings['agent_state']['agent_data_port']
         print("feagi_ip:agent_data_port", feagi_ip, agent_data_port)
