@@ -13,22 +13,6 @@ previous_servo_data = {}
 def window_average(sequence):
     return sum(sequence) // len(sequence)
 
-
-# def obtain_opu_data(device_list, message_from_feagi):
-#     opu_signal_dict = {}
-#     print("called: ", message_from_feagi)
-#     opu_data = feagi.opu_processor(message_from_feagi)
-#     print("test: ", opu_data)
-#     for i in device_list:
-#         if i in opu_data and opu_data[i]:
-#             for x in opu_data[i]:
-#                 if i not in opu_signal_dict:
-#                     opu_signal_dict[i] = {}
-#                 opu_signal_dict[i][x] = opu_data[i][x]
-#     print("here: ", opu_signal_dict)
-#     return opu_signal_dict
-
-
 def motor_generate_power(power_maximum, feagi_power):
     return power_maximum * feagi_power
 
@@ -290,9 +274,12 @@ def check_new_speed(obtained_data):
 
 def check_actuator_in_capabilities(actuator):
     global capabilities
-    if actuator in capabilities['output']:
-        return True
-    else:
+    try:
+        if actuator in capabilities['output']:
+            return True
+        else:
+            return False
+    except:
         return False
 
 
