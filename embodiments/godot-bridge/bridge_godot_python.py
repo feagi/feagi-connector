@@ -99,7 +99,13 @@ def main(feagi_settings, runtime_data, capabilities):
                 processed_one_frame_dict["status"]["amalgamation_pending"] = one_frame.get("amalgamation_pending")
                 if 'initiation_time' in processed_one_frame_dict["status"]["amalgamation_pending"]:
                     processed_one_frame_dict["status"]["amalgamation_pending"].pop('initiation_time')
-            send_to_BV_queue.append(json.dumps(processed_one_frame_dict))
+        else:
+            processed_one_frame_dict["activations"] = {}
+            processed_one_frame_dict["status"]["burst_engine"] = False
+            processed_one_frame_dict["status"]["genome_availability"] = False
+            processed_one_frame_dict["status"]["genome_validity"] = False
+            processed_one_frame_dict["status"]["brain_readiness"] = False
+        send_to_BV_queue.append(json.dumps(processed_one_frame_dict))
         # If queue_of_recieve_godot_data has a data, it will obtain the latest then pop it for
         # the next data.
         if queue_of_recieve_godot_data:
@@ -129,6 +135,7 @@ def main(feagi_settings, runtime_data, capabilities):
             if converted_data != {}:
                 pns.signals_to_feagi(converted_data, feagi_ipu_channel, agent_settings, feagi_settings)
         sleep(runtime_data["stimulation_period"])
+        one_frame.clear()
         godot_list = {}
 
 
