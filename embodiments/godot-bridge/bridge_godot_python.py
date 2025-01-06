@@ -97,8 +97,6 @@ def main(feagi_settings, runtime_data, capabilities):
             processed_one_frame_dict["status"]["brain_readiness"] = one_frame.get("brain_readiness")
             if "amalgamation_pending" in one_frame:
                 processed_one_frame_dict["status"]["amalgamation_pending"] = one_frame.get("amalgamation_pending")
-                if 'initiation_time' in processed_one_frame_dict["status"]["amalgamation_pending"]:
-                    processed_one_frame_dict["status"]["amalgamation_pending"].pop('initiation_time')
             send_to_BV_queue.append(json.dumps(processed_one_frame_dict))
         # If queue_of_recieve_godot_data has a data, it will obtain the latest then pop it for
         # the next data.
