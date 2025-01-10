@@ -359,7 +359,7 @@ def detect_usb_port():
         counter = 0
         for name_device in com_ports:
             if 'Bluetooth-Incoming-Port' in name_device:
-                com_ports[counter].pop()
+                com_ports.pop(counter)
             counter
         # Example USB port for macOS, replace with actual logic
         # return '/dev/tty.usbserial'  # Replace with the appropriate port
