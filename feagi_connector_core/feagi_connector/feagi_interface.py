@@ -353,6 +353,20 @@ def detect_usb_port():
     system = platform.system()
     print("HERE!!")
     com_ports = list_com_ports()
+    if system == 'Windows':
+        pass
+    elif system == 'Darwin':
+        counter = 0
+        for name_device in com_ports:
+            if 'Bluetooth-Incoming-Port' in name_device:
+                com_ports[counter].pop()
+            counter
+        # Example USB port for macOS, replace with actual logic
+        # return '/dev/tty.usbserial'  # Replace with the appropriate port
+    elif system == 'Linux':
+        pass
+        # Example USB port for Linux, replace with actual logic
+        # return '/dev/ttyUSB0'  # Replace with the appropriate port
     if len(com_ports) == 1:
         print("Found a single device pluggined: ", com_ports[0], " and connecting to it now")
         return com_ports[0]
@@ -360,11 +374,6 @@ def detect_usb_port():
         print("No device plugged, exiting the program.")
         sys.exit()
     if len(com_ports) > 1:
-        for port in com_ports:
-            for x in port:
-                print("x: ", x)
-            print(f"Device: {port}")  # Port name (e.g., COM3, /dev/ttyUSB0)
-            print("-" * 40)
         print("Current available list: ", com_ports)
         print("Exiting the program. Here is what you need to do. Add the '----usb_address' and type the name of port")
         sys.exit()
