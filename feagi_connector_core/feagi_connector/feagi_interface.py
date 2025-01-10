@@ -3,12 +3,13 @@ import sys
 import json
 import socket
 import argparse
+import platform
 import requests
 import threading
 import traceback
 import pkg_resources
 from time import sleep
-
+import serial.tools.list_ports
 from feagi_connector import retina
 from feagi_connector import router
 from feagi_connector import actuators
@@ -340,6 +341,28 @@ def configuration_load(path='./'):
     # END JSON UPDATE
 
 
+def list_com_ports():
+    ports = serial.tools.list_ports.comports()
+    com_list = [port.device for port in ports]
+    return com_list
+
+
+def detect_usb_port():
+    """Automatically detect the USB port based on the operating system."""
+    system = platform.system()
+    if system == 'Windows':
+        print("HERE: ", list_com_ports())
+        return 'COM3'
+    elif system == 'Darwin':
+        # Example USB port for macOS, replace with actual logic
+        return '/dev/tty.usbserial'  # Replace with the appropriate port
+    elif system == 'Linux':
+        # Example USB port for Linux, replace with actual logic
+        return '/dev/ttyUSB0'  # Replace with the appropriate port
+    else:
+        raise ValueError(f"Unsupported operating system: {system}")
+
+
 def reading_parameters_to_confirm_communication(new_settings, configuration, path="."):
     # Check if feagi_connector has arg
     parser = argparse.ArgumentParser(description='enable to use magic link')
@@ -348,7 +371,11 @@ def reading_parameters_to_confirm_communication(new_settings, configuration, pat
     parser.add_argument('-port', '--port', help='to use feagi_port', required=False)
     parser.add_argument('-preview', '--preview', help='To enable the preview of vision',
                         required=False)
+    parser.add_argument('-usb_port', '--usb_port',
+                        help='The usb port to connect with your embodiment through the usb cable',
+                        required=False)
     args = vars(parser.parse_args())
+    detect_usb_port()
     if args['preview']:
         if args['preview'].lower() == 'true':
             retina.preview_flag = True
