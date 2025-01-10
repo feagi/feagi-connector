@@ -348,7 +348,7 @@ def list_com_ports():
     return com_list
 
 
-def detect_usb_port(data):
+def detect_usb_port(data, previous):
     """Automatically detect the USB port based on the operating system."""
     system = platform.system()
     com_ports = list_com_ports()
@@ -358,31 +358,27 @@ def detect_usb_port(data):
             if 'Bluetooth-Incoming-Port' in name_device:
                 com_ports.pop(counter)
             counter+= 1
-    if data not in com_ports:
-        if len(com_ports) == 1:
-            print("Found a single device pluggined: ", com_ports[0], " and connecting to it now")
-            return com_ports[0]
+    if len(com_ports) == 0:
+        print("No device plugged, exiting the program.")
+        sys.exit()
 
-        if len(com_ports) == 0:
-            print("No device plugged, exiting the program.")
-            sys.exit()
-
-        if len(com_ports) > 1:
-            print("Current available list: ", com_ports)
-            for id in range(len(com_ports)):
+    if len(com_ports) >= 1:
+        print("Current available list: ", com_ports)
+        for id in range(len(com_ports)):
+            if previous in com_ports[id]:
+                print(id + 1, ". ", com_ports[id], " (USED PREVIOUSLY)")
+            else:
                 print(id+1, ". ", com_ports[id])
-            while True:
-                user_input = input("There is more than one device. Please press number to connect: ")
-                if user_input.isdigit():  # Check if the input is a digit
-                    choice = int(user_input)
-                    if 1 <= choice <= len(com_ports):  # Ensure the choice is within range
-                        return com_ports[choice - 1]  # Return the selected COM port
-                    else:
-                        print(f"Invalid choice. Please select a number between 1 and {len(com_ports)}.")
+        while True:
+            user_input = input("Please press number to connect: ")
+            if user_input.isdigit():  # Check if the input is a digit
+                choice = int(user_input)
+                if 1 <= choice <= len(com_ports):  # Ensure the choice is within range
+                    return com_ports[choice - 1]  # Return the selected COM port
                 else:
-                    print("Invalid input. Please enter a valid number.")
-    else:
-        return data
+                    print(f"Invalid choice. Please select a number between 1 and {len(com_ports)}.")
+            else:
+                print("Invalid input. Please enter a valid number.")
 
 
 
@@ -414,7 +410,8 @@ def reading_parameters_to_confirm_communication(new_settings, configuration, pat
             }
             configuration['agent_settings']['usb_port'] = default_usb_ports.get(system, '')
         existing_port_usb_name = configuration['agent_settings']['usb_port']
-        configuration['agent_settings']['usb_port'] = detect_usb_port(configuration['agent_settings']['usb_port'])
+        configuration['agent_settings']['usb_port'] = detect_usb_port(configuration['agent_settings']['usb_port'],
+                                                                      existing_port_usb_name)
         if existing_port_usb_name != configuration['agent_settings']['usb_port'] or args['usb_address']:
             if args['usb_address']:
                 configuration['agent_settings']['usb_port'] = args['usb_address']
