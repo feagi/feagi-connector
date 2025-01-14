@@ -90,8 +90,7 @@ def feagi_registration(feagi_auth_url, feagi_settings, agent_settings, capabilit
             print("ERROR__: ", e, traceback.print_exc())
             pass
         sleep(1)
-    print("\nversion: ", controller_version, "\n")
-    print("\nagent version: ", __version__, "\n")
+    print("Controller's version: ", controller_version, "\nagent version: ", __version__)
     return runtime_data["feagi_state"]
 
 
@@ -280,7 +279,6 @@ def connect_to_feagi(feagi_settings, runtime_data, agent_settings, capabilities,
         feagi_ipu_channel = None
         feagi_opu_channel = None
         websocket_url = feagi_settings['feagi_dns'].replace("https", "wss") + str("/p9053")
-        print(websocket_url)
         router.websocket_client_initalize('', '', dns=websocket_url)
         threading.Thread(target=router.websocket_recieve, daemon=True).start()
 
