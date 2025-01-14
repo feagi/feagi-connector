@@ -115,7 +115,7 @@ def main(feagi_settings, runtime_data, capabilities):
             processed_one_frame_dict["status"]["genome_availability"] = False
             processed_one_frame_dict["status"]["genome_validity"] = False
             processed_one_frame_dict["status"]["brain_readiness"] = False
-        json_wrapped: JSONByteStructure = JSONByteStructure.create_from_json_string(json.dumps(processed_one_frame_dict))
+        json_wrapped: JSONByteStructure = JSONByteStructure.create_from_json_string(json.dumps(processed_one_frame_dict)) # TODO creating a new object every frame is slow, we should reuse it instead
         send_to_BV_queue.append(json_wrapped.to_bytes())
         # If queue_of_recieve_godot_data has a data, it will obtain the latest then pop it for
         # the next data.

@@ -1,5 +1,5 @@
 from typing import Type
-from AbstractByteStructure import AbstractByteStructure
+from .AbstractByteStructure import AbstractByteStructure
 
 class JSONByteStructure(AbstractByteStructure):
 
