@@ -17,12 +17,13 @@ limitations under the License.
 import os
 import json
 import threading
-from time import sleep
+from datetime import datetime
 from version import __version__
 from network_configuration import *
 import godot_bridge_functions as bridge
 import feagi_connector.pns_gateway as pns
 import feagi_connector.feagi_interface as feagi
+import feagi_connector.retina as retina
 
 runtime_data = {
     "cortical_data": {},
@@ -67,6 +68,9 @@ def main(feagi_settings, runtime_data, capabilities):
     # bridge and controllers.
     current_genome_number = 0
     current_register_number = 0
+    timerout_setpoint = 3
+    start_timer = datetime.now()
+    size = [32, 32] # by default
     while True:
         # if not feagi.is_FEAGI_reachable(feagi_settings['feagi_host'], int(feagi_settings['feagi_api_port'])):
         #     break
@@ -86,7 +90,6 @@ def main(feagi_settings, runtime_data, capabilities):
                         current_genome_number = one_frame["genome_num"]
                         current_register_number = one_frame['change_register']['agent']
             runtime_data["stimulation_period"] = one_frame['burst_frequency']
-
             # processed_one_frame is the data from godot. It break down due to absolutely and
             # relatively coordination
             processed_one_frame = bridge.feagi_breakdown(one_frame)
@@ -95,11 +98,17 @@ def main(feagi_settings, runtime_data, capabilities):
             processed_one_frame_dict["status"]["genome_availability"] = one_frame.get("genome_availability")
             processed_one_frame_dict["status"]["genome_validity"] = one_frame.get("genome_validity")
             processed_one_frame_dict["status"]["brain_readiness"] = one_frame.get("brain_readiness")
+            processed_one_frame_dict['size'] = size
+            # if pns.full_list_dimension:
+            #     if 'iv00CC' in pns.full_list_dimension:
+            #         size = list(retina.grab_xy_cortical_resolution('iv00CC'))
+            #         processed_one_frame_dict['rgb'] = bridge.rgb_extract(one_frame.get("color_image"), size)
             if "amalgamation_pending" in one_frame:
                 processed_one_frame_dict["status"]["amalgamation_pending"] = one_frame.get("amalgamation_pending")
                 if 'initiation_time' in processed_one_frame_dict["status"]["amalgamation_pending"]:
                     processed_one_frame_dict["status"]["amalgamation_pending"].pop('initiation_time')
-        else:
+            start_timer = datetime.now()
+        elif float(timerout_setpoint) <= (datetime.now() - start_timer).total_seconds():
             processed_one_frame_dict["activations"] = {}
             processed_one_frame_dict["status"]["burst_engine"] = False
             processed_one_frame_dict["status"]["genome_availability"] = False
@@ -149,7 +158,6 @@ if __name__ == "__main__":
     feagi_settings['feagi_host'] = os.environ.get('FEAGI_HOST_INTERNAL', "127.0.0.1")
     feagi_settings['feagi_api_port'] = os.environ.get('FEAGI_API_PORT', "8000")
     agent_settings['godot_websocket_port'] = os.environ.get('WS_BRIDGE_PORT', "9050")
-    # agent_settings['godot_websocket_ip'] = os.environ.get('WS_MICROBIT_PORT', "9052")
     f.close()
     message_to_feagi = {"data": {}}
     # END JSON UPDATE
