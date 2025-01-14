@@ -24,6 +24,7 @@ import godot_bridge_functions as bridge
 import feagi_connector.pns_gateway as pns
 import feagi_connector.feagi_interface as feagi
 import feagi_connector.retina as retina
+from FEAGIByteStructures.JSONByteStructure import JSONByteStructure
 
 runtime_data = {
     "cortical_data": {},
@@ -114,7 +115,8 @@ def main(feagi_settings, runtime_data, capabilities):
             processed_one_frame_dict["status"]["genome_availability"] = False
             processed_one_frame_dict["status"]["genome_validity"] = False
             processed_one_frame_dict["status"]["brain_readiness"] = False
-        send_to_BV_queue.append(json.dumps(processed_one_frame_dict))
+        json_wrapped: JSONByteStructure = JSONByteStructure.create_from_json_string(json.dumps(processed_one_frame_dict))
+        send_to_BV_queue.append(json_wrapped.to_bytes())
         # If queue_of_recieve_godot_data has a data, it will obtain the latest then pop it for
         # the next data.
         if queue_of_recieve_godot_data:
