@@ -11,7 +11,8 @@ class JSONByteStructure(AbstractByteStructure):
     @staticmethod
     def create_from_bytes(self, byte_array: bytes) -> 'JSONByteStructure':
         JSONByteStructure.confirm_header(byte_array) # throws an exception if something is wrong
-        self.json_string = byte_array[2:].decode('utf-8')
+        return JSONByteStructure(byte_array[2:].decode('utf-8'))
+
 
     @staticmethod
     def create_from_json_string(self, json_string: str) -> 'JSONByteStructure':
