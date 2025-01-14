@@ -50,7 +50,7 @@ async def bridge_to_BV(runtime_data):
         if send_to_BV_queue:
             try:
                 if current_websocket_address:
-                    await current_websocket_address[0].send(zlib.compress(str(send_to_BV_queue[0]).encode()))
+                    await current_websocket_address[0].send(zlib.compress(send_to_BV_queue[0]))
                     if "update" in send_to_BV_queue[0]:
                         send_to_BV_queue.popleft()
                     if "ping" in send_to_BV_queue:
