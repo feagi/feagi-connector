@@ -12,7 +12,7 @@ class AbstractByteStructure(ABC):
 
     @staticmethod
     @abstractmethod
-    def create_from_bytes(self, byte_array: bytes) -> Type['AbstractByteStructure']:
+    def create_from_bytes(byte_array: bytes) -> Type['AbstractByteStructure']:
         """
         Create an instance of this object from the appropriate byte structure of this object
         """

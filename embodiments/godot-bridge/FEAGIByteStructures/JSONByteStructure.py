@@ -9,13 +9,13 @@ class JSONByteStructure(AbstractByteStructure):
         self.json_string: str = json_string
 
     @staticmethod
-    def create_from_bytes(self, byte_array: bytes) -> 'JSONByteStructure':
+    def create_from_bytes(byte_array: bytes) -> 'JSONByteStructure':
         JSONByteStructure.confirm_header(byte_array) # throws an exception if something is wrong
         return JSONByteStructure(byte_array[2:].decode('utf-8'))
 
 
     @staticmethod
-    def create_from_json_string(self, json_string: str) -> 'JSONByteStructure':
+    def create_from_json_string(json_string: str) -> 'JSONByteStructure':
         return JSONByteStructure(json_string)
 
     def to_bytes(self) -> bytes:
