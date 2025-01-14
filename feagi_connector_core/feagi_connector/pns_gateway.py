@@ -249,7 +249,7 @@ def check_refresh_rate(message_from_feagi, current_second):
     """
     Update the current second when the feagi's refresh rate changed.
     """
-    if message_from_feagi is not None:
+    if message_from_feagi:
         return message_from_feagi['burst_frequency']
     return current_second
 
@@ -276,7 +276,7 @@ def check_genome_status(message_from_feagi, capabilities):
     changed, or genome modified in real time.
     """
     global previous_genome_timestamp, genome_tracker, full_list_dimension, resize_list, full_template_information_corticals
-    if message_from_feagi['genome_changed'] is not None:
+    if message_from_feagi['genome_changed']:
         if full_list_dimension is None:
             full_list_dimension = []
         if len(full_list_dimension) == 0:
@@ -310,21 +310,22 @@ def check_genome_status_no_vision(message_from_feagi):
     """
     global previous_genome_timestamp, genome_tracker, full_list_dimension, resize_list, \
         full_template_information_corticals
-    if message_from_feagi['genome_changed'] is not None:
-        if full_list_dimension is None:
-            full_list_dimension = []
-        if len(full_list_dimension) == 0:
-            full_list_dimension = fetch_full_dimensions()
-        if len(full_template_information_corticals) == 0:
-            full_template_information_corticals = fetch_full_template_information()
-        genome_changed = detect_genome_change(message_from_feagi)
-        if genome_changed != previous_genome_timestamp:
-            full_list_dimension = fetch_full_dimensions()
-            previous_genome_timestamp = message_from_feagi["genome_changed"]
-        current_tracker = obtain_genome_number(genome_tracker, message_from_feagi)
-        if genome_tracker != current_tracker:
-            full_list_dimension = fetch_full_dimensions()
-            genome_tracker = current_tracker
+    if 'genome_changed' in message_from_feagi:
+        if message_from_feagi['genome_changed']:
+            if full_list_dimension is None:
+                full_list_dimension = []
+            if len(full_list_dimension) == 0:
+                full_list_dimension = fetch_full_dimensions()
+            if len(full_template_information_corticals) == 0:
+                full_template_information_corticals = fetch_full_template_information()
+            genome_changed = detect_genome_change(message_from_feagi)
+            if genome_changed != previous_genome_timestamp:
+                full_list_dimension = fetch_full_dimensions()
+                previous_genome_timestamp = message_from_feagi["genome_changed"]
+            current_tracker = obtain_genome_number(genome_tracker, message_from_feagi)
+            if genome_tracker != current_tracker:
+                full_list_dimension = fetch_full_dimensions()
+                genome_tracker = current_tracker
 
 
 def fetch_threshold_type(message_from_feagi, capabilities):

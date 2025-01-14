@@ -211,20 +211,16 @@ def register_with_feagi(feagi_auth_url, feagi_settings, agent_settings, agent_ca
     registration_complete = False
     while not registration_complete:
         try:
-            print(f"Original Feagi Settings ---- {feagi_settings}")
+            # print(f"Original Feagi Settings ---- {feagi_settings}")
             feagi_settings = feagi_settings_from_composer(feagi_auth_url, feagi_settings)
             feagi_url = feagi_settings['feagi_url']
 
-            print("feagiurl: ", feagi_url, " network endpoint: ", network_endpoint)
+            # print("feagiurl: ", feagi_url, " network endpoint: ", network_endpoint)
 
             network_output = requests.get(feagi_url + network_endpoint).json()
             # print(f"network_output ---- {network_output}")
             if 'magic_link' not in feagi_settings and 'feagi_opu_port' not in feagi_settings:
                 feagi_settings['feagi_opu_port'] = network_output['feagi_opu_port']
-            if feagi_settings:
-                print("Data from FEAGI::", feagi_settings)
-            else:
-                print("No feagi settings!")
 
             agent_registration_data = dict()
             agent_registration_data['capabilities'] = agent_capabilities
@@ -238,13 +234,13 @@ def register_with_feagi(feagi_auth_url, feagi_settings, agent_settings, agent_ca
                                      data=json.dumps(agent_registration_data))
             if response.status_code == 200:
                 feagi_settings['agent_state'] = response.json()
-                print("Agent successfully registered with FEAGI!")
+                # print("Agent successfully registered with FEAGI!")
                 # Receive FEAGI settings
                 feagi_settings['burst_duration'] = requests.get(feagi_url + stimulation_period_endpoint).json()
                 feagi_settings['burst_counter'] = requests.get(feagi_url + burst_counter_endpoint).json()
 
                 if feagi_settings and feagi_settings['burst_duration'] and feagi_settings['burst_counter']:
-                    print("\n\n\n\nRegistration is complete....")
+                    print("Registration is complete....")
                     registration_complete = True
         except Exception as e:
             print("Registeration failed with FEAGI: ", e)
@@ -255,7 +251,7 @@ def register_with_feagi(feagi_auth_url, feagi_settings, agent_settings, agent_ca
         # feagi_settings['agent_state']['agent_ip'] = "127.0.0.1"
         feagi_ip = feagi_settings['feagi_host']
         agent_data_port = feagi_settings['agent_state']['agent_data_port']
-        print("feagi_ip:agent_data_port", feagi_ip, agent_data_port)
+        # print("feagi_ip:agent_data_port", feagi_ip, agent_data_port)
         # Transmit Controller Capabilities
         # address, bind = f"tcp://*:{agent_data_port}", True
         address, bind = f"tcp://{feagi_ip}:{agent_data_port}", False

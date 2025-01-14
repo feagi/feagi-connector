@@ -1,8 +1,10 @@
-import requests
+import cv2
 import ast
+import json
 import random
 import logging
-
+import requests
+import numpy as np
 
 def simulation_testing():
     """
@@ -13,6 +15,21 @@ def simulation_testing():
     array = [[random.randint(0, 64), random.randint(0, 64), random.randint(0, 64)] for _ in
              range(1000)]
     return array
+
+
+def rgb_extract(value, size):
+    ndarray = np.zeros((size[0], size[1], 3), dtype=np.uint8)
+    try:
+        for i in value:
+            ndarray[i] = value[i] # updated the pixel
+        ndarray = np.rot90(ndarray, k=1, axes=(0, 1)) # rotate the image
+        ndarray = cv2.cvtColor(ndarray, cv2.COLOR_RGB2BGR) # godot reads bgr
+        flattened_1d = ndarray.flatten()
+        flattened_1d = flattened_1d.tolist()
+    except:
+        flattened_1d = []
+    json_representation = json.dumps(flattened_1d) # 1D since godot needs that
+    return json_representation
 
 
 def godot_data(data_input):
