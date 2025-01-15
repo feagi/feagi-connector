@@ -1,4 +1,3 @@
-from typing import Type
 from .AbstractByteStructure import AbstractByteStructure
 
 class JSONByteStructure(AbstractByteStructure):
