@@ -25,6 +25,7 @@ import feagi_connector.pns_gateway as pns
 import feagi_connector.feagi_interface as feagi
 import feagi_connector.retina as retina
 from FEAGIByteStructures.JSONByteStructure import JSONByteStructure
+from FEAGIByteStructures.ActivatedNeuronLocation import ActivatedNeuronLocation
 
 runtime_data = {
     "cortical_data": {},
@@ -80,6 +81,7 @@ def main(feagi_settings, runtime_data, capabilities):
             "status": {},
             "activations": []
         }
+        processed_one_frame: list[tuple[int, int, int]] = []
         if one_frame != {}:
             pns.check_genome_status_no_vision(one_frame)
             if one_frame["genome_changed"] != previous_genome_timestamp:
@@ -94,7 +96,6 @@ def main(feagi_settings, runtime_data, capabilities):
             # processed_one_frame is the data from godot. It break down due to absolutely and
             # relatively coordination
             processed_one_frame = bridge.feagi_breakdown(one_frame)
-            processed_one_frame_dict["activations"] = processed_one_frame
             processed_one_frame_dict["status"]["burst_engine"] = one_frame.get("burst_engine")
             processed_one_frame_dict["status"]["genome_availability"] = one_frame.get("genome_availability")
             processed_one_frame_dict["status"]["genome_validity"] = one_frame.get("genome_validity")
@@ -117,6 +118,11 @@ def main(feagi_settings, runtime_data, capabilities):
             processed_one_frame_dict["status"]["brain_readiness"] = False
         json_wrapped: JSONByteStructure = JSONByteStructure.create_from_json_string(json.dumps(processed_one_frame_dict)) # TODO creating a new object every frame is slow, we should reuse it instead
         send_to_BV_queue.append(json_wrapped.to_bytes())
+        if len(processed_one_frame) != 0:
+            activations: list[tuple[int,int,int]] = processed_one_frame
+            activations_wrapped: ActivatedNeuronLocation = ActivatedNeuronLocation.create_from_list_of_tuples(activations)
+            send_to_BV_queue.append(activations_wrapped.to_bytes())
+
         # If queue_of_recieve_godot_data has a data, it will obtain the latest then pop it for
         # the next data.
         if queue_of_recieve_godot_data:

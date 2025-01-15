@@ -49,7 +49,7 @@ def feagi_breakdown(data):
     try:
         new_list = []
         for i in data['godot']:
-            new_list.append([i[1], i[2], i[3]])
+            new_list.append((i[1], i[2], i[3]))
         return new_list
     except requests.exceptions.RequestException as error:
         logging.exception(error)
