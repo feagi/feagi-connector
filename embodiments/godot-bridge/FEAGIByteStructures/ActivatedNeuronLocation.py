@@ -24,9 +24,9 @@ class ActivatedNeuronLocation(AbstractByteStructure):
         index: int = 2
         while index < len(byte_array) - 2:
             appending: tuple[int, int, int] = (
-                struct.unpack('>h', byte_array[index: index + 2])[0],
-                struct.unpack('>h', byte_array[index + 2: index + 4])[0],
-                struct.unpack('>h', byte_array[index + 4: index + 6])[0])
+                struct.unpack('<h', byte_array[index: index + 2])[0],
+                struct.unpack('<h', byte_array[index + 2: index + 4])[0],
+                struct.unpack('<h', byte_array[index + 4: index + 6])[0])
             output.append(appending)
             index += 6
         return ActivatedNeuronLocation(output)
@@ -39,7 +39,7 @@ class ActivatedNeuronLocation(AbstractByteStructure):
         output: bytearray = bytearray([0] * (len(self.activated_neuron_coordinates) // 6))
         offset: int = 0
         for activated_neuron_coordinate in self.activated_neuron_coordinates:
-            bytearray[offset: offset + 6] = struct.pack('>hhh', activated_neuron_coordinate[0], activated_neuron_coordinate[1], activated_neuron_coordinate[2])
+            output[offset: offset + 6] = struct.pack('<hhh', activated_neuron_coordinate[0], activated_neuron_coordinate[1], activated_neuron_coordinate[2])
             offset += 6
         return bytes (self._create_header() + output)
 
