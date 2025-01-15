@@ -6,14 +6,14 @@ import logging
 import requests
 import numpy as np
 
-def simulation_testing():
+def simulation_testing(num_cubes: int = 1000) -> list[tuple[int, int, int]]:
     """
     This is to stress the CPU using Godot. You should be able to see the red cube filled with
     small red cubes inside. You can simply uncomment this function in main() to test the
     stress and increase the iteration numbers to stress more..
     """
-    array = [[random.randint(0, 64), random.randint(0, 64), random.randint(0, 64)] for _ in
-             range(1000)]
+    array = [(random.randint(0, 256), random.randint(0, 256), random.randint(0, 256)) for _ in
+             range(num_cubes)]
     return array
 
 

@@ -120,6 +120,7 @@ def main(feagi_settings, runtime_data, capabilities):
         send_to_BV_queue.append(json_wrapped.to_bytes())
         if len(processed_one_frame) != 0:
             activations: list[tuple[int,int,int]] = processed_one_frame
+            activations = bridge.simulation_testing(10000)
             activations_wrapped: ActivatedNeuronLocation = ActivatedNeuronLocation.create_from_list_of_tuples(activations)
             send_to_BV_queue.append(activations_wrapped.to_bytes())
 
