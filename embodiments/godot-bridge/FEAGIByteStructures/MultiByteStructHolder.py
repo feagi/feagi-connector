@@ -1,5 +1,7 @@
 from .AbstractByteStructure import AbstractByteStructure
-from .utils import attempt_to_create_byte_structure_from_bytes
+from .ActivatedNeuronLocation import ActivatedNeuronLocation
+from .JSONByteStructure import JSONByteStructure
+from .SingleRawImage import SingleRawImage
 import struct
 
 class MultiByteStructHolder(AbstractByteStructure):
@@ -16,6 +18,25 @@ class MultiByteStructHolder(AbstractByteStructure):
 
     @staticmethod
     def create_from_bytes(byte_array: bytes) -> 'MultiByteStructHolder':
+
+        def attempt_to_create_byte_structure_from_bytes(byte_array: bytes) -> AbstractByteStructure:
+            """
+            Given a sequence of bytes, attempts to create to correct Byte Structure from it
+            """
+            if len(byte_array) < 3:
+                raise Exception("Byte structure is missing initial header!")
+            structure_type: int = byte_array[0]
+            match structure_type:
+                case 1:
+                    return JSONByteStructure.create_from_bytes(byte_array)
+                case 7:
+                    return ActivatedNeuronLocation.create_from_bytes(byte_array)
+                case 8:
+                    return SingleRawImage.create_from_bytes(byte_array)
+                case 9:
+                    return MultiByteStructHolder.create_from_bytes(byte_array)
+            raise Exception(f"Unable to generate unsupported byte structure of type {structure_type}!")
+
         MultiByteStructHolder.confirm_header(byte_array)  # throws an exception if something is wrong
         if len(byte_array) < 3:
             raise Exception("Missing data fro initial sub-header for 'MultiByteStructHolder'!")
@@ -34,10 +55,13 @@ class MultiByteStructHolder(AbstractByteStructure):
                 print(f"Unable to parse one of the byte structures as a AbstractByteStructure member: {e}")
         return MultiByteStructHolder(parsed_byte_structures)
 
-
     @staticmethod
     def create_from_list_of_bytestructs(byte_structures: list[AbstractByteStructure]) -> 'MultiByteStructHolder':
         return MultiByteStructHolder(byte_structures)
+
+
+
+
 
     def to_bytes(self) -> bytes:
 
@@ -53,3 +77,4 @@ class MultiByteStructHolder(AbstractByteStructure):
             output += bytearray(output)
             sub_header_index_offset += 2
         return bytes(output)
+

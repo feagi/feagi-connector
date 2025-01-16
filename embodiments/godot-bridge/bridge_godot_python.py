@@ -27,6 +27,8 @@ import feagi_connector.retina as retina
 from FEAGIByteStructures.JSONByteStructure import JSONByteStructure
 from FEAGIByteStructures.ActivatedNeuronLocation import ActivatedNeuronLocation
 from FEAGIByteStructures.SingleRawImage import SingleRawImage
+from FEAGIByteStructures.MultiByteStructHolder import MultiByteStructHolder
+from FEAGIByteStructures.AbstractByteStructure import AbstractByteStructure
 
 runtime_data = {
     "cortical_data": {},
@@ -114,12 +116,15 @@ def main(feagi_settings, runtime_data, capabilities):
             processed_one_frame_dict["status"]["genome_validity"] = False
             processed_one_frame_dict["status"]["brain_readiness"] = False
         json_wrapped: JSONByteStructure = JSONByteStructure.create_from_json_string(json.dumps(processed_one_frame_dict)) # TODO creating a new object every frame is slow, we should reuse it instead
-        send_to_BV_queue.append(json_wrapped.to_bytes())
+        wrapped_structures_to_send: list[AbstractByteStructure] = [json_wrapped]
+
+
+
         if len(processed_one_frame) != 0:
             activations: list[tuple[int,int,int]] = processed_one_frame
             #activations = bridge.simulation_testing(10000)
             activations_wrapped: ActivatedNeuronLocation = ActivatedNeuronLocation.create_from_list_of_tuples(activations) # TODO creating a new object every frame is slow, we should reuse it instead
-            send_to_BV_queue.append(activations_wrapped.to_bytes())
+            wrapped_structures_to_send.append(activations_wrapped)
         if pns.full_list_dimension:
             if 'iv00CC' in pns.full_list_dimension:
                 res_json: list = list(retina.grab_xy_cortical_resolution('iv00CC'))
@@ -127,8 +132,10 @@ def main(feagi_settings, runtime_data, capabilities):
                 FEAGI_RGB_data: dict = one_frame.get("color_image") # dict[tuple[int, int, int]: int]
                 if FEAGI_RGB_data != None:
                     image_wrapped: SingleRawImage = SingleRawImage.create_from_FEAGI_delta_dict(resolution, FEAGI_RGB_data)  # TODO creating a new object every frame is slow, we should reuse it instead
-                    send_to_BV_queue.append(image_wrapped.to_bytes())
+                    wrapped_structures_to_send.append(image_wrapped)
 
+        multi_wrapped: MultiByteStructHolder = MultiByteStructHolder(wrapped_structures_to_send)
+        send_to_BV_queue.append(multi_wrapped.to_bytes())
 
 
         # If queue_of_recieve_godot_data has a data, it will obtain the latest then pop it for
