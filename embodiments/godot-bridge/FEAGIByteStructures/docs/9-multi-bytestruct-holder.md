@@ -30,7 +30,7 @@ This structure can hold multiple other byte structs. This is useful if you wish 
 <table border="1" id="bkmrk-r-pixel-1-uint8-g-pi" style="border-collapse: collapse; width: 100%; height: 88.5501px;"><colgroup><col style="width: 50.0417%;"></col><col style="width: 25.0139%;"></col><col style="width: 25.0278%;"></col></colgroup><tbody><tr style="height: 29.5167px;"><td style="height: 29.5167px;">Index of starting byte inclusive (relative to this whole structure)  
 </td><td style="height: 29.5167px;">4  
 </td><td style="height: 29.5167px;">UINT32  
-</td></tr><tr style="height: 29.5167px;"><td style="height: 29.5167px;">Index of ending byte inclusive (relative to this whole structure)  
+</td></tr><tr style="height: 29.5167px;"><td style="height: 29.5167px;">Number of bytes of the substructure  
 </td><td style="height: 29.5167px;">4  
 </td><td style="height: 29.5167px;">UINT32  
 </td></tr></tbody></table>
@@ -38,7 +38,7 @@ This structure can hold multiple other byte structs. This is useful if you wish 
 Essentially, structure works as the following
 
 - First part of the sub header defines the number of internal structures. Limited up to 255 (if you have more than this, what are you doing???)
-- The second part of the sub-header has sequential (number of sections determined in the first part) ranges defining where each section starts and stops. From here, you can copy / read directly the data 
+- The second part of the sub-header has sequential (number of sections determined in the first part) ranges defining where each section starts and how far to read. From here, you can copy / read directly the data 
     - Beware that some bytestructs themselves use array indexes, and those indexes are going to be relative to the sub-structure itself, so if you read directly from this multi-byte struct, be wary and apply appropriate offsets.
 
 #### Example
