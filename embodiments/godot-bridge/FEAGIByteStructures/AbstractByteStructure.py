@@ -13,9 +13,6 @@ class AbstractByteStructure(ABC):
     @staticmethod
     @abstractmethod
     def create_from_bytes(byte_array: bytes) -> Type['AbstractByteStructure']:
-        """
-        Create an instance of this object from the appropriate byte structure of this object
-        """
         pass
 
     @abstractmethod
@@ -26,16 +23,16 @@ class AbstractByteStructure(ABC):
         pass
 
     @classmethod
-    def confirm_header(cls, bytes_array: bytes) -> bool:
+    def confirm_header(cls, byte_array: bytes) -> bool:
         """
         Returns true if the byte header is expected of this class. else throws an exception
         """
-        if len(bytes_array) < 3:
+        if len(byte_array) < 3:
             raise Exception("Byte structure is missing initial header!")
-        if int(bytes_array[0]) != cls.structure_id:
-            raise Exception(f"Byte structure ID is {int(bytes_array[0])} when expected {cls.structure_id}!")
-        if int(bytes_array[1]) != cls.structure_version:
-            raise Exception(f"Byte structure ID is {int(bytes_array[1])} when expected {cls.structure_version}!")
+        if int(byte_array[0]) != cls.structure_id:
+            raise Exception(f"Byte structure ID is {int(byte_array[0])} when expected {cls.structure_id}!")
+        if int(byte_array[1]) != cls.structure_version:
+            raise Exception(f"Byte structure ID is {int(byte_array[1])} when expected {cls.structure_version}!")
         return True
 
     def _create_header(self) -> bytes:
