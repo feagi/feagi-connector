@@ -4,7 +4,7 @@
 
 **Size: Varies but only changes when image resolution changes**
 
-This structure encodes a 2D image in RAW RGB Int8 format. It is intended to be used to transfer images in a fully uncompressed format while also encoding its size information. This implementation is generic intentionally. *Size generally doesn't change size unless resolution of the image changes.*
+This structure encodes a 2D image in RAW BGR (due to Godot) Int8 format. It is intended to be used to transfer images in a fully uncompressed format while also encoding its size information. This implementation is generic intentionally. *Size generally doesn't change size unless resolution of the image changes.*
 
 #### General Structure
 
@@ -30,13 +30,13 @@ This structure encodes a 2D image in RAW RGB Int8 format. It is intended to be u
 
 **Data (repeated for every pixel, of which there is Xres\*Yres of)**
 
-<table border="1" id="bkmrk-r-pixel-1-uint8-g-pi" style="border-collapse: collapse; width: 100%; height: 88.5501px;"><colgroup><col style="width: 50.0417%;"></col><col style="width: 25.0139%;"></col><col style="width: 25.0278%;"></col></colgroup><tbody><tr style="height: 29.5167px;"><td style="height: 29.5167px;">R pixel  
+<table border="1" id="bkmrk-r-pixel-1-uint8-g-pi" style="border-collapse: collapse; width: 100%; height: 88.5501px;"><colgroup><col style="width: 50.0417%;"></col><col style="width: 25.0139%;"></col><col style="width: 25.0278%;"></col></colgroup><tbody><tr style="height: 29.5167px;"><td style="height: 29.5167px;">B pixel  
 </td><td style="height: 29.5167px;">1  
 </td><td style="height: 29.5167px;">UINT8  
 </td></tr><tr style="height: 29.5167px;"><td style="height: 29.5167px;">G pixel  
 </td><td style="height: 29.5167px;">1  
 </td><td style="height: 29.5167px;">UINT8  
-</td></tr><tr style="height: 29.5167px;"><td style="height: 29.5167px;">B pixel  
+</td></tr><tr style="height: 29.5167px;"><td style="height: 29.5167px;">R pixel  
 </td><td style="height: 29.5167px;">1  
 </td><td style="height: 29.5167px;">UINT8</td></tr></tbody></table>
 

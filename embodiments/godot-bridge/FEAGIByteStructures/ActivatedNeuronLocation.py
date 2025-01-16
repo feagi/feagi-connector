@@ -32,7 +32,7 @@ class ActivatedNeuronLocation(AbstractByteStructure):
         return ActivatedNeuronLocation(output)
 
     @staticmethod
-    def create_from_list_of_tuples(coordinates: list[tuple[int, int, int]]):
+    def create_from_list_of_tuples(coordinates: list[tuple[int, int, int]]) -> 'ActivatedNeuronLocation':
         return ActivatedNeuronLocation(coordinates)
 
     def to_bytes(self) -> bytes:
