@@ -16,22 +16,6 @@ def simulation_testing(num_cubes: int = 1000) -> list[tuple[int, int, int]]:
              range(num_cubes)]
     return array
 
-
-def rgb_extract(value, size):
-    ndarray = np.zeros((size[0], size[1], 3), dtype=np.uint8)
-    try:
-        for i in value:
-            ndarray[i] = value[i] # updated the pixel
-        ndarray = np.rot90(ndarray, k=1, axes=(0, 1)) # rotate the image
-        ndarray = cv2.cvtColor(ndarray, cv2.COLOR_RGB2BGR) # godot reads bgr
-        flattened_1d = ndarray.flatten()
-        flattened_1d = flattened_1d.tolist()
-    except:
-        flattened_1d = []
-    json_representation = json.dumps(flattened_1d) # 1D since godot needs that
-    return json_representation
-
-
 def godot_data(data_input):
     """
     Simply clean the list and remove all unnecessary special characters and deliver with name, xyz

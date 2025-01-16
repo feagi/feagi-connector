@@ -26,6 +26,7 @@ import feagi_connector.feagi_interface as feagi
 import feagi_connector.retina as retina
 from FEAGIByteStructures.JSONByteStructure import JSONByteStructure
 from FEAGIByteStructures.ActivatedNeuronLocation import ActivatedNeuronLocation
+from FEAGIByteStructures.SingleRawImage import SingleRawImage
 
 runtime_data = {
     "cortical_data": {},
@@ -101,10 +102,6 @@ def main(feagi_settings, runtime_data, capabilities):
             processed_one_frame_dict["status"]["genome_validity"] = one_frame.get("genome_validity")
             processed_one_frame_dict["status"]["brain_readiness"] = one_frame.get("brain_readiness")
             processed_one_frame_dict['size'] = size
-            if pns.full_list_dimension:
-                if 'iv00CC' in pns.full_list_dimension:
-                    size = list(retina.grab_xy_cortical_resolution('iv00CC'))
-                    processed_one_frame_dict['rgb'] = bridge.rgb_extract(one_frame.get("color_image"), size)
             if "amalgamation_pending" in one_frame:
                 processed_one_frame_dict["status"]["amalgamation_pending"] = one_frame.get("amalgamation_pending")
                 if 'initiation_time' in processed_one_frame_dict["status"]["amalgamation_pending"]:
@@ -120,9 +117,19 @@ def main(feagi_settings, runtime_data, capabilities):
         send_to_BV_queue.append(json_wrapped.to_bytes())
         if len(processed_one_frame) != 0:
             activations: list[tuple[int,int,int]] = processed_one_frame
-            activations = bridge.simulation_testing(10000)
-            activations_wrapped: ActivatedNeuronLocation = ActivatedNeuronLocation.create_from_list_of_tuples(activations)
+            #activations = bridge.simulation_testing(10000)
+            activations_wrapped: ActivatedNeuronLocation = ActivatedNeuronLocation.create_from_list_of_tuples(activations) # TODO creating a new object every frame is slow, we should reuse it instead
             send_to_BV_queue.append(activations_wrapped.to_bytes())
+        if pns.full_list_dimension:
+            if 'iv00CC' in pns.full_list_dimension:
+                res_json: list = list(retina.grab_xy_cortical_resolution('iv00CC'))
+                resolution: tuple[int, int] = (int(res_json[0]), int(res_json[1]))
+                FEAGI_RGB_data: dict = one_frame.get("color_image") # dict[tuple[int, int, int]: int]
+                if FEAGI_RGB_data != None:
+                    image_wrapped: SingleRawImage = SingleRawImage.create_from_FEAGI_delta_dict(resolution, FEAGI_RGB_data)  # TODO creating a new object every frame is slow, we should reuse it instead
+                    send_to_BV_queue.append(image_wrapped.to_bytes())
+
+
 
         # If queue_of_recieve_godot_data has a data, it will obtain the latest then pop it for
         # the next data.
