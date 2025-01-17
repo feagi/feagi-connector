@@ -73,7 +73,7 @@ class MultiByteStructHolder(AbstractByteStructure):
             data_start_offset: int = len(output)  # where we start reading data for this byte structure
             data: bytes = byte_structure.to_bytes()
             output[sub_header_index_offset: sub_header_index_offset + 8] = struct.pack('<II',data_start_offset, len(data))
-            output += bytearray(output)
+            output += data
             sub_header_index_offset += 8
         return bytes(output)
 
