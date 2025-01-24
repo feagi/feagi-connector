@@ -118,7 +118,7 @@ def vision_region_coordinates(frame_width=None, frame_height=None, x1=None, x2=N
     if (camera_index + 'BR') in size_list:
         region_coordinates[camera_index + 'BR'] = [x2_prime, y2_prime, frame_width, frame_height]
     if (camera_index + 'CC') in size_list:
-        region_coordinates[camera_index + 'CC'] = [1, 1, frame_height, frame_width]
+        region_coordinates[camera_index + 'CC'] = [x1_prime, y1_prime, x2_prime, y2_prime]
     # print("vision_region_coordinates time total: ", (datetime.now() - start_time).total_seconds())
     return region_coordinates
 
