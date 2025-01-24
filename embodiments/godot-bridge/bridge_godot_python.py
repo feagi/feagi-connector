@@ -104,6 +104,10 @@ def main(feagi_settings, runtime_data, capabilities):
             processed_one_frame_dict["status"]["genome_validity"] = one_frame.get("genome_validity")
             processed_one_frame_dict["status"]["brain_readiness"] = one_frame.get("brain_readiness")
             processed_one_frame_dict['size'] = size
+            if pns.full_list_dimension:
+                if 'iv00CC' in pns.full_list_dimension:
+                    size = list(retina.grab_xy_cortical_resolution('iv00CC'))
+                    processed_one_frame_dict['rgb'] = bridge.rgb_extract(one_frame.get("color_image"), size)
             if "amalgamation_pending" in one_frame:
                 processed_one_frame_dict["status"]["amalgamation_pending"] = one_frame.get("amalgamation_pending")
                 if 'initiation_time' in processed_one_frame_dict["status"]["amalgamation_pending"]:
