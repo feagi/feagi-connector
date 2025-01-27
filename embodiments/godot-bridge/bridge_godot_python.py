@@ -180,7 +180,6 @@ def main(feagi_settings, runtime_data, capabilities):
                 pns.signals_to_feagi(converted_data, feagi_ipu_channel, agent_settings, feagi_settings)
         sleep(runtime_data["stimulation_period"])
         godot_list = {}
-        sleep(0.001)
 
 
 if __name__ == "__main__":
