@@ -59,10 +59,6 @@ class MultiByteStructHolder(AbstractByteStructure):
     def create_from_list_of_bytestructs(byte_structures: list[AbstractByteStructure]) -> 'MultiByteStructHolder':
         return MultiByteStructHolder(byte_structures)
 
-
-
-
-
     def to_bytes(self) -> bytes:
 
         output: bytearray = bytearray(self._create_header() + bytes([len(self.byte_structures)]) + bytes([0] * 8 * len(self.byte_structures))) ## allocate space for header
@@ -77,3 +73,14 @@ class MultiByteStructHolder(AbstractByteStructure):
             sub_header_index_offset += 8
         return bytes(output)
 
+    def get_number_of_contained_structures(self) -> int:
+        """
+        Returns the number of contained structures
+        """
+        return len(self.byte_structures)
+
+    def is_empty(self) -> bool:
+        """
+        Returns True if this structure contains no structures within itself
+        """
+        return len(self.byte_structures) == 0
