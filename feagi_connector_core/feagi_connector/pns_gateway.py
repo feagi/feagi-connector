@@ -15,12 +15,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================
 """
-
+import os
 import time
 import numpy
 import asyncio
 import threading
 import traceback
+import feagi_connector
 from feagi_connector import router
 from feagi_connector import retina
 from feagi_connector import feagi_interface as feagi
@@ -38,6 +39,17 @@ message_from_feagi = {}
 refresh_rate = 0.01
 ver = "local"
 
+# Create .env
+current_path = str((feagi_connector.__path__)[0]) + '/'
+env_current_path = os.path.join(current_path, '.env')
+env_exists = os.path.exists(pns.env_current_path)
+
+
+def create_env_again():
+    global current_path, env_current_path, env_exists
+    current_path = str((feagi_connector.__path__)[0]) + '/'
+    env_current_path = os.path.join(current_path, '.env')
+    env_exists = os.path.exists(pns.env_current_path)
 
 def generate_feagi_data(rgb, message_to_feagi):
     """
@@ -90,7 +102,7 @@ def signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings, feagi_
     message_to_feagi['ver'] = ver
     message_to_feagi['sent_by_rounter'] = time.time()
     message_to_feagi['seqID'] = router.msg_counter
-    if 'magic_link' not in feagi_settings:
+    if not env_exists:
         router.send_feagi(message_to_feagi, feagi_ipu_channel, agent_settings)
     else:
         router.websocket_send(message_to_feagi)
