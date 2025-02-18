@@ -450,7 +450,7 @@ def reading_parameters_to_confirm_communication(new_settings, configuration, pat
         feagi_settings['feagi_api_port'] = url_response['feagi_api_port']
         pns.create_env_again() # just to update the global variables
     elif args['magic_link']:
-        print("The magic link is now deprecated. Please use the API key instead.")
+        print("The magic link is now deprecated. Please use the '--api_key' instead.")
         sys.exit(1)
 
     elif args['ip']:
