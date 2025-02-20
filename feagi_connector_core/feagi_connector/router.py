@@ -15,6 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================
 """
+import os
 import zmq
 import json
 import time
@@ -209,6 +210,8 @@ def register_with_feagi(feagi_auth_url, feagi_settings, agent_settings, agent_ca
     registration_endpoint = '/v1/agent/register'
 
     registration_complete = False
+
+
     while not registration_complete:
         try:
             # print(f"Original Feagi Settings ---- {feagi_settings}")
@@ -219,7 +222,7 @@ def register_with_feagi(feagi_auth_url, feagi_settings, agent_settings, agent_ca
 
             network_output = requests.get(feagi_url + network_endpoint).json()
             # print(f"network_output ---- {network_output}")
-            if 'magic_link' not in feagi_settings and 'feagi_opu_port' not in feagi_settings:
+            if not os.path.exists(pns.env_current_path) and 'feagi_opu_port' not in feagi_settings:
                 feagi_settings['feagi_opu_port'] = network_output['feagi_opu_port']
 
             agent_registration_data = dict()
@@ -247,7 +250,8 @@ def register_with_feagi(feagi_auth_url, feagi_settings, agent_settings, agent_ca
             # traceback.print_exc()
         sleep(2)
 
-    if 'magic_link' not in feagi_settings:
+
+    if not pns.env_exists:
         # feagi_settings['agent_state']['agent_ip'] = "127.0.0.1"
         feagi_ip = feagi_settings['feagi_host']
         agent_data_port = feagi_settings['agent_state']['agent_data_port']
