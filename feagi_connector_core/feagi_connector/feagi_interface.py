@@ -11,6 +11,7 @@ import traceback
 import pkg_resources
 from time import sleep
 
+import feagi_connector
 from feagi_connector import retina
 from feagi_connector import router
 from feagi_connector import actuators
@@ -148,9 +149,13 @@ def convert_new_networking_into_old_networking(feagi_settings):
         "feagi_dns": None,
         "feagi_host": None,
         "feagi_api_port": None,
+        "nrs_url": "https://us-prd-composer.neurorobotics.studio/v1/public/regional/magic/feagi_session?token="
 
     }
-    ip = feagi_settings['feagi_url'].split('//')
+    if 'feagi_url' in feagi_settings:
+        ip = feagi_settings['feagi_url'].split('//')
+    else:
+        ip = ['https://', '127.0.0.1'] # default to localhost
     back_to_old_json['feagi_host'] = ip[1]  # grab ip only
     back_to_old_json['feagi_api_port'] = feagi_settings['feagi_api_port']
     return back_to_old_json
@@ -257,7 +262,7 @@ def connect_to_feagi(feagi_settings, runtime_data, agent_settings, capabilities,
     router.global_api_address = api_address
     agent_data_port = str(runtime_data["feagi_state"]['agent_state']['agent_data_port'])
     feagi_settings['feagi_burst_speed'] = float(runtime_data["feagi_state"]['burst_duration'])
-    if 'magic_link' not in feagi_settings:
+    if not pns.env_exists:
         if bind_flag:
             ipu_channel_address = "tcp://*:" + agent_data_port  # This is for godot to work due to
             # bind unable to use the dns.
@@ -383,7 +388,8 @@ def detect_usb_port(data, previous):
 def reading_parameters_to_confirm_communication(new_settings, configuration, path=".", serial_in_use=False):
     # Check if feagi_connector has arg
     parser = argparse.ArgumentParser(description='enable to use magic link')
-    parser.add_argument('-magic_link', '--magic_link', help='to use magic link', required=False)
+    parser.add_argument('-magic_link', '--magic_link', help='Use the API key, as the magic link will be removed in a few updates.', required=False)
+    parser.add_argument('-api_key', '--api_key', help='To use the API key from NeuroRobotics Studio to connect with your robot.', required=False)
     parser.add_argument('-ip', '--ip', help='to use feagi_ip', required=False)
     parser.add_argument('-port', '--port', help='to use feagi_port', required=False)
     parser.add_argument('-preview', '--preview', help='To enable the preview of vision',
@@ -431,20 +437,22 @@ def reading_parameters_to_confirm_communication(new_settings, configuration, pat
     else:
         feagi_settings['feagi_opu_port'] = os.environ.get('FEAGI_OPU_PORT', "3000")
 
-    if args['magic_link']:
-        if args['magic_link']:
-            for arg in args:
-                if args[arg] is not None:
-                    feagi_settings['magic_link'] = args[arg]
-                    break
-            configuration['feagi_settings']['feagi_url'] = feagi_settings['magic_link']
-            with open(path + 'networking.json', 'w') as f:
-                json.dump(configuration, f, indent=4)
+    if (args['api_key'] or pns.env_exists) and not args['ip']:
+        if args['api_key']:
+            configuration['feagi_settings']['feagi_url'] = feagi_settings['nrs_url'] + args['api_key'] # api-key
+            with open(pns.env_current_path, 'w') as f:
+                f.write(args['api_key'])
         else:
-            feagi_settings['magic_link'] = feagi_settings['feagi_url']
-        url_response = json.loads(requests.get(feagi_settings['magic_link']).text)
+            with open(pns.env_current_path, 'r') as f:
+                configuration['feagi_settings']['feagi_url'] = feagi_settings['nrs_url'] + f.read()
+        url_response = json.loads(requests.get(configuration['feagi_settings']['feagi_url']).text)
         feagi_settings['feagi_dns'] = url_response['feagi_url']
         feagi_settings['feagi_api_port'] = url_response['feagi_api_port']
+        pns.create_env_again() # just to update the global variables
+    elif args['magic_link']:
+        print("The magic link is now deprecated. Please use the '--api_key' instead.")
+        sys.exit(1)
+
     elif args['ip']:
         # # FEAGI REACHABLE CHECKER # #
         feagi_flag = False
@@ -453,24 +461,16 @@ def reading_parameters_to_confirm_communication(new_settings, configuration, pat
         if args['ip']:
             feagi_settings['feagi_host'] = args['ip']
         if 'feagi_url' in configuration['feagi_settings']:
-            del configuration['feagi_settings']['feagi_url']
+            configuration['feagi_settings']['feagi_url'] = "http://127.0.0.1"
         if 'feagi_dns' in feagi_settings:
             del feagi_settings['feagi_dns']
+        if pns.env_exists:
+            os.remove(pns.env_current_path)
+            pns.create_env_again()  # just to update the global variables
         if 'magic_link' in feagi_settings:
             del feagi_settings['magic_link']
-            with open(path + 'networking.json', 'w') as f:
-                json.dump(configuration, f, indent=4)
-        while not feagi_flag:
-            feagi_flag = is_FEAGI_reachable(os.environ.get('FEAGI_HOST_INTERNAL', feagi_settings["feagi_host"]),
-                                            int(os.environ.get('FEAGI_OPU_PORT', feagi_settings['feagi_opu_port'])))
-            sleep(2)
-    else:
-        # # FEAGI REACHABLE CHECKER # #
-        feagi_flag = False
-        print("retrying...")
-        print("Waiting on FEAGI...")
-        if args['ip']:
-            feagi_settings['feagi_host'] = args['ip']
+        with open(path + 'networking.json', 'w') as f:
+            json.dump(configuration, f, indent=4)
         while not feagi_flag:
             feagi_flag = is_FEAGI_reachable(os.environ.get('FEAGI_HOST_INTERNAL', feagi_settings["feagi_host"]),
                                             int(os.environ.get('FEAGI_OPU_PORT', feagi_settings['feagi_opu_port'])))

@@ -24,6 +24,11 @@ import godot_bridge_functions as bridge
 import feagi_connector.pns_gateway as pns
 import feagi_connector.feagi_interface as feagi
 import feagi_connector.retina as retina
+from FEAGIByteStructures.JSONByteStructure import JSONByteStructure
+from FEAGIByteStructures.ActivatedNeuronLocation import ActivatedNeuronLocation
+from FEAGIByteStructures.SingleRawImage import SingleRawImage
+from FEAGIByteStructures.MultiByteStructHolder import MultiByteStructHolder
+from FEAGIByteStructures.AbstractByteStructure import AbstractByteStructure
 
 runtime_data = {
     "cortical_data": {},
@@ -75,46 +80,76 @@ def main(feagi_settings, runtime_data, capabilities):
         # if not feagi.is_FEAGI_reachable(feagi_settings['feagi_host'], int(feagi_settings['feagi_api_port'])):
         #     break
         one_frame = pns.message_from_feagi
-        processed_one_frame_dict = {
+        wrapped_structures_to_send: list[AbstractByteStructure] = []
+        processed_FEAGI_status_data = {
             "status": {},
             "activations": []
         }
+        has_FEAGI_updated_genome: bool = False
+        processed_one_frame: list[tuple[int, int, int]] = []
         if one_frame != {}:
             pns.check_genome_status_no_vision(one_frame)
             if one_frame["genome_changed"] != previous_genome_timestamp:
                 previous_genome_timestamp = one_frame["genome_changed"]
                 if one_frame["genome_changed"] is not None:
                     if one_frame["genome_num"] != current_genome_number or one_frame['change_register'] != current_register_number:
-                        print("updated time")
-                        processed_one_frame_dict["status"]["genome_changed"] = True
+                        print("Genome Change Detected!")
+                        has_FEAGI_updated_genome = True
+                        processed_FEAGI_status_data["status"]["genome_changed"] = True
                         current_genome_number = one_frame["genome_num"]
                         current_register_number = one_frame['change_register']['agent']
             runtime_data["stimulation_period"] = one_frame['burst_frequency']
             # processed_one_frame is the data from godot. It break down due to absolutely and
             # relatively coordination
             processed_one_frame = bridge.feagi_breakdown(one_frame)
-            processed_one_frame_dict["activations"] = processed_one_frame
-            processed_one_frame_dict["status"]["burst_engine"] = one_frame.get("burst_engine")
-            processed_one_frame_dict["status"]["genome_availability"] = one_frame.get("genome_availability")
-            processed_one_frame_dict["status"]["genome_validity"] = one_frame.get("genome_validity")
-            processed_one_frame_dict["status"]["brain_readiness"] = one_frame.get("brain_readiness")
-            processed_one_frame_dict['size'] = size
-            # if pns.full_list_dimension:
-            #     if 'iv00CC' in pns.full_list_dimension:
-            #         size = list(retina.grab_xy_cortical_resolution('iv00CC'))
-            #         processed_one_frame_dict['rgb'] = bridge.rgb_extract(one_frame.get("color_image"), size)
+            processed_FEAGI_status_data["status"]["burst_engine"] = one_frame.get("burst_engine")
+            processed_FEAGI_status_data["status"]["genome_availability"] = one_frame.get("genome_availability")
+            processed_FEAGI_status_data["status"]["genome_validity"] = one_frame.get("genome_validity")
+            processed_FEAGI_status_data["status"]["brain_readiness"] = one_frame.get("brain_readiness")
+            processed_FEAGI_status_data['size'] = size
+            if pns.full_list_dimension:
+                if 'iv00CC' in pns.full_list_dimension:
+                    size = list(retina.grab_xy_cortical_resolution('iv00CC'))
+                    processed_FEAGI_status_data['rgb'] = bridge.rgb_extract(one_frame.get("color_image"), size)
             if "amalgamation_pending" in one_frame:
-                processed_one_frame_dict["status"]["amalgamation_pending"] = one_frame.get("amalgamation_pending")
-                if 'initiation_time' in processed_one_frame_dict["status"]["amalgamation_pending"]:
-                    processed_one_frame_dict["status"]["amalgamation_pending"].pop('initiation_time')
+                processed_FEAGI_status_data["status"]["amalgamation_pending"] = one_frame.get("amalgamation_pending")
+                if 'initiation_time' in processed_FEAGI_status_data["status"]["amalgamation_pending"]:
+                    processed_FEAGI_status_data["status"]["amalgamation_pending"].pop('initiation_time')
             start_timer = datetime.now()
         elif float(timerout_setpoint) <= (datetime.now() - start_timer).total_seconds():
-            processed_one_frame_dict["activations"] = {}
-            processed_one_frame_dict["status"]["burst_engine"] = False
-            processed_one_frame_dict["status"]["genome_availability"] = False
-            processed_one_frame_dict["status"]["genome_validity"] = False
-            processed_one_frame_dict["status"]["brain_readiness"] = False
-        send_to_BV_queue.append(json.dumps(processed_one_frame_dict))
+            ## Apparently this is for cloud?
+            processed_FEAGI_status_data["activations"] = {}
+            processed_FEAGI_status_data["status"]["burst_engine"] = False
+            processed_FEAGI_status_data["status"]["genome_availability"] = False
+            processed_FEAGI_status_data["status"]["genome_validity"] = False
+            processed_FEAGI_status_data["status"]["brain_readiness"] = False
+            has_FEAGI_updated_genome: bool = True
+
+        if has_FEAGI_updated_genome:
+            json_wrapped: JSONByteStructure = JSONByteStructure.create_from_json_string(json.dumps(processed_FEAGI_status_data)) # TODO creating a new object every frame is slow, we should reuse it instead
+            wrapped_structures_to_send.append(json_wrapped)
+
+
+
+        if len(processed_one_frame) != 0:
+            activations: list[tuple[int,int,int]] = processed_one_frame
+            # activations = bridge.simulation_testing(10000)
+            activations_wrapped: ActivatedNeuronLocation = ActivatedNeuronLocation.create_from_list_of_tuples(activations) # TODO creating a new object every frame is slow, we should reuse it instead
+            wrapped_structures_to_send.append(activations_wrapped)
+        if pns.full_list_dimension:
+            if 'iv00CC' in pns.full_list_dimension:
+                res_json: list = list(retina.grab_xy_cortical_resolution('iv00CC'))
+                resolution: tuple[int, int] = (int(res_json[0]), int(res_json[1]))
+                FEAGI_RGB_data: dict = one_frame.get("color_image") # dict[tuple[int, int, int]: int]
+                if FEAGI_RGB_data != None:
+                    image_wrapped: SingleRawImage = SingleRawImage.create_from_FEAGI_delta_dict(resolution, FEAGI_RGB_data)  # TODO creating a new object every frame is slow, we should reuse it instead
+                    wrapped_structures_to_send.append(image_wrapped)
+
+        multi_wrapped: MultiByteStructHolder = MultiByteStructHolder(wrapped_structures_to_send)
+        if not multi_wrapped.is_empty():
+            send_to_BV_queue.append(multi_wrapped.to_bytes())
+
+
         # If queue_of_recieve_godot_data has a data, it will obtain the latest then pop it for
         # the next data.
         if queue_of_recieve_godot_data:
@@ -127,9 +162,9 @@ def main(feagi_settings, runtime_data, capabilities):
         # BV wil send "ping" string so when it happens, the data will be replaced to {} for feagi
         # to not doing anything. Bridge will return the "ping" for BV to do the calculation of
         # latency.
-        if obtained_data_from_godot == "ping":
-            obtained_data_from_godot = "{}"
-            send_to_BV_queue.append("ping")
+        #if obtained_data_from_godot == "ping":
+        #    obtained_data_from_godot = "{}"
+        #    send_to_BV_queue.append("ping")
 
         # Godot will send 4 of those. 3.5 or 4.0. Even if we are out of 3.5 fully, there is a
         # good chance that one of those might be occur. the usual data would be "{}" from godot.
@@ -144,7 +179,6 @@ def main(feagi_settings, runtime_data, capabilities):
             if converted_data != {}:
                 pns.signals_to_feagi(converted_data, feagi_ipu_channel, agent_settings, feagi_settings)
         sleep(runtime_data["stimulation_period"])
-        one_frame.clear()
         godot_list = {}
 
 
