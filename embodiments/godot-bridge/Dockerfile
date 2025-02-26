@@ -9,6 +9,7 @@ COPY bridge_godot_python.py /root/src/
 COPY version.py /root/src/
 COPY godot_bridge_functions.py /root/src/
 COPY network_configuration.py /root/src/
+COPY FEAGIByteStructures /root/src/
 
 WORKDIR /root/src
 CMD ["python3", "bridge_godot_python.py"]
