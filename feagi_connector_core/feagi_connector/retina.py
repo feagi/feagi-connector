@@ -117,6 +117,8 @@ def vision_region_coordinates(frame_width=None, frame_height=None, x1=None, x2=N
         region_coordinates[camera_index + 'BM'] = [x1_prime, y2_prime, x2_prime, frame_height]
     if (camera_index + 'BR') in size_list:
         region_coordinates[camera_index + 'BR'] = [x2_prime, y2_prime, frame_width, frame_height]
+    if (camera_index + 'CC') in size_list:
+        region_coordinates[camera_index + 'CC'] = [x1_prime, y1_prime, x2_prime, y2_prime]
     # print("vision_region_coordinates time total: ", (datetime.now() - start_time).total_seconds())
     return region_coordinates
 
@@ -168,11 +170,10 @@ def downsize_regions(frame, resize):
     appropriate width and height values for compression.
     """
 
-    # In case of color image
     if resize[2] == 3:
         try:
             compressed_dict = cv2.resize(frame, [int(resize[0]), int(resize[1])],
-                                         interpolation=cv2.INTER_AREA)
+                                         interpolation=cv2.INTER_NEAREST)
             return compressed_dict
         except Exception as e:
             # print("error inside downsize_regions on retina.py: ", e)
@@ -341,7 +342,6 @@ def process_visual_stimuli(raw_data_from_controller, capabilities, previous_fram
                     raw_frame[obtain_raw_data] = cv2.flip(raw_data_from_controller[obtain_raw_data], 1)
                 else:
                     raw_frame[obtain_raw_data] = raw_data_from_controller[obtain_raw_data]
-
                 # Blink accommodation
                 if len(capabilities['input']['camera'][str(obtain_raw_data)]['blink']) > 0:
                     raw_frame[obtain_raw_data] = vision_blink(raw_data_from_controller[obtain_raw_data],
@@ -368,9 +368,7 @@ def process_visual_stimuli(raw_data_from_controller, capabilities, previous_fram
                                 'index'] + '_C') in current_dimension_list:
                         pns.resize_list.update(
                             obtain_cortical_vision_size(camera_index=capabilities['input']['camera'][
-                                str(obtain_raw_data)]['index'],
-                                                        response=pns.full_list_dimension))
-
+                                str(obtain_raw_data)]['index'], response=pns.full_list_dimension))
                 # Split visual data to segments accounting for central vision and peripheral vision
                 segmented_frame_data = split_vision_regions(coordinates=region_coordinates,
                                                             raw_frame_data=raw_frame[obtain_raw_data])
@@ -412,7 +410,7 @@ def process_visual_stimuli(raw_data_from_controller, capabilities, previous_fram
         # todo: add a shell frag such as --preview so when that is set the following code runs automatically
         if preview_flag:
             for segment in compressed_data:
-                if "_C" in segment:
+                if "_C" in segment or "CC" in segment:
                     cv2.imshow(segment, compressed_data[segment])
             if cv2.waitKey(30) & 0xFF == ord('q'):
                 pass
@@ -501,7 +499,7 @@ def obtain_cortical_vision_size(response, camera_index="00"):
     data = response
     items = [camera_index + "_C", camera_index + "BL", camera_index + "BM", camera_index + "BR",
              camera_index + "MR", camera_index + "ML", camera_index + "TR", camera_index + "TL",
-             camera_index + "TM"]
+             camera_index + "TM", camera_index + "CC"]
     if data is not None:
         for name_from_data in data:
             for fetch_name in items:
