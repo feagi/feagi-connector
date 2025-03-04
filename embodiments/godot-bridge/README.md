@@ -1,4 +1,4 @@
-# To run standalone python on godot-bridge
+# To run Godot-Bridge as a standalone python application
 
 ## Windows
 1) `git clone https://github.com/feagi/feagi-connector.git`
