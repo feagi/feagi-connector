@@ -1,4 +1,4 @@
-FROM neuraville/bridge-godot-base
+FROM neuraville/bridge-godot-base:latest
 
 RUN apt-get update
 RUN apt install -y libgl1-mesa-glx libglib2.0-0
