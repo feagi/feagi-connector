@@ -17,4 +17,4 @@
 6) `python3 bridge_godot_python.py`
 
 # Important information
-This depends on FEAGI. If FEAGI is not started, the bridge will not do anything.
+This depends on FEAGI. If FEAGI is not started, the bridge will not do anything. To launch FEAGI, see here: https://github.com/feagi/feagi/wiki/Deployment#deployment-options
