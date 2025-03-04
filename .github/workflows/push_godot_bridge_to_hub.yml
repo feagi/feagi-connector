@@ -12,7 +12,7 @@ on:
 jobs:
   bridge_version:
     name: Bridge Update Version on Docker Hub
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     if: github.repository == 'feagi/feagi-connector'
     steps:
       - name: Checkout
