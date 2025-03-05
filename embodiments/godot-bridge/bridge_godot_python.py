@@ -76,6 +76,8 @@ def main(feagi_settings, runtime_data, capabilities):
     timerout_setpoint = 3
     start_timer = datetime.now()
     size = [32, 32] # by default
+
+
     while True:
         # if not feagi.is_FEAGI_reachable(feagi_settings['feagi_host'], int(feagi_settings['feagi_api_port'])):
         #     break
