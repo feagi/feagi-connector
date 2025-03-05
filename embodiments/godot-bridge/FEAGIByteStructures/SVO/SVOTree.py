@@ -1,4 +1,4 @@
-from SVONode import SVONode
+from .SVONode import SVONode
 import numpy as np
 import struct
 
@@ -42,7 +42,7 @@ class SVOTree:
         self._number_nodes_per_nonleaf_layer: np.ndarray = np.array([0] * self._max_depth, dtype=np.int32)
         self._number_nodes_per_nonleaf_layer[0] = 1  # root node
         self._total_number_nonleaf_nodes = 1
-        self._recompute_cache_memory(np.ceil(float(self._user_dimension_limit[0] * self._user_dimension_limit[1] * self._user_dimension_limit[2]) * DEFAULT_PERCENTAGE_AREA_EXPECTED_TO_BE_ACTIVATED / 8.0).astype(int))
+        self._recompute_texture_memory(np.ceil(float(self._user_dimension_limit[0] * self._user_dimension_limit[1] * self._user_dimension_limit[2]) * DEFAULT_PERCENTAGE_AREA_EXPECTED_TO_BE_ACTIVATED / 8.0).astype(int))
 
     def add_node(self, position: np.ndarray) -> None:
         """
@@ -99,7 +99,7 @@ class SVOTree:
         current_depth: int = 1  # skip root
 
         while size > 1:
-            size /= 2
+            size = size // 2
             octant: int = (int(node_location[0] >= size)) | (int(node_location[1] >= size) << 1) | (
                         int(node_location[2] >= size) << 2)  # bitmask octant
 

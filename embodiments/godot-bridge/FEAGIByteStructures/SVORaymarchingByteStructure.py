@@ -17,7 +17,7 @@ class SVORaymarchingByteStructure(AbstractByteStructure):
 
 
     @staticmethod
-    def create_from_visualization_data(dimensions: np.ndarray, activated_voxels: np.ndarray) -> 'SVORaymarchingByteStructure':
+    def create_from_summary_data(dimensions: np.ndarray, activated_voxels: np.ndarray) -> 'SVORaymarchingByteStructure':
         structure: SVORaymarchingByteStructure  = SVORaymarchingByteStructure(dimensions)
         structure.add_activated_voxels(activated_voxels)
         return structure
