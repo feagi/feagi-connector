@@ -2,6 +2,7 @@ from SVONode import SVONode
 import numpy as np
 import struct
 
+MAX_ALLOWED_SVO_DEPTH: int = 32 # You should never be approaching this ANYWAYS, 4b in any dimension!
 DEFAULT_PERCENTAGE_AREA_EXPECTED_TO_BE_ACTIVATED: float = 0.30
 
 class SVOTree:
@@ -20,7 +21,17 @@ class SVOTree:
         self._data: bytearray
         self.reset_tree()
 
-
+    @staticmethod
+    def create_SVOTree(target_minimum_dimensions: np.ndarray) -> 'SVOTree':
+        if target_minimum_dimensions.shape != (3,):
+            raise ValueError("target_minimum_dimensions must have exactly 3 elements.")
+        max_dim_size: int = target_minimum_dimensions.max()
+        if max_dim_size < 1:
+            raise ValueError("Dimensions must be or exceed <1,1,1> for SVO!")
+        calculated_depth: int = np.ceil(np.log2(max_dim_size)).astype(int)
+        if calculated_depth > MAX_ALLOWED_SVO_DEPTH:
+            raise ValueError("Dimensions size Exceeded for SVO!")
+        return SVOTree(calculated_depth, target_minimum_dimensions)
 
 
     def reset_tree(self) -> None:
