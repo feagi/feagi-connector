@@ -29,6 +29,7 @@ class SVOTree:
         if max_dim_size < 1:
             raise ValueError("Dimensions must be or exceed <1,1,1> for SVO!")
         calculated_depth: int = np.ceil(np.log2(max_dim_size)).astype(int)
+        calculated_depth = max(calculated_depth, 2) # no root only trees
         if calculated_depth > MAX_ALLOWED_SVO_DEPTH:
             raise ValueError("Dimensions size Exceeded for SVO!")
         return SVOTree(calculated_depth, target_minimum_dimensions)
