@@ -29,7 +29,7 @@ class SVOTree:
         if max_dim_size < 1:
             raise ValueError("Dimensions must be or exceed <1,1,1> for SVO!")
         calculated_depth: int = np.ceil(np.log2(max_dim_size)).astype(int)
-        calculated_depth = max(calculated_depth, 2) # no root only trees
+        calculated_depth = max(calculated_depth, 1) # # There must be at least 1 later
         if calculated_depth > MAX_ALLOWED_SVO_DEPTH:
             raise ValueError("Dimensions size Exceeded for SVO!")
         return SVOTree(calculated_depth, target_minimum_dimensions)
@@ -82,7 +82,8 @@ class SVOTree:
             As bytes, this would look like the following (bytes, but each node seperated by parentheses, and sections by | for easier reading):
             (0x81|0x010000)(0x10|0x020000)(0x88|0x020000)(0x01|0xFFFFFF)(0x08|0xFFFFFF)(0x82|0xFFFFFF)
         """
-        return struct.pack('HH', self._image_size[0], self._image_size[1]) + self._export_as_bytes_for_shader_image()
+        svo_bytes: bytes = self._export_as_bytes_for_shader_image()
+        return struct.pack('HH', self._image_size[0], self._image_size[1]) + svo_bytes
 
     def shrink_memory_usage(self) -> None:
         """
@@ -150,6 +151,7 @@ class SVOTree:
         self._data = bytearray(self._max_number_of_nonleaf_nodes_image_can_hold * 4) # 4 bytes per pixel
         self._image_size[0] = smallest_square_side
         self._image_size[1] = smallest_rect_side
+        return
 
 
 
