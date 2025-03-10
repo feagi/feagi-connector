@@ -48,6 +48,7 @@ class SVORaymarchingByteStructure(AbstractByteStructure):
         self.svo: SVOTree = SVOTree.create_SVOTree(new_dimensions)
         self.dimensions = new_dimensions
 
+
     def is_dimension_matching(self, checking_dimensions: np.ndarray):
         return self.dimensions == checking_dimensions
 

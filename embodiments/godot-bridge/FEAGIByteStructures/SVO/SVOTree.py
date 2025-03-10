@@ -93,11 +93,15 @@ class SVOTree:
     def get_tree_max_depth(self) -> int:
         return self._max_depth
 
+    def get_image_dimensions(self) -> np.ndarray:
+        return self._image_size
+
 
     def _add_node(self, node_location: np.ndarray) -> None:
         current_node: SVONode = self._root_node
         size: int = self._tree_dimension_limit
         current_depth: int = 1  # skip root
+        node_location[2] = self._user_dimension_limit[2] - node_location[2] - 1 # flip the z axis since godot has it backwards from FEAGI
 
         while size > 1:
             size = size // 2
