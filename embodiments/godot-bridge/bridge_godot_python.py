@@ -18,6 +18,9 @@ import os
 import json
 import threading
 from datetime import datetime
+
+import numpy as np
+
 from version import __version__
 from network_configuration import *
 import godot_bridge_functions as bridge
@@ -29,6 +32,7 @@ from FEAGIByteStructures.ActivatedNeuronLocation import ActivatedNeuronLocation
 from FEAGIByteStructures.SingleRawImage import SingleRawImage
 from FEAGIByteStructures.MultiByteStructHolder import MultiByteStructHolder
 from FEAGIByteStructures.AbstractByteStructure import AbstractByteStructure
+from FEAGIByteStructures.SVORaymarchingByteStructure import SVORaymarchingByteStructure
 
 runtime_data = {
     "cortical_data": {},
@@ -134,10 +138,28 @@ def main(feagi_settings, runtime_data, capabilities):
 
 
         if len(processed_one_frame) != 0:
+            # TODO this is very slow and stupid
+            activation_coordinates_raw: dict[set] = one_frame["godot"]
+            cortical_dimensions_raw: dict[set] = one_frame["cortical_dimensions"]
+            for cortical_ID in activation_coordinates_raw.keys():
+                l: list = []
+                for e in activation_coordinates_raw[cortical_ID]:
+                    l.append(list(e))
+                if len(l) == 0:
+                    continue
+                activation_coordinate = np.array(l)
+                cortical_dimension = np.array(cortical_dimensions_raw[cortical_ID])
+                svo_activations: SVORaymarchingByteStructure = SVORaymarchingByteStructure.create_from_summary_data(cortical_dimension, activation_coordinate, cortical_ID)
+                wrapped_structures_to_send.append(svo_activations)
+
+
+
+
+
             activations: list[tuple[int,int,int]] = processed_one_frame
             # activations = bridge.simulation_testing(10000)
-            activations_wrapped: ActivatedNeuronLocation = ActivatedNeuronLocation.create_from_list_of_tuples(activations) # TODO creating a new object every frame is slow, we should reuse it instead
-            wrapped_structures_to_send.append(activations_wrapped)
+            #activations_wrapped: ActivatedNeuronLocation = ActivatedNeuronLocation.create_from_list_of_tuples(activations) # TODO creating a new object every frame is slow, we should reuse it instead
+            #wrapped_structures_to_send.append(activations_wrapped)
         if pns.full_list_dimension:
             if 'iv00CC' in pns.full_list_dimension:
                 res_json: list = list(retina.grab_xy_cortical_resolution('iv00CC'))
