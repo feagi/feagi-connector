@@ -1,14 +1,19 @@
 from .AbstractByteStructure import AbstractByteStructure
 from .SVO.SVOTree import SVOTree
 import numpy as np
+import struct
 
 class SVORaymarchingByteStructure(AbstractByteStructure):
 
     structure_id: int = 10
 
-    def __init__(self, dimensions: np.ndarray):
+    def __init__(self, dimensions: np.ndarray, cortical_ID: str):
         self.svo: SVOTree = SVOTree.create_SVOTree(dimensions)
-        self.dimensions = dimensions
+        self.dimensions: np.ndarray = dimensions
+        if len(cortical_ID) != 6:
+            raise Exception("Invalid Cortical ID length!")
+        self.cortical_ID: str =  cortical_ID
+
 
     @staticmethod
     def create_from_bytes(byte_array: bytes) -> 'SVORaymarchingByteStructure':
@@ -17,8 +22,8 @@ class SVORaymarchingByteStructure(AbstractByteStructure):
 
 
     @staticmethod
-    def create_from_summary_data(dimensions: np.ndarray, activated_voxels: np.ndarray) -> 'SVORaymarchingByteStructure':
-        structure: SVORaymarchingByteStructure  = SVORaymarchingByteStructure(dimensions)
+    def create_from_summary_data(dimensions: np.ndarray, activated_voxels: np.ndarray, cortical_ID: str) -> 'SVORaymarchingByteStructure':
+        structure: SVORaymarchingByteStructure  = SVORaymarchingByteStructure(dimensions, cortical_ID)
         structure.add_activated_voxels(activated_voxels)
         return structure
 
@@ -47,4 +52,4 @@ class SVORaymarchingByteStructure(AbstractByteStructure):
         return self.dimensions == checking_dimensions
 
     def to_bytes(self) -> bytes:
-        return bytes(self._create_header() + self.svo.export_as_byte_array())
+        return bytes(self._create_header() + struct.pack("6s", self.cortical_ID.encode()) +  self.svo.export_as_byte_array())
