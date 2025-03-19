@@ -93,12 +93,15 @@ async def echo(websocket):
                 ws_operation[0] = websocket
             decompressed_data = lz4.frame.decompress(message)
             if connected_agents['capabilities']:
-                new_list = list(decompressed_data)
-                webcam_size['size'].append(new_list.pop(0))
-                webcam_size['size'].append(new_list.pop(0))
-                raw_frame = retina.RGB_list_to_ndarray(new_list,
-                                                       webcam_size['size'])
-                rgb_array['current'] = {"0": retina.update_astype(raw_frame)}
+                try:
+                    cortical_stimulation['current'] = json.loads(decompressed_data)
+                except:
+                    new_list = list(decompressed_data)
+                    webcam_size['size'].append(new_list.pop(0))
+                    webcam_size['size'].append(new_list.pop(0))
+                    raw_frame = retina.RGB_list_to_ndarray(new_list,
+                                                           webcam_size['size'])
+                    rgb_array['current'] = {"0": retina.update_astype(raw_frame)}
 
             else:
                 if not 'current' in rgb_array:
@@ -111,8 +114,8 @@ async def echo(websocket):
         if "stimulation_period" in runtime_data:
             sleep(runtime_data["stimulation_period"])
         pass
-        # print("ERROR!: ", error)
-        # traceback.print_exc()
+        print("ERROR!: ", error)
+        traceback.print_exc()
     connected_agents['0'] = False  # Once client disconnects, mark it as false
     camera_data['vision'] = None
     rgb_array['current'] = None
@@ -125,7 +128,7 @@ async def main():
     infinitely until it exits. Once it exits, the function will resume to the next new websocket.
     """
     async with websockets.serve(echo, agent_settings["godot_websocket_ip"],
-                                agent_settings['godot_websocket_port'], max_size=None,
+                                9055, max_size=None,
                                 max_queue=None, write_limit=None, compression=None):
         await asyncio.Future()  # run forever
 
@@ -170,8 +173,9 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, message_to_feagi,
             obtained_signals = {}
             obtained_signals = retina.activation_region_break_down(message_from_feagi, obtained_signals)
             if obtained_signals:
-                obtained_signals['modulation_control'] = default_capabilities['input']['camera']['0']['modulation_control']
-                obtained_signals['eccentricity_control'] = default_capabilities['input']['camera']['0']['eccentricity_control']
+                if 'camera' in default_capabilities['input']:
+                    obtained_signals['modulation_control'] = default_capabilities['input']['camera']['0']['modulation_control']
+                    obtained_signals['eccentricity_control'] = default_capabilities['input']['camera']['0']['eccentricity_control']
             if obtained_signals:
                 ws.append(obtained_signals)
         try:
@@ -188,6 +192,10 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, message_to_feagi,
             message_to_feagi = sensors.add_agent_status(connected_agents['0'],
                                                         message_to_feagi,
                                                         agent_settings)
+
+            if cortical_stimulation['current']:
+                # for i in cortical_stimulation['current']['cortical_stimulation']:
+                message_to_feagi = sensors.add_generic_input_to_feagi_data(cortical_stimulation['current']['cortical_stimulation'], message_to_feagi)
             pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings, feagi_settings)
             sleep(feagi_settings['feagi_burst_speed'])  # bottleneck
             if 'camera' in rgb_data_for_feagi:
@@ -219,6 +227,8 @@ if __name__ == '__main__':
     prox = {}
     acc['accelerator'] = {}
     prox['proximity'] = {}
+    cortical_stimulation = {}
+    cortical_stimulation['current'] = {}
 
     # gyro['gyro'] = []
     threading.Thread(target=websocket_operation, daemon=True).start()
