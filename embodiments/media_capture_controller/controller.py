@@ -14,6 +14,7 @@ limitations under the License.
 """
 
 import os
+import ast
 import time
 import json
 import asyncio
@@ -128,7 +129,7 @@ async def main():
     infinitely until it exits. Once it exits, the function will resume to the next new websocket.
     """
     async with websockets.serve(echo, agent_settings["godot_websocket_ip"],
-                                9055, max_size=None,
+                                agent_settings['godot_websocket_port'], max_size=None,
                                 max_queue=None, write_limit=None, compression=None):
         await asyncio.Future()  # run forever
 
@@ -194,8 +195,12 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, message_to_feagi,
                                                         agent_settings)
 
             if cortical_stimulation['current']:
-                # for i in cortical_stimulation['current']['cortical_stimulation']:
-                message_to_feagi = sensors.add_generic_input_to_feagi_data(cortical_stimulation['current']['cortical_stimulation'], message_to_feagi)
+                if 'cortical_stimulation' in cortical_stimulation['current']:
+                    data = {}
+                    for i in cortical_stimulation['current']['cortical_stimulation']:
+                        for key in cortical_stimulation['current']['cortical_stimulation'][i]:
+                            data[i] = {ast.literal_eval(k): v for k, v in cortical_stimulation['current']['cortical_stimulation'][i].items()}
+                        message_to_feagi = sensors.add_generic_input_to_feagi_data(data, message_to_feagi)
             pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings, feagi_settings)
             sleep(feagi_settings['feagi_burst_speed'])  # bottleneck
             if 'camera' in rgb_data_for_feagi:
