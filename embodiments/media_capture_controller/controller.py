@@ -47,6 +47,44 @@ runtime_data = {"cortical_data": {}, "current_burst_id": None,
 feagi.validate_requirements('requirements.txt')  # you should get it from the boilerplate generator
 
 
+def expand_pixel(xyz_array, radius, width, height):
+    """
+    Expands each pixel in the input array by creating a square of pixels around it
+
+    Args:
+        xyz_array: numpy array of shape (N, 3) containing x,y coordinates
+        radius: int, how many pixels to expand in each direction
+        width: int, maximum width of the image
+        height: int, maximum height of the image
+    """
+    # Create the offset ranges
+    x_offsets = np.arange(-radius, radius)
+    y_offsets = np.arange(-radius, radius)
+
+    # Create meshgrid of offsets
+    xx, yy = np.meshgrid(x_offsets, y_offsets)
+    offsets = np.column_stack((xx.ravel(), yy.ravel()))
+
+    # Expand the original array to match offsets shape
+    expanded = xyz_array[:, np.newaxis, :]  # Shape becomes (1083, 1, 3)
+
+    # Broadcasting magic happens here
+    new_coords = expanded[:, :, :2] + offsets[np.newaxis, :, :]  # Add offsets to x,y coordinates
+
+    # Clip to image boundaries
+    new_coords[:, :, 0] = np.clip(new_coords[:, :, 0], 0, width)
+    new_coords[:, :, 1] = np.clip(new_coords[:, :, 1], 0, height)
+
+    # If there's a third column (e.g., intensity), repeat it for all expanded pixels
+    if xyz_array.shape[1] > 2:
+        new_values = np.repeat(xyz_array[:, 2:], offsets.shape[0]).reshape(xyz_array.shape[0], offsets.shape[0], -1)
+        new_coords = np.concatenate([new_coords, new_values], axis=2)
+
+    # Reshape to 2D array
+    result = new_coords.reshape(-1, xyz_array.shape[1])
+
+    return result
+
 async def bridge_to_godot(runtime_data):
     while True:
         if ws:
@@ -172,6 +210,27 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, message_to_feagi,
             if obtained_signals:
                 obtained_signals['modulation_control'] = default_capabilities['input']['camera']['0']['modulation_control']
                 obtained_signals['eccentricity_control'] = default_capabilities['input']['camera']['0']['eccentricity_control']
+
+            # temp:
+            if 'ov_out' in message_from_feagi['opu_data']:
+                original_frame_size = raw_frame.shape
+                converted_array = np.array(list(message_from_feagi['opu_data']['ov_out']))
+                if converted_array.ndim == 1:
+                    converted_array = converted_array.reshape(-1, 2)
+                converted_array[:, 0] = converted_array[:, 0] + 0.3
+                converted_array[:, 0] = (converted_array[:, 0] * original_frame_size[1]) / \
+                                        pns.full_list_dimension['ov_out']['cortical_dimensions'][0]
+                converted_array[:, 1] = converted_array[:, 1] * -1 + \
+                                        pns.full_list_dimension['ov_out']['cortical_dimensions'][1]
+                converted_array[:, 1] = ((converted_array[:, 1] * original_frame_size[0]) /
+                                         pns.full_list_dimension['ov_out']['cortical_dimensions'][
+                                             1]).astype(int)
+                expanded_coords = expand_pixel(converted_array, 10,
+                                                               original_frame_size[1],
+                                                               original_frame_size[0])
+                x = np.clip(expanded_coords[:, 0], 0, original_frame_size[1] - 1).astype(int)
+                y = np.clip(expanded_coords[:, 1], 0, original_frame_size[0] - 1).astype(int)
+                raw_frame[y, x] = [255, 0, 0]
             if obtained_signals:
                 ws.append(obtained_signals)
         try:
