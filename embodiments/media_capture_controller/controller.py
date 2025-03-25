@@ -209,12 +209,12 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, message_to_feagi,
     while connected_agents['0']:
         message_from_feagi = pns.message_from_feagi
         if message_from_feagi:
-            obtained_signals = {}
-            obtained_signals = retina.activation_region_break_down(message_from_feagi, obtained_signals)
-            if obtained_signals:
-                if 'camera' in default_capabilities['input']:
-                    obtained_signals['modulation_control'] = default_capabilities['input']['camera']['0']['modulation_control']
-                    obtained_signals['eccentricity_control'] = default_capabilities['input']['camera']['0']['eccentricity_control']
+            # obtained_signals = {}
+            # obtained_signals = retina.activation_region_break_down(message_from_feagi, obtained_signals)
+            # if obtained_signals:
+            #     if 'camera' in default_capabilities['input']:
+            #         obtained_signals['modulation_control'] = default_capabilities['input']['camera']['0']['modulation_control']
+            #         obtained_signals['eccentricity_control'] = default_capabilities['input']['camera']['0']['eccentricity_control']
             # temp:
             if 'ov_out' in message_from_feagi['opu_data']:
                 original_frame_size = raw_frame.shape
@@ -235,8 +235,7 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, message_to_feagi,
                 x = np.clip(expanded_coords[:, 0], 0, original_frame_size[1] - 1).astype(int)
                 y = np.clip(expanded_coords[:, 1], 0, original_frame_size[0] - 1).astype(int)
                 raw_frame[y, x] = [255, 0, 0]
-            if obtained_signals:
-                ws.append(obtained_signals)
+            ws.append(message_from_feagi)
         try:
             if np.any(rgb_array['current']):
                 raw_frame = rgb_array['current']
