@@ -46,6 +46,7 @@ runtime_data = {"cortical_data": {}, "current_burst_id": None,
                 "feagi_network": None}
 
 feagi.validate_requirements('requirements.txt')  # you should get it from the boilerplate generator
+cortical_used_list = ['o___id', 'o__loc', 'o__sid', 'opoint', 'o_misc']
 
 
 def expand_pixel(xyz_array, radius, width, height):
@@ -235,7 +236,12 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, message_to_feagi,
                 x = np.clip(expanded_coords[:, 0], 0, original_frame_size[1] - 1).astype(int)
                 y = np.clip(expanded_coords[:, 1], 0, original_frame_size[0] - 1).astype(int)
                 raw_frame[y, x] = [255, 0, 0]
-            ws.append(message_from_feagi)
+            ws_data_to_send_from_feagi = {}
+            for key in message_from_feagi['opu_data']:
+                if key in cortical_used_list:
+                    ws_data_to_send_from_feagi[key] = message_from_feagi['opu_data'][key]
+            print("here: ", ws_data_to_send_from_feagi)
+            ws.append(ws_data_to_send_from_feagi)
         try:
             if np.any(rgb_array['current']):
                 raw_frame = rgb_array['current']
