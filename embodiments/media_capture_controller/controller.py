@@ -210,13 +210,12 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, message_to_feagi,
     while connected_agents['0']:
         message_from_feagi = pns.message_from_feagi
         if message_from_feagi:
-            # obtained_signals = {}
-            # obtained_signals = retina.activation_region_break_down(message_from_feagi, obtained_signals)
-            # if obtained_signals:
-            #     if 'camera' in default_capabilities['input']:
-            #         obtained_signals['modulation_control'] = default_capabilities['input']['camera']['0']['modulation_control']
-            #         obtained_signals['eccentricity_control'] = default_capabilities['input']['camera']['0']['eccentricity_control']
-            # temp:
+            obtained_signals = {}
+            obtained_signals = retina.activation_region_break_down(message_from_feagi, obtained_signals)
+            if obtained_signals:
+                if 'camera' in default_capabilities['input']:
+                    obtained_signals['modulation_control'] = default_capabilities['input']['camera']['0']['modulation_control']
+                    obtained_signals['eccentricity_control'] = default_capabilities['input']['camera']['0']['eccentricity_control']
             if 'ov_out' in message_from_feagi['opu_data']:
                 original_frame_size = raw_frame.shape
                 converted_array = np.array(list(message_from_feagi['opu_data']['ov_out']))
@@ -239,9 +238,13 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, message_to_feagi,
             ws_data_to_send_from_feagi = {}
             for key in message_from_feagi['opu_data']:
                 if key in cortical_used_list:
-                    ws_data_to_send_from_feagi[key] = message_from_feagi['opu_data'][key]
-            print("here: ", ws_data_to_send_from_feagi)
+                    ws_data_to_send_from_feagi[key] = {
+                        str(k): v for k, v in message_from_feagi['opu_data'][key].items()
+                    }
+            if obtained_signals:
+                ws_data_to_send_from_feagi.update(obtained_signals)
             ws.append(ws_data_to_send_from_feagi)
+
         try:
             if np.any(rgb_array['current']):
                 raw_frame = rgb_array['current']
@@ -266,6 +269,7 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, message_to_feagi,
                         message_to_feagi = sensors.add_generic_input_to_feagi_data(data, message_to_feagi)
             pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings, feagi_settings)
             sleep(feagi_settings['feagi_burst_speed'])  # bottleneck
+            message_to_feagi.clear()
             if 'camera' in rgb_data_for_feagi:
                 for i in rgb_data_for_feagi['camera']:
                     rgb_data_for_feagi['camera'][i].clear()
