@@ -131,9 +131,9 @@ def main(feagi_settings, runtime_data, capabilities):
             processed_FEAGI_status_data["status"]["brain_readiness"] = False
             has_FEAGI_updated_genome: bool = True
 
-        if has_FEAGI_updated_genome:
-            json_wrapped: JSONByteStructure = JSONByteStructure.create_from_json_string(json.dumps(processed_FEAGI_status_data)) # TODO creating a new object every frame is slow, we should reuse it instead
-            wrapped_structures_to_send.append(json_wrapped)
+
+        json_wrapped: JSONByteStructure = JSONByteStructure.create_from_json_string(json.dumps(processed_FEAGI_status_data)) # TODO creating a new object every frame is slow, we should reuse it instead
+        wrapped_structures_to_send.append(json_wrapped)
 
 
 
