@@ -46,7 +46,7 @@ runtime_data = {"cortical_data": {}, "current_burst_id": None,
                 "feagi_network": None}
 
 feagi.validate_requirements('requirements.txt')  # you should get it from the boilerplate generator
-cortical_used_list = ['o___id', 'o__loc', 'o__sid', 'opoint', 'o_misc']
+cortical_used_list = []
 
 
 def expand_pixel(xyz_array, radius, width, height):
@@ -123,7 +123,7 @@ async def echo(websocket):
     The function echoes the data it receives from other connected websockets
     and sends the data from FEAGI to the connected websockets.
     """
-    global connected_agents
+    global connected_agents, cortical_used_list
     try:
         async for message in websocket:
             connected_agents['0'] = True  # Since this section gets data from client, its marked as true
@@ -150,6 +150,8 @@ async def echo(websocket):
                     new_data = json.loads(decompressed_data)
                     if 'capabilities' in new_data:
                         connected_agents['capabilities'] = new_data['capabilities']
+                        for name in new_data['capabilities']['output']:
+                            cortical_used_list.append(pns.name_to_feagi_id_opu(name))
     except Exception as error:
         if "stimulation_period" in runtime_data:
             sleep(runtime_data["stimulation_period"])
@@ -160,6 +162,7 @@ async def echo(websocket):
     camera_data['vision'] = None
     rgb_array['current'] = None
     webcam_size['size'] = []
+    cortical_used_list = []
 
 
 async def main():
