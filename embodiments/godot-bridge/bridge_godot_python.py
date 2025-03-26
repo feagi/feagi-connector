@@ -98,6 +98,7 @@ def main(feagi_settings, runtime_data, capabilities):
             if one_frame["genome_changed"] != previous_genome_timestamp:
                 previous_genome_timestamp = one_frame["genome_changed"]
                 if one_frame["genome_changed"] is not None:
+
                     if one_frame["genome_num"] != current_genome_number or one_frame['change_register'] != current_register_number:
                         print("Genome Change Detected!")
                         has_FEAGI_updated_genome = True
@@ -112,6 +113,8 @@ def main(feagi_settings, runtime_data, capabilities):
             processed_FEAGI_status_data["status"]["genome_availability"] = one_frame.get("genome_availability")
             processed_FEAGI_status_data["status"]["genome_validity"] = one_frame.get("genome_validity")
             processed_FEAGI_status_data["status"]["brain_readiness"] = one_frame.get("brain_readiness")
+            if one_frame.get("genome_changed") is not None:
+                processed_FEAGI_status_data["status"]["genome_timestamp"] = one_frame.get("genome_changed")
             processed_FEAGI_status_data['size'] = size
             if pns.full_list_dimension:
                 if 'iv00CC' in pns.full_list_dimension:
@@ -131,13 +134,10 @@ def main(feagi_settings, runtime_data, capabilities):
             processed_FEAGI_status_data["status"]["brain_readiness"] = False
             has_FEAGI_updated_genome: bool = True
 
-        print(processed_FEAGI_status_data)
-        if "genome_changed" in processed_FEAGI_status_data["status"]:
-            print("we have the key")
+
 
         json_wrapped: JSONByteStructure = JSONByteStructure.create_from_json_string(json.dumps(processed_FEAGI_status_data)) # TODO creating a new object every frame is slow, we should reuse it instead
         wrapped_structures_to_send.append(json_wrapped)
-
 
 
         if len(processed_one_frame) != 0:
