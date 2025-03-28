@@ -18,6 +18,7 @@ import os
 import json
 import threading
 from datetime import datetime
+import time
 
 import numpy as np
 
@@ -83,6 +84,8 @@ def main(feagi_settings, runtime_data, capabilities):
 
 
     while True:
+        start = time.perf_counter()
+        sent_feagiframedebug: bool = False
         # if not feagi.is_FEAGI_reachable(feagi_settings['feagi_host'], int(feagi_settings['feagi_api_port'])):
         #     break
         one_frame = pns.message_from_feagi
@@ -142,6 +145,7 @@ def main(feagi_settings, runtime_data, capabilities):
 
         if len(processed_one_frame) != 0:
             # TODO this is very slow and stupid
+            sent_feagiframedebug = True
             activation_coordinates_raw: dict[set] = one_frame["godot"]
             cortical_dimensions_raw: dict[set] = one_frame["cortical_dimensions"]
             for cortical_ID in activation_coordinates_raw.keys():
@@ -153,6 +157,7 @@ def main(feagi_settings, runtime_data, capabilities):
                 activation_coordinate = np.array(l)
                 cortical_dimension = np.array(cortical_dimensions_raw[cortical_ID])
                 svo_activations: SVORaymarchingByteStructure = SVORaymarchingByteStructure.create_from_summary_data(cortical_dimension, activation_coordinate, cortical_ID)
+
                 wrapped_structures_to_send.append(svo_activations)
 
 
@@ -208,6 +213,10 @@ def main(feagi_settings, runtime_data, capabilities):
         sleep(runtime_data["stimulation_period"])
         godot_list = {}
 
+        end = time.perf_counter()
+        if sent_feagiframedebug:
+
+            print(f"Total execution time: {end - start:.6f} seconds, framerate is approximately {1.0 / (end - start):.6f}")
 
 if __name__ == "__main__":
     # NEW JSON UPDATE
