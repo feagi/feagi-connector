@@ -1,4 +1,4 @@
-from .SVONode import SVONode
+#from .SVONode import SVONode
 import numpy as np
 import struct
 
@@ -14,7 +14,7 @@ class SVOTree:
         self._max_depth: int = depth
         self._user_dimension_limit = representing_dimensions
         self._tree_dimension_limit: int = 2 ** depth
-        self._root_node: SVONode = SVONode()
+        self._root_node: dict = {}
         self._number_nodes_per_nonleaf_layer: np.ndarray = np.array([0] * self._max_depth, dtype=np.int32)
         self._total_number_nonleaf_nodes: int = 1
         self._image_size: np.ndarray = np.array([1,1], dtype=np.int16)
@@ -39,24 +39,45 @@ class SVOTree:
         """
         Clears all child nodes, to be used again
         """
-        self._root_node = SVONode()
+        self._root_node = {"child_bitmask": 0, "children": {}}
         self._number_nodes_per_nonleaf_layer: np.ndarray = np.array([0] * self._max_depth, dtype=np.int32)
         self._number_nodes_per_nonleaf_layer[0] = 1  # root node
         self._total_number_nonleaf_nodes = 1
         self._recompute_texture_memory(np.ceil(float(self._user_dimension_limit[0] * self._user_dimension_limit[1] * self._user_dimension_limit[2]) * DEFAULT_PERCENTAGE_AREA_EXPECTED_TO_BE_ACTIVATED / 8.0).astype(int))
 
-    def add_node(self, position: np.ndarray) -> None:
-        """
-        Adds a node to a given coordinate (or does nothing if node already exists)
-        """
-        if position.shape != (3,):
-            raise ValueError("position must have exactly 3 elements.")
+    def set_nodes(self, node_coordinates: np.ndarray) -> None:
 
-        if position[0] >= self._user_dimension_limit[0] or position[1] >= self._user_dimension_limit[1] or position[2] >= self._user_dimension_limit[2]:
-            raise ValueError("Requested position is out of bounds! Not adding node!")
-        if position[0] < 0 or position[0] < 0 or position[0] < 0:
-            raise ValueError("Requested position is negative! Not adding node!")
-        self._add_node(position)
+        if node_coordinates.shape[1] != 3:
+            raise ValueError("Input coordinates must be a (N,3) array.")
+
+        # start with root node
+        # we will calculate the bitmask in a separate step
+        node: dict = {}
+        node_coordinates = node_coordinates.astype(int)  # enforce type
+        num_points: int = node_coordinates.shape[0]
+        child_node_references: np.ndarray = np.array([node] * num_points, dtype=object)
+        bound: int = 2 ** (self._max_depth - 1)
+        direction: np.ndarray = np.zeros(coords.shape,
+                                         dtype=int)  # working memory space to calculate vectorized direction of child leaf, essentially all 0 or 1 in x y z directions
+        bitpack_fields: np.ndarray = np.zeros(num_points,
+                                              dtype=int)  # temporarily holds the bitpacked "direction" of the given leaf
+
+        _cache_bitpackval: int = 0
+
+        for depth in range(self._max_depth, 0, -1):
+            direction[:] = node_coordinates >= bound
+            bitpack_fields = direction[:, 0] | (direction[:, 1] << 1) | (direction[:, 2] << 2)
+
+            for point_index in range(num_points):
+                _cache_bitpackval = bitpack_fields[point_index]
+                if _cache_bitpackval not in child_node_references[point_index]:
+                    child_node_references[point_index][_cache_bitpackval] = {}
+                child_node_references[point_index] = child_node_references[point_index][_cache_bitpackval]
+
+            node_coordinates[:] -= direction[:] * bound
+            bound = bound >> 1
+
+        self._root_node = node
 
     def export_as_byte_array(self) -> bytes:
         """
@@ -66,7 +87,7 @@ class SVOTree:
             We have to calculate the byte structure: structure is the following (where each node is 4 bytes)
             Node (inclusive byte ranges):
             Byte 0: Bitmask of active children (0-7),
-            Byte 2-3: uint24 node count offset to first child node (if applicable), reverse byte order. If this node was a parent of a leaf (which is not exported, only represented by bitmask), then this value will be 0xFFFFFF
+            Byte 1-3: uint24 node count offset to first child node (if applicable), reverse byte order. If this node was a parent of a leaf (which is not exported, only represented by bitmask), then this value will be 0xFFFFFF
             NOTE: leaf nodes are skipped in the output array, as we only need the bitmask of their parent node to ensure their existance (leaf nodes cannot have child nodes)
             example structure, where the number represents the child index from the parent and the letter is a reference to the node
             ( Root ) a
@@ -96,41 +117,6 @@ class SVOTree:
 
     def get_image_dimensions(self) -> np.ndarray:
         return self._image_size
-
-
-    def _add_node(self, node_location: np.ndarray) -> None:
-        current_node: SVONode = self._root_node
-        size: int = self._tree_dimension_limit
-        current_depth: int = 1  # skip root
-        node_location[2] = self._user_dimension_limit[2] - node_location[2] - 1 # flip the z axis since godot has it backwards from FEAGI
-
-        while size > 1:
-            size = size // 2
-            octant: int = (int(node_location[0] >= size)) | (int(node_location[1] >= size) << 1) | (
-                        int(node_location[2] >= size) << 2)  # bitmask octant
-
-            if not (current_node.child_bitmask & (1 << octant)):  # check if the bit at the "octant" index is false (no child mentioned)
-                current_node.child_bitmask |= (1 << octant)  # set the current node's bit at octant index to true as we are creating a child
-
-                if not current_depth < self._max_depth:
-                    # we have reached leaf node and labeled it, break out
-                    break
-
-                # we are still in internal nodes (not at leaf level yet)
-                self._number_nodes_per_nonleaf_layer[current_depth] += 1
-                self._total_number_nonleaf_nodes += 1
-                new_node: SVONode = SVONode()
-                current_node.children[octant] = new_node
-                current_node = new_node
-            else:
-                # a child node exists in the correct location
-                if not current_depth < self._max_depth:
-                    # we have reached leaf node. it was already labeled, break out
-                    break
-                current_node = current_node.children[octant]
-
-            node_location %= size
-            current_depth += 1
 
 
     def _recompute_texture_memory(self, number_of_nodes_to_hold: int) -> None:
@@ -168,24 +154,24 @@ class SVOTree:
 
         if self._total_number_nonleaf_nodes == 1:
             # Unique case where no nodes were added
-            self._data[0] = self._root_node.child_bitmask
+            self._data[0] = self._root_node["child_bitmask"]
             self._data[1] = 255
             self._data[2] = 255
             self._data[3] = 255
 
         else:
             # do all internal nodes
-            current_parent_nodes: list[SVONode] = [self._root_node]
+            current_parent_nodes: list[dict] = [self._root_node]
             current_node_array_index: int = 0
             for current_depth in range(self._max_depth - 1):  # loop for all nodes but leaf nodes
-                next_parent_nodes: list[SVONode] = []
+                next_parent_nodes: list[dict] = []
                 child_count_offset: int = 0
                 parent_node_index_of_current_depth = 0
                 for current_parent_node in current_parent_nodes:
                     parent_nodes_remaining_at_this_depth: int = self._number_nodes_per_nonleaf_layer[current_depth] - parent_node_index_of_current_depth
 
                     byte_index: int = current_node_array_index * 4
-                    self._data[byte_index] = current_parent_node.child_bitmask  # write bitmask for current parent node
+                    self._data[byte_index] = current_parent_node["child_bitmask"]  # write bitmask for current parent node
 
                     child_node_offset_index: int = child_count_offset + parent_nodes_remaining_at_this_depth
                     child_offset_uint24: bytes = struct.pack('i', child_node_offset_index)
@@ -194,8 +180,8 @@ class SVOTree:
                     self._data[byte_index + 3] = child_offset_uint24[2]
 
                     for child_index in range(8):
-                        if current_parent_node.child_bitmask & (1 << child_index):  # loop over only children that are existing
-                            next_parent_nodes.append(current_parent_node.children[child_index])
+                        if current_parent_node["child_bitmask"] & (1 << child_index):  # loop over only children that are existing
+                            next_parent_nodes.append(current_parent_node["children"][child_index])
                             child_count_offset += 1
 
                     parent_node_index_of_current_depth += 1
@@ -206,10 +192,65 @@ class SVOTree:
             # do not export leaf nodes, instead just add the current parent nodes with the bitmasks, but set their address to #FFFFFF
             for current_parent_node in current_parent_nodes:
                 byte_index: int = current_node_array_index * 4
-                self._data[byte_index] = current_parent_node.child_bitmask
+                self._data[byte_index] = current_parent_node["child_bitmask"]
                 self._data[byte_index + 1] = 255
                 self._data[byte_index + 2] = 255
                 self._data[byte_index + 3] = 255
                 current_node_array_index += 1
 
         return self._data
+
+def _create_SVO_dict_(coords: np.ndarray, max_depth: int) -> dict:
+    if coords.shape[1] != 3:
+        raise ValueError("Input coordinates must be a (N,3) array.")
+
+    # start with root node
+    # we will calculate the bitmask in a separate step
+    node: dict = { }
+    coords = coords.astype(int) # enforce type
+    num_points: int = coords.shape[0]
+    child_node_references: np.ndarray = np.array([node] * num_points, dtype=object)
+    bound: int = 2 ** (max_depth - 1)
+    direction: np.ndarray = np.zeros(coords.shape, dtype=int) # working memory space to calculate vectorized direction of child leaf, essentially all 0 or 1 in x y z directions
+    bitpack_fields: np.ndarray = np.zeros(num_points, dtype=int) # temporarily holds the bitpacked "direction" of the given leaf
+
+    _cache_bitpackval: int = 0
+
+    for depth in range(max_depth, 0, -1):
+        direction[:] = coords >= bound
+        bitpack_fields = direction[:,0] | (direction[:,1] << 1) | (direction[:,2] << 2)
+
+        for point_index in range(num_points):
+            _cache_bitpackval = bitpack_fields[point_index]
+            if _cache_bitpackval not in child_node_references[point_index]:
+                child_node_references[point_index][_cache_bitpackval] = {}
+            child_node_references[point_index] = child_node_references[point_index][_cache_bitpackval]
+
+        coords[:] -= direction[:] * bound
+        bound = bound >> 1
+
+    return node
+
+
+
+
+a: SVOTree = SVOTree.create_SVOTree(np.array([8,8,8]))
+a.add_node(np.array([0,0,2]))
+a.add_node(np.array([7,7,4]))
+a.add_node(np.array([7,6,6]))
+a.add_node(np.array([7,7,7]))
+b = a._export_as_bytes_for_shader_image()
+
+
+arr: np.ndarray = np.array([
+    [0,0,2],
+    [7,7,4],
+    [7,6,6],
+    [7,7,7]
+])
+svo_structure = _create_SVO_dict_(arr, max_depth=3)
+for depth, layer in svo_structure.items():
+    print(f"Depth {depth}:")
+    print("  Coordinates:\n", layer["coords"])
+    print("  Bitmasks:\n", layer["bitmasks"])
+print("end")
