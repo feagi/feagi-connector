@@ -31,8 +31,8 @@ class SVORaymarchingByteStructure(AbstractByteStructure):
         """
         Allows adding multiple activated voxels, given a 2d array where each row is the integer xyz coordinate of the activated voxel. Assumes Cortical Area size is unchanged
         """
-        for row in activated_voxels:
-            self.svo.add_node(row)
+        self.svo.set_nodes(activated_voxels)
+
 
     def reset_tree(self):
         """
