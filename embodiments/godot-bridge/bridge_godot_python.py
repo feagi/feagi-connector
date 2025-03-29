@@ -82,8 +82,18 @@ def main(feagi_settings, runtime_data, capabilities):
     start_timer = datetime.now()
     size = [32, 32] # by default
     
-    # Pre-allocate numpy arrays for activation coordinates
-    activation_buffer = np.zeros((10000, 3), dtype=np.int32)  # Reasonable size for most frames
+    # Pre-allocate reusable structures to avoid repeated creation/destruction
+    # This is the key optimization
+    wrapped_structures_to_send = []
+    json_string_cache = "{}"  # Cache for JSON string to avoid redundant serialization
+    
+    # If these functions support reusing objects, create reusable instances
+    json_wrapper = None
+    try:
+        # Try to create a reusable JSON wrapper if the class supports it
+        json_wrapper = JSONByteStructure("{}")
+    except:
+        json_wrapper = None  # Fall back to creating new instances if needed
 
     while True:
         start = time.perf_counter()
@@ -91,7 +101,7 @@ def main(feagi_settings, runtime_data, capabilities):
         # if not feagi.is_FEAGI_reachable(feagi_settings['feagi_host'], int(feagi_settings['feagi_api_port'])):
         #     break
         one_frame = pns.message_from_feagi
-        wrapped_structures_to_send: list[AbstractByteStructure] = []
+        wrapped_structures_to_send.clear()  # Clear instead of creating new list
         processed_FEAGI_status_data = {
             "status": {},
             "activations": []
@@ -130,6 +140,25 @@ def main(feagi_settings, runtime_data, capabilities):
                 if 'initiation_time' in processed_FEAGI_status_data["status"]["amalgamation_pending"]:
                     processed_FEAGI_status_data["status"]["amalgamation_pending"].pop('initiation_time')
             start_timer = datetime.now()
+            
+            # Only serialize JSON if data has changed
+            new_json_string = json.dumps(processed_FEAGI_status_data)
+            if new_json_string != json_string_cache:
+                json_string_cache = new_json_string
+                
+                # Create or update JSON wrapper
+                if json_wrapper is not None:
+                    # Try to update existing wrapper if supported
+                    try:
+                        json_wrapper.update(json_string_cache)
+                        wrapped_structures_to_send.append(json_wrapper)
+                    except:
+                        # Fall back to creating new instance
+                        wrapped_structures_to_send.append(
+                            JSONByteStructure.create_from_json_string(json_string_cache))
+                else:
+                    wrapped_structures_to_send.append(
+                        JSONByteStructure.create_from_json_string(json_string_cache))
         elif float(timerout_setpoint) <= (datetime.now() - start_timer).total_seconds():
             ## Apparently this is for cloud?
             processed_FEAGI_status_data["activations"] = {}
@@ -138,10 +167,6 @@ def main(feagi_settings, runtime_data, capabilities):
             processed_FEAGI_status_data["status"]["genome_validity"] = False
             processed_FEAGI_status_data["status"]["brain_readiness"] = False
             has_FEAGI_updated_genome: bool = True
-
-        # Create JSON wrapped structure once per loop
-        json_wrapped: JSONByteStructure = JSONByteStructure.create_from_json_string(json.dumps(processed_FEAGI_status_data))
-        wrapped_structures_to_send.append(json_wrapped)
 
         if len(processed_one_frame) != 0:
             # Optimize the activation coordinates processing using numpy
@@ -183,9 +208,12 @@ def main(feagi_settings, runtime_data, capabilities):
                     image_wrapped: SingleRawImage = SingleRawImage.create_from_FEAGI_delta_dict(resolution, FEAGI_RGB_data)
                     wrapped_structures_to_send.append(image_wrapped)
 
-        multi_wrapped: MultiByteStructHolder = MultiByteStructHolder(wrapped_structures_to_send)
-        if not multi_wrapped.is_empty():
-            send_to_BV_queue.append(multi_wrapped.to_bytes())
+        # Create MultiByteStructHolder only once per iteration
+        if wrapped_structures_to_send:
+            multi_wrapped = MultiByteStructHolder(wrapped_structures_to_send)
+            if not multi_wrapped.is_empty():
+                # Consider batching messages if send_to_BV_queue has a buffer
+                send_to_BV_queue.append(multi_wrapped.to_bytes())
 
         # If queue_of_recieve_godot_data has a data, it will obtain the latest then pop it for
         # the next data.
