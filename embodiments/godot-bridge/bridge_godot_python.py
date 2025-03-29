@@ -227,9 +227,10 @@ def main(feagi_settings, runtime_data, capabilities):
         # Time message sending
         send_start = time.perf_counter()
         if wrapped_structures_to_send:
+            # Only create MultiByteStructHolder if we have structures to send
             multi_wrapped = MultiByteStructHolder(wrapped_structures_to_send)
-            # Only send if not empty
             if not multi_wrapped.is_empty():
+                # Convert to bytes just once and reuse
                 byte_data = multi_wrapped.to_bytes()
                 send_to_BV_queue.append(byte_data)
         send_end = time.perf_counter()
