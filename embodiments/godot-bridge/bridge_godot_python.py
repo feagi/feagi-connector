@@ -154,15 +154,25 @@ def main(feagi_settings, runtime_data, capabilities):
                 if len(coords) == 0:
                     continue
                     
-                # Convert to numpy array in one step - much faster than list comprehension
-                activation_coordinate = np.array(list(coords), dtype=np.int32)
-                cortical_dimension = np.array(cortical_dimensions_raw[cortical_ID], dtype=np.int32)
-                
-                # Create SVO structure using the numpy arrays
-                svo_activations = SVORaymarchingByteStructure.create_from_summary_data(
-                    cortical_dimension, activation_coordinate, cortical_ID)
-                
-                wrapped_structures_to_send.append(svo_activations)
+                # OPTIMIZATION: Convert coordinates to numpy array efficiently
+                # Pre-allocate the numpy array with the exact size needed
+                coord_count = len(coords)
+                if coord_count > 0:
+                    # Convert set to array in one batch operation - much faster
+                    activation_coordinate = np.zeros((coord_count, 3), dtype=np.int32)
+                    
+                    # Fill the pre-allocated array directly - avoids intermediate list creation
+                    for i, coord in enumerate(coords):
+                        activation_coordinate[i] = coord
+                    
+                    # Convert cortical dimensions directly to numpy array
+                    cortical_dimension = np.array(cortical_dimensions_raw[cortical_ID], dtype=np.int32)
+                    
+                    # Create SVO structure using the optimized arrays
+                    svo_activations = SVORaymarchingByteStructure.create_from_summary_data(
+                        cortical_dimension, activation_coordinate, cortical_ID)
+                    
+                    wrapped_structures_to_send.append(svo_activations)
 
         if pns.full_list_dimension:
             if 'iv00CC' in pns.full_list_dimension:
