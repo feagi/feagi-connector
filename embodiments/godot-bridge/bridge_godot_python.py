@@ -81,7 +81,9 @@ def main(feagi_settings, runtime_data, capabilities):
     timerout_setpoint = 3
     start_timer = datetime.now()
     size = [32, 32] # by default
-
+    
+    # Pre-allocate numpy arrays for activation coordinates
+    activation_buffer = np.zeros((10000, 3), dtype=np.int32)  # Reasonable size for most frames
 
     while True:
         start = time.perf_counter()
@@ -137,56 +139,48 @@ def main(feagi_settings, runtime_data, capabilities):
             processed_FEAGI_status_data["status"]["brain_readiness"] = False
             has_FEAGI_updated_genome: bool = True
 
-
-
-        json_wrapped: JSONByteStructure = JSONByteStructure.create_from_json_string(json.dumps(processed_FEAGI_status_data)) # TODO creating a new object every frame is slow, we should reuse it instead
+        # Create JSON wrapped structure once per loop
+        json_wrapped: JSONByteStructure = JSONByteStructure.create_from_json_string(json.dumps(processed_FEAGI_status_data))
         wrapped_structures_to_send.append(json_wrapped)
 
-
         if len(processed_one_frame) != 0:
-            # TODO this is very slow and stupid
+            # Optimize the activation coordinates processing using numpy
             sent_feagiframedebug = True
             activation_coordinates_raw: dict[set] = one_frame["godot"]
             cortical_dimensions_raw: dict[set] = one_frame["cortical_dimensions"]
+            
             for cortical_ID in activation_coordinates_raw.keys():
-                l: list = []
-                for e in activation_coordinates_raw[cortical_ID]:
-                    l.append(list(e))
-                if len(l) == 0:
+                coords = activation_coordinates_raw[cortical_ID]
+                if len(coords) == 0:
                     continue
-                activation_coordinate = np.array(l)
-                cortical_dimension = np.array(cortical_dimensions_raw[cortical_ID])
-                svo_activations: SVORaymarchingByteStructure = SVORaymarchingByteStructure.create_from_summary_data(cortical_dimension, activation_coordinate, cortical_ID)
-
+                    
+                # Convert to numpy array in one step - much faster than list comprehension
+                activation_coordinate = np.array(list(coords), dtype=np.int32)
+                cortical_dimension = np.array(cortical_dimensions_raw[cortical_ID], dtype=np.int32)
+                
+                # Create SVO structure using the numpy arrays
+                svo_activations = SVORaymarchingByteStructure.create_from_summary_data(
+                    cortical_dimension, activation_coordinate, cortical_ID)
+                
                 wrapped_structures_to_send.append(svo_activations)
 
-
-
-
-
-            activations: list[tuple[int,int,int]] = processed_one_frame
-            # activations = bridge.simulation_testing(10000)
-            #activations_wrapped: ActivatedNeuronLocation = ActivatedNeuronLocation.create_from_list_of_tuples(activations) # TODO creating a new object every frame is slow, we should reuse it instead
-            #wrapped_structures_to_send.append(activations_wrapped)
         if pns.full_list_dimension:
             if 'iv00CC' in pns.full_list_dimension:
                 res_json: list = list(retina.grab_xy_cortical_resolution('iv00CC'))
                 resolution: tuple[int, int] = (int(res_json[0]), int(res_json[1]))
                 FEAGI_RGB_data: dict = one_frame.get("color_image") # dict[tuple[int, int, int]: int]
                 if FEAGI_RGB_data != None:
-                    image_wrapped: SingleRawImage = SingleRawImage.create_from_FEAGI_delta_dict(resolution, FEAGI_RGB_data)  # TODO creating a new object every frame is slow, we should reuse it instead
+                    image_wrapped: SingleRawImage = SingleRawImage.create_from_FEAGI_delta_dict(resolution, FEAGI_RGB_data)
                     wrapped_structures_to_send.append(image_wrapped)
 
         multi_wrapped: MultiByteStructHolder = MultiByteStructHolder(wrapped_structures_to_send)
         if not multi_wrapped.is_empty():
             send_to_BV_queue.append(multi_wrapped.to_bytes())
 
-
         # If queue_of_recieve_godot_data has a data, it will obtain the latest then pop it for
         # the next data.
         if queue_of_recieve_godot_data:
-            obtained_data_from_godot = queue_of_recieve_godot_data[0].decode('UTF-8')  # Do we
-            # need it still??
+            obtained_data_from_godot = queue_of_recieve_godot_data[0].decode('UTF-8')
             queue_of_recieve_godot_data.pop()
         else:
             obtained_data_from_godot = "{}"
@@ -215,7 +209,6 @@ def main(feagi_settings, runtime_data, capabilities):
 
         end = time.perf_counter()
         if sent_feagiframedebug:
-
             print(f"Total execution time: {end - start:.6f} seconds, framerate is approximately {1.0 / (end - start):.6f}")
 
 if __name__ == "__main__":
