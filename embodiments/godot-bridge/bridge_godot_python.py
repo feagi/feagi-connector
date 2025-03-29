@@ -82,26 +82,28 @@ def main(feagi_settings, runtime_data, capabilities):
     start_timer = datetime.now()
     size = [32, 32] # by default
     
-    # Pre-allocate reusable structures to avoid repeated creation/destruction
-    # This is the key optimization
-    wrapped_structures_to_send = []
-    json_string_cache = "{}"  # Cache for JSON string to avoid redundant serialization
+    # Pre-allocate a buffer for coordinates
+    coords_buffer = np.zeros((10000, 3), dtype=np.int32)
     
-    # If these functions support reusing objects, create reusable instances
-    json_wrapper = None
-    try:
-        # Try to create a reusable JSON wrapper if the class supports it
-        json_wrapper = JSONByteStructure("{}")
-    except:
-        json_wrapper = None  # Fall back to creating new instances if needed
+    # Add coordinate caching
+    last_coords_by_cortical_id = {}
+    struct_cache = {}
+    
+    timings = {
+        'coords': 0,
+        'json': 0,
+        'send': 0,
+        'frame_count': 0
+    }
 
     while True:
+        timings['frame_count'] += 1
         start = time.perf_counter()
         sent_feagiframedebug: bool = False
         # if not feagi.is_FEAGI_reachable(feagi_settings['feagi_host'], int(feagi_settings['feagi_api_port'])):
         #     break
         one_frame = pns.message_from_feagi
-        wrapped_structures_to_send.clear()  # Clear instead of creating new list
+        wrapped_structures_to_send: list[AbstractByteStructure] = []
         processed_FEAGI_status_data = {
             "status": {},
             "activations": []
@@ -140,25 +142,6 @@ def main(feagi_settings, runtime_data, capabilities):
                 if 'initiation_time' in processed_FEAGI_status_data["status"]["amalgamation_pending"]:
                     processed_FEAGI_status_data["status"]["amalgamation_pending"].pop('initiation_time')
             start_timer = datetime.now()
-            
-            # Only serialize JSON if data has changed
-            new_json_string = json.dumps(processed_FEAGI_status_data)
-            if new_json_string != json_string_cache:
-                json_string_cache = new_json_string
-                
-                # Create or update JSON wrapper
-                if json_wrapper is not None:
-                    # Try to update existing wrapper if supported
-                    try:
-                        json_wrapper.update(json_string_cache)
-                        wrapped_structures_to_send.append(json_wrapper)
-                    except:
-                        # Fall back to creating new instance
-                        wrapped_structures_to_send.append(
-                            JSONByteStructure.create_from_json_string(json_string_cache))
-                else:
-                    wrapped_structures_to_send.append(
-                        JSONByteStructure.create_from_json_string(json_string_cache))
         elif float(timerout_setpoint) <= (datetime.now() - start_timer).total_seconds():
             ## Apparently this is for cloud?
             processed_FEAGI_status_data["activations"] = {}
@@ -168,8 +151,16 @@ def main(feagi_settings, runtime_data, capabilities):
             processed_FEAGI_status_data["status"]["brain_readiness"] = False
             has_FEAGI_updated_genome: bool = True
 
+        # Time JSON creation
+        json_start = time.perf_counter()
+        json_wrapped: JSONByteStructure = JSONByteStructure.create_from_json_string(json.dumps(processed_FEAGI_status_data))
+        wrapped_structures_to_send.append(json_wrapped)
+        json_end = time.perf_counter()
+        timings['json'] += (json_end - json_start)
+
+        # Time coordinate processing - our main bottleneck
+        coords_start = time.perf_counter()
         if len(processed_one_frame) != 0:
-            # Optimize the activation coordinates processing using numpy
             sent_feagiframedebug = True
             activation_coordinates_raw: dict[set] = one_frame["godot"]
             cortical_dimensions_raw: dict[set] = one_frame["cortical_dimensions"]
@@ -178,26 +169,51 @@ def main(feagi_settings, runtime_data, capabilities):
                 coords = activation_coordinates_raw[cortical_ID]
                 if len(coords) == 0:
                     continue
-                    
-                # OPTIMIZATION: Convert coordinates to numpy array efficiently
-                # Pre-allocate the numpy array with the exact size needed
+                
+                # OPTIMIZATION: Check if coordinates haven't changed since last frame
+                # If identical, reuse the previously created structure
+                current_coords_hash = hash(frozenset(coords))
+                cache_key = (cortical_ID, current_coords_hash)
+                
+                if cache_key in struct_cache:
+                    wrapped_structures_to_send.append(struct_cache[cache_key])
+                    continue
+                
+                # Coordinates changed or not in cache, process them
                 coord_count = len(coords)
-                if coord_count > 0:
-                    # Convert set to array in one batch operation - much faster
-                    activation_coordinate = np.zeros((coord_count, 3), dtype=np.int32)
-                    
-                    # Fill the pre-allocated array directly - avoids intermediate list creation
-                    for i, coord in enumerate(coords):
-                        activation_coordinate[i] = coord
-                    
-                    # Convert cortical dimensions directly to numpy array
-                    cortical_dimension = np.array(cortical_dimensions_raw[cortical_ID], dtype=np.int32)
-                    
-                    # Create SVO structure using the optimized arrays
-                    svo_activations = SVORaymarchingByteStructure.create_from_summary_data(
-                        cortical_dimension, activation_coordinate, cortical_ID)
-                    
-                    wrapped_structures_to_send.append(svo_activations)
+                
+                # Resize buffer if necessary (rarely needed)
+                if coord_count > coords_buffer.shape[0]:
+                    coords_buffer = np.zeros((coord_count + 1000, 3), dtype=np.int32)
+                
+                # Fast path using the pre-allocated buffer
+                for i, (x, y, z) in enumerate(coords):
+                    coords_buffer[i, 0] = x
+                    coords_buffer[i, 1] = y
+                    coords_buffer[i, 2] = z
+                
+                # Use a view of the buffer
+                activation_coordinate = coords_buffer[:coord_count]
+                
+                # Get cortical dimension - check if it's changed
+                cortical_dimension = np.array(cortical_dimensions_raw[cortical_ID], dtype=np.int32)
+                
+                # Create SVO structure using the optimized arrays
+                svo_activations = SVORaymarchingByteStructure.create_from_summary_data(
+                    cortical_dimension, activation_coordinate, cortical_ID)
+                
+                # Cache the structure for future reuse
+                struct_cache[cache_key] = svo_activations
+                
+                # Limit cache size to prevent memory growth
+                if len(struct_cache) > 1000:
+                    # Remove oldest entries
+                    for old_key in list(struct_cache.keys())[:100]:
+                        struct_cache.pop(old_key)
+                
+                wrapped_structures_to_send.append(svo_activations)
+        coords_end = time.perf_counter()
+        timings['coords'] += (coords_end - coords_start)
 
         if pns.full_list_dimension:
             if 'iv00CC' in pns.full_list_dimension:
@@ -208,30 +224,23 @@ def main(feagi_settings, runtime_data, capabilities):
                     image_wrapped: SingleRawImage = SingleRawImage.create_from_FEAGI_delta_dict(resolution, FEAGI_RGB_data)
                     wrapped_structures_to_send.append(image_wrapped)
 
-        # Create MultiByteStructHolder only once per iteration
+        # Time message sending
+        send_start = time.perf_counter()
         if wrapped_structures_to_send:
             multi_wrapped = MultiByteStructHolder(wrapped_structures_to_send)
+            # Only send if not empty
             if not multi_wrapped.is_empty():
-                # Consider batching messages if send_to_BV_queue has a buffer
-                send_to_BV_queue.append(multi_wrapped.to_bytes())
+                byte_data = multi_wrapped.to_bytes()
+                send_to_BV_queue.append(byte_data)
+        send_end = time.perf_counter()
+        timings['send'] += (send_end - send_start)
 
-        # If queue_of_recieve_godot_data has a data, it will obtain the latest then pop it for
-        # the next data.
         if queue_of_recieve_godot_data:
             obtained_data_from_godot = queue_of_recieve_godot_data[0].decode('UTF-8')
             queue_of_recieve_godot_data.pop()
         else:
             obtained_data_from_godot = "{}"
 
-        # BV wil send "ping" string so when it happens, the data will be replaced to {} for feagi
-        # to not doing anything. Bridge will return the "ping" for BV to do the calculation of
-        # latency.
-        #if obtained_data_from_godot == "ping":
-        #    obtained_data_from_godot = "{}"
-        #    send_to_BV_queue.append("ping")
-
-        # Godot will send 4 of those. 3.5 or 4.0. Even if we are out of 3.5 fully, there is a
-        # good chance that one of those might be occur. the usual data would be "{}" from godot.
         invalid_values = {"None", "{}", "refresh", "[]"}
         if obtained_data_from_godot not in invalid_values and obtained_data_from_godot != godot_list:
             godot_list = bridge.godot_data(obtained_data_from_godot)
@@ -248,6 +257,24 @@ def main(feagi_settings, runtime_data, capabilities):
         end = time.perf_counter()
         if sent_feagiframedebug:
             print(f"Total execution time: {end - start:.6f} seconds, framerate is approximately {1.0 / (end - start):.6f}")
+            
+        # Print performance stats every 100 frames
+        if timings['frame_count'] % 100 == 0:
+            total_frames = timings['frame_count']
+            print("\n=== PERFORMANCE REPORT ===")
+            print(f"Coordinates processing: {timings['coords']/total_frames:.6f} sec avg")
+            print(f"JSON operations: {timings['json']/total_frames:.6f} sec avg")
+            print(f"Message sending: {timings['send']/total_frames:.6f} sec avg")
+            print(f"Estimated FPS: {total_frames/(timings['coords'] + timings['json'] + timings['send']):.1f}")
+            print("=========================\n")
+            
+            # Reset timings for next batch
+            timings = {
+                'coords': 0,
+                'json': 0,
+                'send': 0,
+                'frame_count': 0
+            }
 
 if __name__ == "__main__":
     # NEW JSON UPDATE
