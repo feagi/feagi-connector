@@ -53,6 +53,7 @@ class SVOTree:
         # we will calculate the bitmask in a separate step
         node: dict = {}
         node_coordinates = node_coordinates.astype(int)  # enforce type
+        node_coordinates[:,2] = self._user_dimension_limit[2] - node_coordinates[:,2] - 1
         num_points: int = node_coordinates.shape[0]
         child_node_references: np.ndarray = np.array([node] * num_points, dtype=object)
         bound: int = 2 ** (self._max_depth - 1)
