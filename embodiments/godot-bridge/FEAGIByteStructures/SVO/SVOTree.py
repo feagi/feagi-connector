@@ -78,6 +78,10 @@ class SVOTree:
             node_coordinates[:] -= direction[:] * bound
             bound = bound >> 1
             layer_index += 1
+        if self._max_depth == 1: # If the depth is 1, we have one voxel, adn if we are getting it, we know it exists
+            bitpack_fields[0] = 1
+            self._total_number_nonleaf_nodes = 2
+
 
         # the same but for leafs (dont have to worry about next iteration)
         direction[:] = node_coordinates >= bound
