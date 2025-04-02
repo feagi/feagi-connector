@@ -247,11 +247,13 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, message_to_feagi,
                     y = np.clip(expanded_coords[:, 1], 0, original_frame_size[0] - 1).astype(int)
                     raw_frame[y, x] = [255, 0, 0]
             ws_data_to_send_from_feagi = {}
-            for key in message_from_feagi['opu_data']:
-                if key in cortical_used_list:
-                    ws_data_to_send_from_feagi[key] = {
+            ws_data_to_send_from_feagi['from_feagi'] = {}
+            ws_data_to_send_from_feagi['controller'] = {}
+            if 'opu_data' in message_from_feagi:
+                for key in message_from_feagi['opu_data']:
+                    ws_data_to_send_from_feagi['from_feagi'][key] = {
                         str(k): v for k, v in message_from_feagi['opu_data'][key].items()
-                    }
+                }
             if obtained_signals:
                 ws_data_to_send_from_feagi.update(obtained_signals)
             ws.append(ws_data_to_send_from_feagi)
