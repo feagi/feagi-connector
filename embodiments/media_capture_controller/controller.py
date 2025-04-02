@@ -46,7 +46,46 @@ runtime_data = {"cortical_data": {}, "current_burst_id": None,
                 "feagi_network": None}
 
 feagi.validate_requirements('requirements.txt')  # you should get it from the boilerplate generator
+cortical_used_list = []
 
+
+def expand_pixel(xyz_array, radius, width, height):
+    """
+    Expands each pixel in the input array by creating a square of pixels around it
+
+    Args:
+        xyz_array: numpy array of shape (N, 3) containing x,y coordinates
+        radius: int, how many pixels to expand in each direction
+        width: int, maximum width of the image
+        height: int, maximum height of the image
+    """
+    # Create the offset ranges
+    x_offsets = np.arange(-radius, radius)
+    y_offsets = np.arange(-radius, radius)
+
+    # Create meshgrid of offsets
+    xx, yy = np.meshgrid(x_offsets, y_offsets)
+    offsets = np.column_stack((xx.ravel(), yy.ravel()))
+
+    # Expand the original array to match offsets shape
+    expanded = xyz_array[:, np.newaxis, :]  # Shape becomes (1083, 1, 3)
+
+    # Broadcasting magic happens here
+    new_coords = expanded[:, :, :2] + offsets[np.newaxis, :, :]  # Add offsets to x,y coordinates
+
+    # Clip to image boundaries
+    new_coords[:, :, 0] = np.clip(new_coords[:, :, 0], 0, width)
+    new_coords[:, :, 1] = np.clip(new_coords[:, :, 1], 0, height)
+
+    # If there's a third column (e.g., intensity), repeat it for all expanded pixels
+    if xyz_array.shape[1] > 2:
+        new_values = np.repeat(xyz_array[:, 2:], offsets.shape[0]).reshape(xyz_array.shape[0], offsets.shape[0], -1)
+        new_coords = np.concatenate([new_coords, new_values], axis=2)
+
+    # Reshape to 2D array
+    result = new_coords.reshape(-1, xyz_array.shape[1])
+
+    return result
 
 async def bridge_to_godot(runtime_data):
     while True:
@@ -84,7 +123,7 @@ async def echo(websocket):
     The function echoes the data it receives from other connected websockets
     and sends the data from FEAGI to the connected websockets.
     """
-    global connected_agents
+    global connected_agents, cortical_used_list
     try:
         async for message in websocket:
             connected_agents['0'] = True  # Since this section gets data from client, its marked as true
@@ -93,9 +132,16 @@ async def echo(websocket):
             else:
                 ws_operation[0] = websocket
             decompressed_data = lz4.frame.decompress(message)
+            print(decompressed_data)
             if connected_agents['capabilities']:
                 try:
                     cortical_stimulation['current'] = json.loads(decompressed_data)
+
+                    webcam_size['size'].append(cortical_stimulation['current']['pixel_data'].pop(0))
+                    webcam_size['size'].append(cortical_stimulation['current']['pixel_data'].pop(0))
+                    raw_frame = retina.RGB_list_to_ndarray(cortical_stimulation['current']['pixel_data'],
+                                                           webcam_size['size'])
+                    rgb_array['current'] = {"0": retina.update_astype(raw_frame)}
                 except:
                     new_list = list(decompressed_data)
                     webcam_size['size'].append(new_list.pop(0))
@@ -111,6 +157,8 @@ async def echo(websocket):
                     new_data = json.loads(decompressed_data)
                     if 'capabilities' in new_data:
                         connected_agents['capabilities'] = new_data['capabilities']
+                        for name in new_data['capabilities']['output']:
+                            cortical_used_list.append(pns.name_to_feagi_id_opu(name))
     except Exception as error:
         if "stimulation_period" in runtime_data:
             sleep(runtime_data["stimulation_period"])
@@ -121,6 +169,7 @@ async def echo(websocket):
     camera_data['vision'] = None
     rgb_array['current'] = None
     webcam_size['size'] = []
+    cortical_used_list = []
 
 
 async def main():
@@ -177,12 +226,43 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, message_to_feagi,
                 if 'camera' in default_capabilities['input']:
                     obtained_signals['modulation_control'] = default_capabilities['input']['camera']['0']['modulation_control']
                     obtained_signals['eccentricity_control'] = default_capabilities['input']['camera']['0']['eccentricity_control']
+            if 'ov_out' in message_from_feagi['opu_data']:
+                if message_from_feagi['opu_data']['ov_out']:
+                    original_frame_size = raw_frame.shape
+                    converted_array = np.array(list(message_from_feagi['opu_data']['ov_out']))
+                    if converted_array.ndim == 1:
+                        converted_array = converted_array.reshape(-1, 2)
+                    converted_array[:, 0] = converted_array[:, 0] + 0.3
+                    converted_array[:, 0] = (converted_array[:, 0] * original_frame_size[1]) / \
+                                            pns.full_list_dimension['ov_out']['cortical_dimensions'][0]
+                    converted_array[:, 1] = converted_array[:, 1] * -1 + \
+                                            pns.full_list_dimension['ov_out']['cortical_dimensions'][1]
+                    converted_array[:, 1] = ((converted_array[:, 1] * original_frame_size[0]) /
+                                             pns.full_list_dimension['ov_out']['cortical_dimensions'][
+                                                 1]).astype(int)
+                    expanded_coords = expand_pixel(converted_array, 10,
+                                                                   original_frame_size[1],
+                                                                   original_frame_size[0])
+                    x = np.clip(expanded_coords[:, 0], 0, original_frame_size[1] - 1).astype(int)
+                    y = np.clip(expanded_coords[:, 1], 0, original_frame_size[0] - 1).astype(int)
+                    raw_frame[y, x] = [255, 0, 0]
+            ws_data_to_send_from_feagi = {}
+            ws_data_to_send_from_feagi['from_feagi'] = {}
+            ws_data_to_send_from_feagi['controller'] = {}
+            if 'opu_data' in message_from_feagi:
+                for key in message_from_feagi['opu_data']:
+                    ws_data_to_send_from_feagi['from_feagi'][key] = {
+                        str(k): v for k, v in message_from_feagi['opu_data'][key].items()
+                }
             if obtained_signals:
-                ws.append(obtained_signals)
+                ws_data_to_send_from_feagi.update(obtained_signals)
+            ws.append(ws_data_to_send_from_feagi)
+
         try:
             if np.any(rgb_array['current']):
                 raw_frame = rgb_array['current']
                 camera_data["vision"] = raw_frame
+                print("len: ", rgb_array['current'])
                 previous_frame_data, rgb_data_for_feagi, default_capabilities = \
                     retina.process_visual_stimuli(
                         raw_frame,
@@ -203,6 +283,7 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, message_to_feagi,
                         message_to_feagi = sensors.add_generic_input_to_feagi_data(data, message_to_feagi)
             pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings, feagi_settings)
             sleep(feagi_settings['feagi_burst_speed'])  # bottleneck
+            message_to_feagi.clear()
             if 'camera' in rgb_data_for_feagi:
                 for i in rgb_data_for_feagi['camera']:
                     rgb_data_for_feagi['camera'][i].clear()
