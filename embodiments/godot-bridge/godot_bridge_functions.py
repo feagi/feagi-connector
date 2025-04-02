@@ -67,8 +67,8 @@ def convet_godot_coord_to_feagi_coord(stimulation_from_godot, cortical_data_list
                 if godot_cortical_name not in relative_coordinate["data"]["direct_stimulation"]:
                     relative_coordinate["data"]["direct_stimulation"][godot_cortical_name] = []
                     for xyz in xyz_list:
-                        new_xyz = [xyz[0] - cortical_data_list[godot_cortical_name]['coordinates_3d'][0],
-                                   xyz[1] - cortical_data_list[godot_cortical_name]['coordinates_3d'][1],
-                                   xyz[2] - cortical_data_list[godot_cortical_name]['coordinates_3d'][2]]
+                        new_xyz = [xyz[0],
+                                   xyz[1],
+                                   xyz[2]]
                         relative_coordinate["data"]["direct_stimulation"][godot_cortical_name].append(new_xyz)
     return relative_coordinate

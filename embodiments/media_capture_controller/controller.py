@@ -132,9 +132,16 @@ async def echo(websocket):
             else:
                 ws_operation[0] = websocket
             decompressed_data = lz4.frame.decompress(message)
+            print(decompressed_data)
             if connected_agents['capabilities']:
                 try:
                     cortical_stimulation['current'] = json.loads(decompressed_data)
+
+                    webcam_size['size'].append(cortical_stimulation['current']['pixel_data'].pop(0))
+                    webcam_size['size'].append(cortical_stimulation['current']['pixel_data'].pop(0))
+                    raw_frame = retina.RGB_list_to_ndarray(cortical_stimulation['current']['pixel_data'],
+                                                           webcam_size['size'])
+                    rgb_array['current'] = {"0": retina.update_astype(raw_frame)}
                 except:
                     new_list = list(decompressed_data)
                     webcam_size['size'].append(new_list.pop(0))
@@ -220,30 +227,33 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, message_to_feagi,
                     obtained_signals['modulation_control'] = default_capabilities['input']['camera']['0']['modulation_control']
                     obtained_signals['eccentricity_control'] = default_capabilities['input']['camera']['0']['eccentricity_control']
             if 'ov_out' in message_from_feagi['opu_data']:
-                original_frame_size = raw_frame.shape
-                converted_array = np.array(list(message_from_feagi['opu_data']['ov_out']))
-                if converted_array.ndim == 1:
-                    converted_array = converted_array.reshape(-1, 2)
-                converted_array[:, 0] = converted_array[:, 0] + 0.3
-                converted_array[:, 0] = (converted_array[:, 0] * original_frame_size[1]) / \
-                                        pns.full_list_dimension['ov_out']['cortical_dimensions'][0]
-                converted_array[:, 1] = converted_array[:, 1] * -1 + \
-                                        pns.full_list_dimension['ov_out']['cortical_dimensions'][1]
-                converted_array[:, 1] = ((converted_array[:, 1] * original_frame_size[0]) /
-                                         pns.full_list_dimension['ov_out']['cortical_dimensions'][
-                                             1]).astype(int)
-                expanded_coords = expand_pixel(converted_array, 10,
-                                                               original_frame_size[1],
-                                                               original_frame_size[0])
-                x = np.clip(expanded_coords[:, 0], 0, original_frame_size[1] - 1).astype(int)
-                y = np.clip(expanded_coords[:, 1], 0, original_frame_size[0] - 1).astype(int)
-                raw_frame[y, x] = [255, 0, 0]
+                if message_from_feagi['opu_data']['ov_out']:
+                    original_frame_size = raw_frame.shape
+                    converted_array = np.array(list(message_from_feagi['opu_data']['ov_out']))
+                    if converted_array.ndim == 1:
+                        converted_array = converted_array.reshape(-1, 2)
+                    converted_array[:, 0] = converted_array[:, 0] + 0.3
+                    converted_array[:, 0] = (converted_array[:, 0] * original_frame_size[1]) / \
+                                            pns.full_list_dimension['ov_out']['cortical_dimensions'][0]
+                    converted_array[:, 1] = converted_array[:, 1] * -1 + \
+                                            pns.full_list_dimension['ov_out']['cortical_dimensions'][1]
+                    converted_array[:, 1] = ((converted_array[:, 1] * original_frame_size[0]) /
+                                             pns.full_list_dimension['ov_out']['cortical_dimensions'][
+                                                 1]).astype(int)
+                    expanded_coords = expand_pixel(converted_array, 10,
+                                                                   original_frame_size[1],
+                                                                   original_frame_size[0])
+                    x = np.clip(expanded_coords[:, 0], 0, original_frame_size[1] - 1).astype(int)
+                    y = np.clip(expanded_coords[:, 1], 0, original_frame_size[0] - 1).astype(int)
+                    raw_frame[y, x] = [255, 0, 0]
             ws_data_to_send_from_feagi = {}
-            for key in message_from_feagi['opu_data']:
-                if key in cortical_used_list:
-                    ws_data_to_send_from_feagi[key] = {
+            ws_data_to_send_from_feagi['from_feagi'] = {}
+            ws_data_to_send_from_feagi['controller'] = {}
+            if 'opu_data' in message_from_feagi:
+                for key in message_from_feagi['opu_data']:
+                    ws_data_to_send_from_feagi['from_feagi'][key] = {
                         str(k): v for k, v in message_from_feagi['opu_data'][key].items()
-                    }
+                }
             if obtained_signals:
                 ws_data_to_send_from_feagi.update(obtained_signals)
             ws.append(ws_data_to_send_from_feagi)
@@ -252,6 +262,7 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, message_to_feagi,
             if np.any(rgb_array['current']):
                 raw_frame = rgb_array['current']
                 camera_data["vision"] = raw_frame
+                print("len: ", rgb_array['current'])
                 previous_frame_data, rgb_data_for_feagi, default_capabilities = \
                     retina.process_visual_stimuli(
                         raw_frame,
