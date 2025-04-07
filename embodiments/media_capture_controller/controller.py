@@ -142,12 +142,13 @@ async def echo(websocket):
                                                            webcam_size['size'])
                     rgb_array['current'] = {"0": retina.update_astype(raw_frame)}
                 except:
-                    new_list = list(decompressed_data)
-                    webcam_size['size'].append(new_list.pop(0))
-                    webcam_size['size'].append(new_list.pop(0))
-                    raw_frame = retina.RGB_list_to_ndarray(new_list,
-                                                           webcam_size['size'])
-                    rgb_array['current'] = {"0": retina.update_astype(raw_frame)}
+                    print("still list data")
+                    # new_list = list(decompressed_data)
+                    # webcam_size['size'].append(new_list.pop(0))
+                    # webcam_size['size'].append(new_list.pop(0))
+                    # raw_frame = retina.RGB_list_to_ndarray(new_list,
+                    #                                        webcam_size['size'])
+                    # rgb_array['current'] = {"0": retina.update_astype(raw_frame)}
 
             else:
                 if not 'current' in rgb_array:
@@ -156,8 +157,9 @@ async def echo(websocket):
                     new_data = json.loads(decompressed_data)
                     if 'capabilities' in new_data:
                         connected_agents['capabilities'] = new_data['capabilities']
-                        for name in new_data['capabilities']['output']:
-                            cortical_used_list.append(pns.name_to_feagi_id_opu(name))
+                        if 'output' in new_data['capabilities']:
+                            for name in new_data['capabilities']['output']:
+                                cortical_used_list.append(pns.name_to_feagi_id_opu(name))
     except Exception as error:
         if "stimulation_period" in runtime_data:
             sleep(runtime_data["stimulation_period"])
