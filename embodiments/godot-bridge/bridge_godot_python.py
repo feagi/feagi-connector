@@ -163,7 +163,8 @@ def main(feagi_settings, runtime_data, capabilities):
         if len(processed_one_frame) != 0:
             sent_feagiframedebug = True
             activation_coordinates_raw: dict[set] = one_frame["godot"]
-            cortical_dimensions_raw: dict[set] = one_frame["cortical_dimensions"]
+            if 'cortical_dimensions' in one_frame:
+                cortical_dimensions_raw: dict[set] = one_frame["cortical_dimensions"]
             
             for cortical_ID in activation_coordinates_raw.keys():
                 coords = activation_coordinates_raw[cortical_ID]
