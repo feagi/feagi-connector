@@ -155,8 +155,8 @@ def main(feagi_settings, runtime_data, capabilities):
         json_start = time.perf_counter()
         json_wrapped: JSONByteStructure = JSONByteStructure.create_from_json_string(json.dumps(processed_FEAGI_status_data))
         wrapped_structures_to_send.append(json_wrapped)
-        json_end = time.perf_counter()
-        timings['json'] += (json_end - json_start)
+        # json_end = time.perf_counter()
+        # timings['json'] += (json_end - json_start)
 
         # Time coordinate processing - our main bottleneck
         coords_start = time.perf_counter()
@@ -256,26 +256,26 @@ def main(feagi_settings, runtime_data, capabilities):
         godot_list = {}
 
         end = time.perf_counter()
-        if sent_feagiframedebug:
-            print(f"Total execution time: {end - start:.6f} seconds, framerate is approximately {1.0 / (end - start):.6f}")
+        # if sent_feagiframedebug:
+        #     print(f"Total execution time: {end - start:.6f} seconds, framerate is approximately {1.0 / (end - start):.6f}")
             
         # Print performance stats every 100 frames
-        if timings['frame_count'] % 100 == 0:
-            total_frames = timings['frame_count']
-            print("\n=== PERFORMANCE REPORT ===")
-            print(f"Coordinates processing: {timings['coords']/total_frames:.6f} sec avg")
-            print(f"JSON operations: {timings['json']/total_frames:.6f} sec avg")
-            print(f"Message sending: {timings['send']/total_frames:.6f} sec avg")
-            print(f"Estimated FPS: {total_frames/(timings['coords'] + timings['json'] + timings['send']):.1f}")
-            print("=========================\n")
+        # if timings['frame_count'] % 100 == 0:
+        #     total_frames = timings['frame_count']
+        #     print("\n=== PERFORMANCE REPORT ===")
+        #     print(f"Coordinates processing: {timings['coords']/total_frames:.6f} sec avg")
+        #     print(f"JSON operations: {timings['json']/total_frames:.6f} sec avg")
+        #     print(f"Message sending: {timings['send']/total_frames:.6f} sec avg")
+        #     print(f"Estimated FPS: {total_frames/(timings['coords'] + timings['json'] + timings['send']):.1f}")
+        #     print("=========================\n")
             
-            # Reset timings for next batch
-            timings = {
-                'coords': 0,
-                'json': 0,
-                'send': 0,
-                'frame_count': 0
-            }
+            # # Reset timings for next batch
+            # timings = {
+            #     'coords': 0,
+            #     'json': 0,
+            #     'send': 0,
+            #     'frame_count': 0
+            # }
 
 if __name__ == "__main__":
     # NEW JSON UPDATE
