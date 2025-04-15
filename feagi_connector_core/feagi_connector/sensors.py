@@ -98,7 +98,7 @@ def create_data_for_feagi(sensor, capabilities, message_to_feagi, current_data, 
     :return: Returns a message dictionary for FEAGI, ready to be sent.
     """
     if pns.full_template_information_corticals:
-        global_inner_id = 0
+        global_inner_id = 0 
         for device_id in capabilities['input'][sensor]:
             if not capabilities['input'][sensor][device_id]['disabled']:
                 cortical_id = pns.name_to_feagi_id_ipu(sensor_name=sensor)
@@ -115,8 +115,6 @@ def create_data_for_feagi(sensor, capabilities, message_to_feagi, current_data, 
                                             current_data[device_id][local_index],
                                             capabilities['input'][sensor][device_id]['max_value'][local_index],
                                             capabilities['input'][sensor][device_id]['min_value'][local_index]))
-
-                                # Increment the global counter after using it
                                 position_in_feagi_location = convert_sensor_to_ipu_data(
                                     capabilities['input'][sensor][device_id]['min_value'][local_index],
                                     capabilities['input'][sensor][device_id]['max_value'][local_index],
