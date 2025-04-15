@@ -98,6 +98,7 @@ def create_data_for_feagi(sensor, capabilities, message_to_feagi, current_data, 
     :return: Returns a message dictionary for FEAGI, ready to be sent.
     """
     if pns.full_template_information_corticals:
+        global_inner_id = 0
         for device_id in capabilities['input'][sensor]:
             if not capabilities['input'][sensor][device_id]['disabled']:
                 cortical_id = pns.name_to_feagi_id_ipu(sensor_name=sensor)
@@ -106,26 +107,27 @@ def create_data_for_feagi(sensor, capabilities, message_to_feagi, current_data, 
                 try:
                     if isinstance(current_data, dict):
                         if isinstance(capabilities['input'][sensor][device_id]['max_value'], list):
-                            for inner_device_id in range(
-                                    len(current_data[device_id])):  # x, y, z, or r, p, y (depending on the application)
+                            for local_index in range(len(current_data[device_id])):  # x, y, z, or r, p, y
                                 if measure_enable:
-                                    capabilities['input'][sensor][device_id]['max_value'][inner_device_id], \
-                                        capabilities['input'][sensor][device_id]['min_value'][
-                                            inner_device_id] = measuring_max_and_min_range(
-                                        current_data[device_id][inner_device_id],
-                                        capabilities['input'][sensor][device_id]['max_value'][inner_device_id],
-                                        capabilities['input'][sensor][device_id]['min_value'][inner_device_id])
+                                    capabilities['input'][sensor][device_id]['max_value'][local_index], \
+                                        capabilities['input'][sensor][device_id]['min_value'][local_index] = (
+                                        measuring_max_and_min_range(
+                                            current_data[device_id][local_index],
+                                            capabilities['input'][sensor][device_id]['max_value'][local_index],
+                                            capabilities['input'][sensor][device_id]['min_value'][local_index]))
+
+                                # Increment the global counter after using it
                                 position_in_feagi_location = convert_sensor_to_ipu_data(
-                                    capabilities['input'][sensor][device_id]['min_value'][inner_device_id],
-                                    capabilities['input'][sensor][device_id]['max_value'][inner_device_id],
-                                    current_data[device_id][inner_device_id],
-                                    capabilities['input'][sensor][device_id]['feagi_index'] + inner_device_id,
+                                    capabilities['input'][sensor][device_id]['min_value'][local_index],
+                                    capabilities['input'][sensor][device_id]['max_value'][local_index],
+                                    current_data[device_id][local_index],
+                                    global_inner_id,
                                     sensor_name=sensor,
                                     symmetric=True)
                                 create_data_list[cortical_id][position_in_feagi_location] = 100
+                                global_inner_id += 1
                             if create_data_list[cortical_id]:
-                                message_to_feagi = add_generic_input_to_feagi_data(
-                                    create_data_list, message_to_feagi)
+                                message_to_feagi = add_generic_input_to_feagi_data(create_data_list, message_to_feagi)
                         else:
                             for inner_device_id in current_data:
                                 if measure_enable:
