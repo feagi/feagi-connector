@@ -1,0 +1,20 @@
+[package]
+name = "connector_sensorimotor_converter"
+version = "0.0.1"
+description = """
+The core library for all FEAGI Connectors. Handles translating to and from FEAGI compatible formats
+"""
+edition = "2024"
+readme = "README.md"
+
+
+[dependencies]
+ndarray = "0.16.1"
+
+[dependencies-dev]
+
+[lib]
+
+
+
+
