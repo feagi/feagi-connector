@@ -1,10 +1,10 @@
 [package]
-name = "feagi_connect_python_rust"
+name = "rust_core_sensiomotor_functions_py"
 version = "0.0.1"
 edition = "2024"
 
 [dependencies]
-rust_core_sensiomotor_functions = { path = "../rust_core_sensiomotor_functions}
+rust_core_sensiomotor_functions = { path = "../../rust_core_sensiomotor_functions}
 ndarray = "0.16.1"
 pyo3 = { version = "0.24.1", features = ["extension-module"] }
 numpy = "0.24.0"
