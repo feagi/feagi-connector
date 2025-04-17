@@ -31,7 +31,7 @@ impl ImageDiff {
         (shape[0], shape[1], shape[2])
     }
 
-    pub fn get_new_delta_from_new_frame(&mut self, new_image_frame: Array3<u8>) -> Result<Array3<u8>, String> {
+    pub fn get_new_delta_from_new_frame(&mut self, new_image_frame: &Array3<u8>) -> Result<Array3<u8>, String> {
         // Shape check for sanity
         if new_image_frame.shape() != self.latest.shape() {
             return Err(format!(
@@ -46,7 +46,7 @@ impl ImageDiff {
 
         // In place subtraction with saturating subtraction to avoid overflow
         Zip::from(&mut diff)
-            .and(&new_image_frame)
+            .and(new_image_frame)
             .and(&self.latest)
             .for_each(|d, &new, &old| {
                 // Use saturating_sub to prevent overflow
@@ -54,7 +54,7 @@ impl ImageDiff {
             });
 
         // In place replacement
-        self.previous = std::mem::replace(&mut self.latest, new_image_frame);
+        self.previous = std::mem::replace(&mut self.latest, new_image_frame.clone());
 
         Ok(diff)
     }
