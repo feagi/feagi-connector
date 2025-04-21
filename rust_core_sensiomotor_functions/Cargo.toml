@@ -6,7 +6,8 @@ The core library for all FEAGI Connectors. Handles translating to and from FEAGI
 """
 edition = "2024"
 readme = "README.md"
-
+license = "Apache-2.0"
+homepage = "https://www.feagi.org/"
 
 [dependencies]
 ndarray = "0.16.1"
