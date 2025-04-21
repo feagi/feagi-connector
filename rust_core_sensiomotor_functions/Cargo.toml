@@ -1,5 +1,5 @@
 [package]
-name = "rust_core_sensiomotor_functions"
+name = "feagi_core_sensiomotor_functions"
 version = "0.0.1"
 description = """
 The core library for all FEAGI Connectors. Handles translating to and from FEAGI compatible formats
