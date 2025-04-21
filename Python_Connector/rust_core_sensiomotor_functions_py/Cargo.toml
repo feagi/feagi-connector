@@ -4,7 +4,7 @@ version = "0.0.1"
 edition = "2024"
 
 [dependencies]
-rust_core_sensiomotor_functions = { path = "../../rust_core_sensiomotor_functions"}
+feagi_core_sensiomotor_functions = { version = "0.0.1"}
 ndarray = "0.16.1"
 pyo3 = { version = "0.24.1", features = ["extension-module"] }
 numpy = "0.24.0"

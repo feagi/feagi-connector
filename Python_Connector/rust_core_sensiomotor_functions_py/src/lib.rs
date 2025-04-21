@@ -2,7 +2,7 @@ use pyo3::prelude::*;
 use pyo3::exceptions::PyValueError;
 use pyo3::types::PyModule;
 use numpy::{IntoPyArray, PyArray3, PyReadonlyArray3};
-use rust_core_sensiomotor_functions::ImageDiff;
+use feagi_core_sensiomotor_functions::ImageDiff;
 use ndarray::{Array3, ArrayView3};
 
 #[pyclass]
