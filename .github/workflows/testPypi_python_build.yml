@@ -1,0 +1,191 @@
+name: Build Python Module
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Publish to TestPyPI'
+        required: true
+        type: boolean
+        default: false
+      version:
+        description: 'Version to publish (leave empty to use version in pyproject.toml)'
+        required: false
+        type: string
+
+jobs:
+  build-x86:
+    name: Build Python ${{ matrix.python-version }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.8', '3.9', '3.10', '3.11']
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Maturin
+        run: pip install maturin
+
+      - name: Update version if specified
+        if: ${{ inputs.version != '' }}
+        run: |
+          cd rust_core_sensiomotor_functions_py
+          # This assumes a pyproject.toml with a [tool.poetry] or [project] section
+          # Adjust the sed command based on your actual file format
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            (Get-Content pyproject.toml) -replace 'version = "([0-9.]+)"', 'version = "${{ inputs.version }}"' | Set-Content pyproject.toml
+          else
+            sed -i 's/version = "[0-9.]*"/version = "${{ inputs.version }}"/g' pyproject.toml
+          fi
+        shell: bash
+
+      - name: Build wheels
+        run: |
+          cd rust_core_sensiomotor_functions_py
+          maturin build --release --strip --no-sdist
+
+      - name: Test wheel installation
+        run: |
+          cd rust_core_sensiomotor_functions_py
+          pip install target/wheels/*.whl
+          python -c "import rust_core_sensiomotor_functions_py; print(rust_core_sensiomotor_functions_py.__version__)"
+
+      - name: Upload wheels as artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: wheels-${{ matrix.os }}-${{ matrix.python-version }}
+          path: rust_core_sensiomotor_functions_py/target/wheels/*.whl
+
+  build-arm:
+    name: Build Python ${{ matrix.python-version }} for ARM
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.8', '3.9', '3.10', '3.11']
+        platform: [
+          {target: "aarch64-unknown-linux-gnu", image: "messense/manylinux2014-cross:aarch64"},
+          {target: "armv7-unknown-linux-gnueabihf", image: "messense/manylinux2014-cross:armv7"},
+        ]
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform.target }}
+
+      - name: Install Maturin
+        run: pip install maturin
+
+      - name: Update version if specified
+        if: ${{ inputs.version != '' }}
+        run: |
+          cd rust_core_sensiomotor_functions_py
+          sed -i 's/version = "[0-9.]*"/version = "${{ inputs.version }}"/g' pyproject.toml
+        shell: bash
+
+      - name: Build wheels
+        uses: docker://ghcr.io/${{ matrix.platform.image }}
+        with:
+          args: |
+            bash -c "
+            set -ex
+            cd /github/workspace/rust_core_sensiomotor_functions_py
+            export PATH=/opt/python/cp$(echo ${{ matrix.python-version }} | tr -d '.')-*/bin:$PATH
+            pip install maturin
+            maturin build --release --strip --no-sdist --target ${{ matrix.platform.target }}
+            "
+
+      - name: Upload wheels as artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: wheels-${{ matrix.platform.target }}-${{ matrix.python-version }}
+          path: rust_core_sensiomotor_functions_py/target/wheels/*.whl
+
+  build-arm-mac:
+    name: Build Python ${{ matrix.python-version }} for ARM macOS
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.8', '3.9', '3.10', '3.11']
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin
+
+      - name: Install Maturin
+        run: pip install maturin
+
+      - name: Update version if specified
+        if: ${{ inputs.version != '' }}
+        run: |
+          cd rust_core_sensiomotor_functions_py
+          sed -i '' 's/version = "[0-9.]*"/version = "${{ inputs.version }}"/g' pyproject.toml
+        shell: bash
+
+      - name: Build wheels
+        run: |
+          cd rust_core_sensiomotor_functions_py
+          maturin build --release --strip --no-sdist --target aarch64-apple-darwin
+
+      - name: Upload wheels as artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: wheels-aarch64-apple-darwin-${{ matrix.python-version }}
+          path: rust_core_sensiomotor_functions_py/target/wheels/*.whl
+
+  publish:
+    name: Publish to TestPyPI
+    needs: [build-x86, build-arm, build-arm-mac]
+    runs-on: ubuntu-latest
+    if: ${{ inputs.publish }}
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: wheels
+
+      - name: Move all wheels to one directory
+        run: |
+          mkdir -p dist
+          find wheels -name "*.whl" -exec cp {} dist/ \;
+
+      - name: Publish to TestPyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.TEST_PYPI_API_TOKEN }}
+          repository-url: https://test.pypi.org/legacy/
+          packages-dir: dist/
