@@ -182,14 +182,11 @@ def parse_chunks(data: bytes):
 
         size = width * height * 3
         if chunk_id == "canvas":
-            print("_______canvas chunk________")
             pixel_count = size  # assuming RGB
             pixels = np.frombuffer(data, dtype=np.int8, count=pixel_count, offset=offset)
             results["canvas"] = retina.RGB_list_to_ndarray(pixels, (width, height))
-            # results["canvas"] = pixels.reshape((height, width, 3))
             offset += pixel_count
         elif chunk_id == "gyro01":
-            print("_______gyro chunk________")
             float_count = size
             floats = np.frombuffer(data, dtype=np.float32, count=float_count, offset=offset)
             results["sensor"] = floats.reshape((height, width))
@@ -326,11 +323,9 @@ def feagi_main(feagi_auth_url, feagi_settings, agent_settings, message_to_feagi,
                     message_to_feagi = sensors.create_data_for_feagi('gyro', capabilities, message_to_feagi,
                                                                      data_of_gyro, symmetric=True, measure_enable=True)
                 if 'cortical_stimulation_byte_data' in cortical_stimulation['current']:
-                    print(feagi.bytes_to_feagi_data(cortical_stimulation['current']['cortical_stimulation_byte_data']))
                     message_to_feagi = pns.append_sensory_data_for_feagi_with_bytes(
                         sensory_data=cortical_stimulation['current']['cortical_stimulation_byte_data'],
                         message_to_feagi=message_to_feagi)
-                    print(message_to_feagi)
 
             # message_to_feagi = feagi.feagi_data_to_bytes(message_to_feagi)
             pns.signals_to_feagi(message_to_feagi, feagi_ipu_channel, agent_settings, feagi_settings)
