@@ -59,7 +59,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.target }}
-          args: --release --strip --no-sdist -m rust_core_sensiomotor_functions_py/pyproject.toml
+          args: --release --strip -m rust_core_sensiomotor_functions_py/pyproject.toml
           sccache: 'true'
           manylinux: auto
           skip: ${{ matrix.skip || false }}
