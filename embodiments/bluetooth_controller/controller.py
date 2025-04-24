@@ -183,7 +183,10 @@ async def echo(websocket, path):
         connected_agents['0'] = True  # Since this section gets data from client, its marked as true
         query_params = parse_qs(urlparse(path).query)
         device = query_params.get('device', [None])[0]  # Default to None if 'device' is not provided
-        current_device['name'] = [embodiment_id_map(device)]
+        try:
+            current_device['name'] = [embodiment_id_map(device)]
+        except:
+            current_device['name'] = [device]
         if not ws_operation:
             ws_operation.append(websocket)
         else:
@@ -198,8 +201,7 @@ async def echo(websocket, path):
                         feagi_servo_data_to_send = 'i '
                         for position in connected_agents['capabilities']['output']['servo']:
                             feagi_servo_data_to_send += str(feagi_to_petoi_id(int(position))) + " " + str(
-                                connected_agents['capabilities']['output']['servo'][position][
-                                    'default_value']) + " "
+                                connected_agents['capabilities']['output']['servo'][position]['default_value']) + " "
                         actuators.start_servos(connected_agents['capabilities'])
                         ws.append(feagi_servo_data_to_send)
                     break
