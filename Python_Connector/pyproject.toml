@@ -36,8 +36,6 @@ manifest-path = "./rust_core_sensiomotor_functions_py/Cargo.toml"
 #include = ["rust_core_sensiomotor_functions_py/py.typed"]
 # These features will be enabled during build
 features = []
-# PyO3 binding features for Python versions
-python-source = "python"
 # Build for Python only
 bindings = "pyo3"
 # Python package data folder
