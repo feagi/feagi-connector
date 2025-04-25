@@ -10,6 +10,7 @@ import threading
 import traceback
 import pkg_resources
 from time import sleep
+import struct
 
 import feagi_connector
 from feagi_connector import retina
@@ -155,7 +156,7 @@ def convert_new_networking_into_old_networking(feagi_settings):
     if 'feagi_url' in feagi_settings:
         ip = feagi_settings['feagi_url'].split('//')
     else:
-        ip = ['https://', '127.0.0.1'] # default to localhost
+        ip = ['https://', '127.0.0.1']  # default to localhost
     back_to_old_json['feagi_host'] = ip[1]  # grab ip only
     back_to_old_json['feagi_api_port'] = feagi_settings['feagi_api_port']
     return back_to_old_json
@@ -229,6 +230,49 @@ def opu_processor(data):
         print("error: ", error)
         traceback.print_exc()
         # pass
+
+
+def feagi_data_to_bytes(feagi_data):
+    result = bytearray()
+
+    for cortical_id, coords in feagi_data.items():
+        # Ensure cortical_id is 6 bytes, padded or trimmed
+        cid = cortical_id.encode('ascii')[:6].ljust(6, b'\x00')
+        result += cid
+
+        # Write length (number of (x, y, z, v) sets)
+        length = len(coords)
+        result += struct.pack('<H', length)  # uint16, little endian
+
+        # Add each (x, y, z, v)
+        for (x, y, z), v in coords.items():
+            result += struct.pack('<III f', x, y, z, v)  # 3x uint32, 1x float32
+
+    return result
+
+
+def bytes_to_feagi_data(data: bytes):
+    feagi_data = {}
+    offset = 0
+
+    while offset < len(data):
+        # Read 6-byte cortical area ID
+        cortical_id = data[offset:offset + 6].rstrip(b'\x00').decode('ascii')
+        offset += 6
+
+        # Read length (number of (x, y, z, v) sets)
+        length = struct.unpack_from('<H', data, offset)[0]
+        offset += 2
+
+        coords = {}
+        for _ in range(length):
+            x, y, z, v = struct.unpack_from('<III f', data, offset)
+            coords[(x, y, z)] = v
+            offset += 16  # 4 + 4 + 4 + 4 bytes
+
+        feagi_data[cortical_id] = coords
+
+    return feagi_data
 
 
 def control_data_processor(data):
@@ -360,7 +404,7 @@ def detect_usb_port(data, previous):
         for name_device in com_ports:
             if 'Bluetooth-Incoming-Port' in name_device:
                 com_ports.pop(counter)
-            counter+= 1
+            counter += 1
     if len(com_ports) == 0:
         print("No device plugged, exiting the program.")
         sys.exit()
@@ -371,7 +415,7 @@ def detect_usb_port(data, previous):
             if previous in com_ports[id]:
                 print(id + 1, ". ", com_ports[id], " (USED PREVIOUSLY)")
             else:
-                print(id+1, ". ", com_ports[id])
+                print(id + 1, ". ", com_ports[id])
         while True:
             user_input = input("Please press number to connect: ")
             if user_input.isdigit():  # Check if the input is a digit
@@ -384,12 +428,13 @@ def detect_usb_port(data, previous):
                 print("Invalid input. Please enter a valid number.")
 
 
-
 def reading_parameters_to_confirm_communication(new_settings, configuration, path=".", serial_in_use=False):
     # Check if feagi_connector has arg
     parser = argparse.ArgumentParser(description='enable to use magic link')
-    parser.add_argument('-magic_link', '--magic_link', help='Use the API key, as the magic link will be removed in a few updates.', required=False)
-    parser.add_argument('-api_key', '--api_key', help='To use the API key from NeuroRobotics Studio to connect with your robot.', required=False)
+    parser.add_argument('-magic_link', '--magic_link',
+                        help='Use the API key, as the magic link will be removed in a few updates.', required=False)
+    parser.add_argument('-api_key', '--api_key',
+                        help='To use the API key from NeuroRobotics Studio to connect with your robot.', required=False)
     parser.add_argument('-ip', '--ip', help='to use feagi_ip', required=False)
     parser.add_argument('-port', '--port', help='to use feagi_port', required=False)
     parser.add_argument('-preview', '--preview', help='To enable the preview of vision',
@@ -422,13 +467,12 @@ def reading_parameters_to_confirm_communication(new_settings, configuration, pat
             with open(path + 'networking.json', 'w') as f:
                 json.dump(configuration, f, indent=4)
 
-
-
     if args['preview']:
         if args['preview'].lower() == 'true':
             retina.preview_flag = True
     if 'feagi_dns' in new_settings:
-        print("OLD networking.json DETECTED! Please update your networking.json to latest. Next update will be removed that could crash the feagi controller if the old networking.json is not updated!!!")
+        print(
+            "OLD networking.json DETECTED! Please update your networking.json to latest. Next update will be removed that could crash the feagi controller if the old networking.json is not updated!!!")
         feagi_settings = new_settings
     else:
         feagi_settings = convert_new_networking_into_old_networking(new_settings)
@@ -439,7 +483,7 @@ def reading_parameters_to_confirm_communication(new_settings, configuration, pat
 
     if (args['api_key'] or pns.env_exists) and not args['ip']:
         if args['api_key']:
-            configuration['feagi_settings']['feagi_url'] = feagi_settings['nrs_url'] + args['api_key'] # api-key
+            configuration['feagi_settings']['feagi_url'] = feagi_settings['nrs_url'] + args['api_key']  # api-key
             with open(pns.env_current_path, 'w') as f:
                 f.write(args['api_key'])
         else:
@@ -448,7 +492,7 @@ def reading_parameters_to_confirm_communication(new_settings, configuration, pat
         url_response = json.loads(requests.get(configuration['feagi_settings']['feagi_url']).text)
         feagi_settings['feagi_dns'] = url_response['feagi_url']
         feagi_settings['feagi_api_port'] = url_response['feagi_api_port']
-        pns.create_env_again() # just to update the global variables
+        pns.create_env_again()  # just to update the global variables
     elif args['magic_link']:
         print("The magic link is now deprecated. Please use the '--api_key' instead.")
         sys.exit(1)

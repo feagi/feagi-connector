@@ -89,6 +89,27 @@ def append_sensory_data_for_feagi(sensory_category, sensory_data, message_to_fea
                 message_to_feagi["data"]["sensory_data"][sensory_category].update(sensory_data)
     return message_to_feagi
 
+def append_sensory_data_for_feagi_with_bytes(sensory_data, message_to_feagi, sensory_category='generic_ipu_b'):
+    """
+    :param sensory_category: A name such as training, camera, IR, ultrasonic and so on.
+    :param sensory_data: The data of dict only
+    :param message_to_feagi: Use the existing dict to append
+    :return: the updated dict called `message_to_feagi`
+    """
+    if "data" not in message_to_feagi:
+        message_to_feagi["data"] = {}
+    if "sensory_data" not in message_to_feagi["data"]:
+        message_to_feagi["data"]["sensory_data"] = {}
+    if sensory_category not in message_to_feagi["data"]["sensory_data"]:
+        message_to_feagi["data"]["sensory_data"][sensory_category] = sensory_data
+    else:
+        for key in sensory_data:
+            if key in message_to_feagi["data"]["sensory_data"][sensory_category]:
+                message_to_feagi["data"]["sensory_data"][sensory_category][key].update(sensory_data[key])
+            else:
+                message_to_feagi["data"]["sensory_data"][sensory_category].update(sensory_data)
+    return message_to_feagi
+
 
 def signals_from_feagi(feagi_opu_channel):
     """ get OPU from FEAGI """
