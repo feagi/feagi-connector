@@ -281,37 +281,37 @@ class FeagiAgentClient:
             
             # Query FEAGI REST API for cortical area properties
             api_url = f"http://{host}:8000/v1/cortical_area/multi/cortical_area_properties"
-            payload = {"cortical_ids": [cortical_area]}
+            payload = [cortical_area]  # API expects array, not object
             
             logger.debug(f"Querying FEAGI for '{cortical_area}' dimensions...")
             response = requests.post(api_url, json=payload, timeout=2.0)
             
             if response.status_code == 200:
-                properties_list = response.json()
+                properties_dict = response.json()
                 
-                # Response format: list of cortical area objects
-                # Find the matching cortical area
-                for area in properties_list:
-                    if area.get("id") == cortical_area:
-                        dimensions = area.get("dimensions", [])
-                        
-                        if len(dimensions) == 3:
-                            x_dim, y_dim, z_dim = dimensions
-                            logger.info(
-                                "Detected %s resolution: %sx%sx%s",
-                                cortical_area,
-                                x_dim,
-                                y_dim,
-                                z_dim,
-                            )
-                            return (x_dim, y_dim, z_dim)
-                        else:
-                            logger.warning(
-                                "Cortical area '%s' has invalid dimensions: %s",
-                                cortical_area,
-                                dimensions,
-                            )
-                            return None
+                # Response format: dict with cortical_id as key
+                # Get the cortical area properties
+                area = properties_dict.get(cortical_area)
+                if area:
+                    dimensions = area.get("dimensions", [])
+                    
+                    if len(dimensions) == 3:
+                        x_dim, y_dim, z_dim = dimensions
+                        logger.info(
+                            "Detected %s resolution: %sx%sx%s",
+                            cortical_area,
+                            x_dim,
+                            y_dim,
+                            z_dim,
+                        )
+                        return (x_dim, y_dim, z_dim)
+                    else:
+                        logger.warning(
+                            "Cortical area '%s' has invalid dimensions: %s",
+                            cortical_area,
+                            dimensions,
+                        )
+                        return None
                 
                 # Not found in response
                 logger.warning(f"Cortical area '{cortical_area}' not found in FEAGI")

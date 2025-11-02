@@ -37,15 +37,14 @@ def get_cortical_dimensions(host: str, rest_port: int, cortical_ids: List[str]) 
     requests = _requests()
     url = f"http://{host}:{int(rest_port)}/v1/cortical_area/multi/cortical_area_properties"
     try:
-        r = requests.post(url, json={"cortical_ids": list(cortical_ids)}, timeout=5.0)
+        r = requests.post(url, json=list(cortical_ids), timeout=5.0)  # API expects array, not object
         if r.status_code != 200:
             return {}
-        data = r.json() or []
+        data = r.json() or {}  # Response is a dict, not a list
         out: Dict[str, Tuple[int, int]] = {}
-        for item in data:
+        for cid, area_props in data.items():
             try:
-                cid = str(item.get("cortical_id") or item.get("id") or "").strip()
-                dims = item.get("dimensions") or item.get("cortical_dimensions") or [64, 64, 1]
+                dims = area_props.get("dimensions") or area_props.get("cortical_dimensions") or [64, 64, 1]
                 out[cid] = (int(dims[0]), int(dims[1]))
             except Exception:
                 continue
