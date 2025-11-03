@@ -37,17 +37,22 @@ class FeagiZmqClient:
         self.motor_signal: AsyncSignalWithParam[bytes] = AsyncSignalWithParam()
         self._motor_listener: Optional[asyncio.Task[None]] = None
 
-    async def send_registration(self, feagi_host: str, camera_resolution_xyc: (int, int, int), sensory_port: int) -> dict:
+    async def send_registration(self, feagi_host: str, camera_resolution_xyc: (int, int, int), sensory_port: int, motor_cortical_areas: list = None) -> dict:
         """Send registration and create data sockets from response.
         
         Args:
             feagi_host: FEAGI host address (e.g., "tcp://localhost")
             camera_resolution_xyc: Camera resolution (width, height, channels)
             sensory_port: Sensory data port from config
+            motor_cortical_areas: List of motor cortical areas (e.g., ['omot00', 'ogaz00'])
         
         Returns:
             Registration response dict
         """
+
+        # Use provided motor areas or default to omot00 for backward compatibility
+        if motor_cortical_areas is None or len(motor_cortical_areas) == 0:
+            motor_cortical_areas = ["omot00"]
 
         payload = {
             "method": "POST",
@@ -64,8 +69,8 @@ class FeagiZmqClient:
                     },
                     "motor": {
                         "modality": "wheel_motors",
-                        "output_count": 2,
-                        "source_cortical_areas": ["omot00"]
+                        "output_count": len(motor_cortical_areas),
+                        "source_cortical_areas": motor_cortical_areas
                     }
                 }
             }

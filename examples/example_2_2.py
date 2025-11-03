@@ -37,12 +37,24 @@ async def main():
         number_of_channels=10,
         misc_dimensions=frpl.connector_core.data.descriptors.MiscDataDimensions(10, 1, 1)
     )
+    
+    # Register gaze motor area (ogaz00)
+    feagi_agent.brain_output.gaze_absolute_linear.register(
+        cortical_group=0,
+        number_of_channels=1,
+        z_resolution=10
+    )
 
     # connect to feagi with timeout (using same ports as video_agent)
     print(f"[{datetime.now().strftime('%H:%M:%S.%f')[:-3]}] Connecting to FEAGI...")
+    
+    # Get registered motor areas dynamically
+    motor_areas = feagi_agent.brain_output.get_registered_cortical_areas()
+    print(f"[{datetime.now().strftime('%H:%M:%S.%f')[:-3]}] Registered motor areas: {motor_areas}")
+    
     try:
         registration_response = await asyncio.wait_for(
-            feagi_agent.feagi.connect_via_zmq("tcp://localhost", input_image_resolution, registration_port=30001, sensory_port=5558),
+            feagi_agent.feagi.connect_via_zmq("tcp://localhost", input_image_resolution, motor_cortical_areas=motor_areas, registration_port=30001, sensory_port=5558),
             timeout=5.0
         )
         print(f"[{datetime.now().strftime('%H:%M:%S.%f')[:-3]}] Connected! Response: {registration_response}")

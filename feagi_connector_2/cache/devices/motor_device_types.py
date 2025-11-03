@@ -1,5 +1,6 @@
 import feagi_rust_py_libs as frpl
 from .device import Device, ChannelCount, CorticalGroupIndex, ChannelIndex, NeuronDepth, IOData
+from typing import Optional, Callable
 
 # NOTE: For now we will generate based on "wrapped_data_type" in the template. We may need to change to "default_coder_type"
 
@@ -16,10 +17,17 @@ class Percentage1D(Device):
         self._register_function = getattr(self._io_cache, register_fn_name)
         self._read_pre_function = getattr(self._io_cache, read_pre_fn_name)
         self._read_post_function = getattr(self._io_cache, read_post_fn_name)
+        self._registration_callback: Optional[Callable[[CorticalGroupIndex], None]] = None
+
+    def set_registration_callback(self, callback: Callable[[CorticalGroupIndex], None]):
+        """Set callback to be notified when registration occurs."""
+        self._registration_callback = callback
 
     def register(self, cortical_group: CorticalGroupIndex, number_of_channels: ChannelCount,
                  z_resolution: NeuronDepth):
         self._register_function(cortical_group, number_of_channels, z_resolution)
+        if self._registration_callback:
+            self._registration_callback(cortical_group)
 
     def read_preprocessed_cache_value(self, cortical_group: CorticalGroupIndex, channel: ChannelIndex) -> frpl.connector_core.data.Percentage:
         return self._read_pre_function(cortical_group, channel)
@@ -38,10 +46,17 @@ class Percentage4D(Device):
         self._register_function = getattr(self._io_cache, register_fn_name)
         self._read_pre_function = getattr(self._io_cache, read_pre_fn_name)
         self._read_post_function = getattr(self._io_cache, read_post_fn_name)
+        self._registration_callback: Optional[Callable[[CorticalGroupIndex], None]] = None
+
+    def set_registration_callback(self, callback: Callable[[CorticalGroupIndex], None]):
+        """Set callback to be notified when registration occurs."""
+        self._registration_callback = callback
 
     def register(self, cortical_group: CorticalGroupIndex, number_of_channels: ChannelCount,
                  z_resolution: NeuronDepth):
         self._register_function(cortical_group, number_of_channels, z_resolution)
+        if self._registration_callback:
+            self._registration_callback(cortical_group)
 
     def read_preprocessed_cache_value(self, cortical_group: CorticalGroupIndex, channel: ChannelIndex) -> frpl.connector_core.data.Percentage4D:
         return self._read_pre_function(cortical_group, channel)
@@ -60,10 +75,17 @@ class MiscData(Device):
         self._register_function = getattr(self._io_cache, register_fn_name)
         self._read_pre_function = getattr(self._io_cache, read_pre_fn_name)
         self._read_post_function = getattr(self._io_cache, read_post_fn_name)
+        self._registration_callback: Optional[Callable[[CorticalGroupIndex], None]] = None
+
+    def set_registration_callback(self, callback: Callable[[CorticalGroupIndex], None]):
+        """Set callback to be notified when registration occurs."""
+        self._registration_callback = callback
 
     def register(self, cortical_group: CorticalGroupIndex, number_of_channels: ChannelCount,
                  misc_dimensions: frpl.connector_core.data.descriptors.MiscDataDimensions):
         self._register_function(cortical_group, number_of_channels, misc_dimensions)
+        if self._registration_callback:
+            self._registration_callback(cortical_group)
 
     def read_preprocessed_cache_value(self, cortical_group: CorticalGroupIndex, channel: ChannelIndex) -> frpl.connector_core.data.MiscData:
         return self._read_pre_function(cortical_group, channel)
