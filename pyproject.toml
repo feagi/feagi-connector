@@ -67,7 +67,7 @@ full = [
 "Documentation" = "https://feagi.github.io/feagi_connector"
 
 [tool.setuptools]
-packages = ["feagi_connector"]
+packages = { find = {} }
 
 [tool.isort]
 profile = "black"

@@ -37,7 +37,9 @@ class FeagiSensoryClient:
             context = zmq.Context()
             socket = context.socket(zmq.PUSH)
             socket.setsockopt(zmq.LINGER, 1000)
-            socket.setsockopt(zmq.SNDHWM, 100)
+            # REAL-TIME: HWM=1 ensures only latest sensory data is sent
+            # Old frames are dropped if FEAGI can't keep up (desired for real-time)
+            socket.setsockopt(zmq.SNDHWM, 1)
             socket.setsockopt(zmq.IMMEDIATE, 1)
             socket.setsockopt(zmq.SNDTIMEO, self.timeout * 1000)
 

@@ -23,18 +23,28 @@ class FeagiInterface:
     async def connect_to_neurorobotics_studio(self) -> bool:
         raise NotImplementedError
 
-    async def connect_via_zmq(self, feagi_host_address: str, camera_resolution_xyc: (int, int, int), registration_port: int = 30001, brain_input_port: int = 5555, brain_output_port: int = 30005, heartbeat_interval: float = 5.0) -> dict:
-        # TODO block device registration
-        # TODO check valid heartbeat_interval
-        # TODO actually get device config
+    async def connect_via_zmq(self, feagi_host_address: str, camera_resolution_xyc: (int, int, int), registration_port: int = 30001, sensory_port: int = 5558, heartbeat_interval: float = 5.0) -> dict:
+        """Connect to FEAGI via ZMQ using 2-phase connection.
+        
+        Phase 1: Connect to registration endpoint (well-known port)
+        Phase 2: Create data sockets using ports from registration response
+        
+        Args:
+            feagi_host_address: FEAGI host (e.g., "tcp://localhost")
+            camera_resolution_xyc: Camera resolution (width, height, channels)
+            registration_port: Registration endpoint port (from FEAGI config)
+            sensory_port: Sensory data port (from FEAGI config)
+            heartbeat_interval: Heartbeat interval in seconds
+        
+        Returns:
+            Registration response dict with actual motor/viz ports
+        """
 
+        registration_endpoint: str = feagi_host_address + ":" + str(registration_port)
 
-        registration_endpoint: str = feagi_host_address + ":" +  str(registration_port)
-        brain_input_endpoint: str = feagi_host_address + ":" + str(brain_input_port)
-        brain_output_endpoint: str = feagi_host_address + ":" + str(brain_output_port)
-
-        capabilities: dict = {} # TODO
-
-        self._transport = FeagiZmqClient(registration_endpoint, brain_input_endpoint, brain_output_endpoint)
-        response = await self._transport.send_registration(camera_resolution_xyc)
+        # Phase 1: Connect to registration only
+        self._transport = FeagiZmqClient(registration_endpoint)
+        
+        # Phase 2: Register and get actual ports, then create data sockets
+        response = await self._transport.send_registration(feagi_host_address, camera_resolution_xyc, sensory_port)
         return response

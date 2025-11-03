@@ -15,7 +15,7 @@ class SensorsCacheInterface:
         self.adv_encode_cached_values_to_bytes()
         byte_data: bytes = self.adv_copy_out_encoded_bytes()
 
-        self._interface._transport.push_sensory_data(byte_data)
+        await self._interface._transport.push_sensory_data(byte_data)
 
 
     def adv_encode_cached_values_to_bytes(self) -> None:
